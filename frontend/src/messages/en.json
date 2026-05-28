@@ -1,0 +1,130 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "yes": "Yes",
+    "no": "No",
+    "success": "Success",
+    "submit": "Submit"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "game": "Game",
+    "moderator": "Moderator",
+    "admin": "Admin",
+    "login": "Sign in with Twitch",
+    "logout": "Sign out",
+    "settings": "Settings",
+    "help": "Help"
+  },
+  "auth": {
+    "loginTitle": "Sign in to StreamBingo",
+    "loginDescription": "Sign in with your Twitch account to participate.",
+    "loginButton": "Sign in with Twitch",
+    "logoutSuccess": "Successfully signed out",
+    "error": {
+      "access_denied": "Access denied.",
+      "invalid_state": "Invalid session. Please try again.",
+      "auth_failed": "Sign-in failed. Please try again."
+    }
+  },
+  "bingo": {
+    "title": "Bingo!",
+    "freeSquare": "FREE",
+    "claimBingo": "Claim BINGO!",
+    "numberDrawn": "Number {number} drawn!",
+    "youWon": "🎉 You won!",
+    "alreadyClaimed": "Not a Bingo – check your card.",
+    "gameRunning": "Game running",
+    "gameStopped": "Game stopped",
+    "waitingForGame": "Waiting for game to start...",
+    "noCard": "You don't have a Bingo card yet.",
+    "drawnNumbers": "Drawn Numbers",
+    "winners": "Winners",
+    "position": "Place",
+    "columns": ["B", "I", "N", "G", "O"]
+  },
+  "streamer": {
+    "createGame": "Create New Bingo",
+    "startGame": "Start Game",
+    "stopGame": "Stop Game",
+    "gameTitle": "Game Title",
+    "channelName": "Twitch Channel",
+    "maxWinners": "Number of Winners",
+    "autoStop": "Auto-Stop",
+    "autoStopAt": "Stop at",
+    "autoStopEod": "Stop at midnight daily",
+    "redeems": "Channel Point Redeems",
+    "redeemSelf": "Own Card (Self-Redeem)",
+    "redeemGift": "Gift a Card (Gift-Redeem)",
+    "redeemTitle": "Redeem Title",
+    "redeemCost": "Cost (Channel Points)"
+  },
+  "moderator": {
+    "title": "Moderator Dashboard",
+    "allCards": "All Cards",
+    "sortByName": "Sort by Name",
+    "sortByProximity": "Sort by Bingo Proximity",
+    "proximity": "Missing Cells",
+    "drawNumber": "Draw Number",
+    "removeNumber": "Remove Number",
+    "numberInput": "Enter number (1–75)",
+    "search": "Search player..."
+  },
+  "admin": {
+    "title": "Admin Portal",
+    "stats": "Statistics",
+    "totalUsers": "Total Users",
+    "totalGames": "Total Games",
+    "activeGames": "Active Games",
+    "totalWinners": "Total Winners",
+    "users": "Users",
+    "games": "Games",
+    "settings": "Settings",
+    "auditLog": "Audit Log",
+    "banUser": "Ban User",
+    "unbanUser": "Unban User",
+    "banReason": "Ban Reason",
+    "stopGame": "Stop Game",
+    "maintenance": "Maintenance Mode",
+    "maintenanceEnabled": "Maintenance mode active",
+    "maintenanceMessage": "Maintenance message",
+    "impressum": "Imprint",
+    "privacy": "Privacy Policy",
+    "tokenStatus": "Twitch Token Status"
+  },
+  "setup": {
+    "title": "Set up StreamBingo",
+    "description": "Welcome! Set up StreamBingo in a few steps.",
+    "step1": "Configure Twitch Bot",
+    "step2": "Complete Setup",
+    "botLogin": "Bot Twitch Username",
+    "botToken": "Bot Access Token",
+    "setupToken": "Setup Token (from .env)",
+    "completeSetup": "Complete Setup",
+    "success": "Setup completed successfully!"
+  },
+  "legal": {
+    "impressum": "Imprint",
+    "privacy": "Privacy Policy",
+    "cookieNotice": "This site uses technically necessary cookies.",
+    "cookieAccept": "Got it"
+  },
+  "maintenance": {
+    "title": "Maintenance Mode",
+    "defaultMessage": "StreamBingo is currently under maintenance. Please try again later."
+  },
+  "help": {
+    "title": "Help & Documentation",
+    "redeems": "Setting up Channel Point Redeems",
+    "moderators": "Moderator Guide",
+    "viewers": "Participating as a Viewer",
+    "numbers": "Managing Numbers"
+  }
+}

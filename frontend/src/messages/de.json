@@ -1,0 +1,130 @@
+{
+  "common": {
+    "loading": "Lädt...",
+    "error": "Fehler",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "back": "Zurück",
+    "yes": "Ja",
+    "no": "Nein",
+    "success": "Erfolg",
+    "submit": "Absenden"
+  },
+  "nav": {
+    "home": "Start",
+    "dashboard": "Dashboard",
+    "game": "Spiel",
+    "moderator": "Moderator",
+    "admin": "Admin",
+    "login": "Mit Twitch anmelden",
+    "logout": "Abmelden",
+    "settings": "Einstellungen",
+    "help": "Hilfe"
+  },
+  "auth": {
+    "loginTitle": "Bei StreamBingo anmelden",
+    "loginDescription": "Melde dich mit deinem Twitch-Account an, um teilzunehmen.",
+    "loginButton": "Mit Twitch anmelden",
+    "logoutSuccess": "Erfolgreich abgemeldet",
+    "error": {
+      "access_denied": "Zugriff verweigert.",
+      "invalid_state": "Ungültige Sitzung. Bitte versuche es erneut.",
+      "auth_failed": "Anmeldung fehlgeschlagen. Bitte versuche es erneut."
+    }
+  },
+  "bingo": {
+    "title": "Bingo!",
+    "freeSquare": "FREI",
+    "claimBingo": "BINGO melden!",
+    "numberDrawn": "Zahl {number} wurde gezogen!",
+    "youWon": "🎉 Du hast gewonnen!",
+    "alreadyClaimed": "Kein Bingo – überprüfe deine Karte.",
+    "gameRunning": "Spiel läuft",
+    "gameStopped": "Spiel beendet",
+    "waitingForGame": "Warte auf Spielstart...",
+    "noCard": "Du hast noch keine Bingo-Karte.",
+    "drawnNumbers": "Gezogene Zahlen",
+    "winners": "Gewinner",
+    "position": "Platz",
+    "columns": ["B", "I", "N", "G", "O"]
+  },
+  "streamer": {
+    "createGame": "Neues Bingo erstellen",
+    "startGame": "Spiel starten",
+    "stopGame": "Spiel beenden",
+    "gameTitle": "Spielname",
+    "channelName": "Twitch Channel",
+    "maxWinners": "Anzahl Gewinner",
+    "autoStop": "Auto-Stop",
+    "autoStopAt": "Stop um",
+    "autoStopEod": "Täglich bei Mitternacht stoppen",
+    "redeems": "Channel Point Redeems",
+    "redeemSelf": "Eigene Karte (Self-Redeem)",
+    "redeemGift": "Karte verschenken (Gift-Redeem)",
+    "redeemTitle": "Redeem-Bezeichnung",
+    "redeemCost": "Kosten (Channel Points)"
+  },
+  "moderator": {
+    "title": "Moderator-Dashboard",
+    "allCards": "Alle Karten",
+    "sortByName": "Nach Name sortieren",
+    "sortByProximity": "Nach Bingo-Nähe sortieren",
+    "proximity": "Fehlende Felder",
+    "drawNumber": "Zahl ziehen",
+    "removeNumber": "Zahl entfernen",
+    "numberInput": "Zahl eingeben (1–75)",
+    "search": "Spieler suchen..."
+  },
+  "admin": {
+    "title": "Admin-Portal",
+    "stats": "Statistiken",
+    "totalUsers": "Gesamte Nutzer",
+    "totalGames": "Gesamte Spiele",
+    "activeGames": "Aktive Spiele",
+    "totalWinners": "Gesamte Gewinner",
+    "users": "Nutzer",
+    "games": "Spiele",
+    "settings": "Einstellungen",
+    "auditLog": "Audit-Protokoll",
+    "banUser": "Nutzer sperren",
+    "unbanUser": "Nutzer entsperren",
+    "banReason": "Sperrgrund",
+    "stopGame": "Spiel beenden",
+    "maintenance": "Wartungsmodus",
+    "maintenanceEnabled": "Wartungsmodus aktiviert",
+    "maintenanceMessage": "Wartungsnachricht",
+    "impressum": "Impressum",
+    "privacy": "Datenschutzerklärung",
+    "tokenStatus": "Twitch-Token-Status"
+  },
+  "setup": {
+    "title": "StreamBingo einrichten",
+    "description": "Willkommen! Richte StreamBingo in wenigen Schritten ein.",
+    "step1": "Twitch Bot konfigurieren",
+    "step2": "Setup abschließen",
+    "botLogin": "Bot-Twitch-Benutzername",
+    "botToken": "Bot-Access-Token",
+    "setupToken": "Setup-Token (aus .env)",
+    "completeSetup": "Setup abschließen",
+    "success": "Setup erfolgreich abgeschlossen!"
+  },
+  "legal": {
+    "impressum": "Impressum",
+    "privacy": "Datenschutzerklärung",
+    "cookieNotice": "Diese Seite verwendet technisch notwendige Cookies.",
+    "cookieAccept": "Verstanden"
+  },
+  "maintenance": {
+    "title": "Wartungsmodus",
+    "defaultMessage": "StreamBingo befindet sich derzeit in Wartung. Bitte versuche es später erneut."
+  },
+  "help": {
+    "title": "Hilfe & Dokumentation",
+    "redeems": "Channel Point Redeems einrichten",
+    "moderators": "Moderatoren-Guide",
+    "viewers": "Teilnehmen als Viewer",
+    "numbers": "Zahlen verwalten"
+  }
+}

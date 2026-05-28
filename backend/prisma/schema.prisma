@@ -1,0 +1,241 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum UserRole {
+  VIEWER
+  MODERATOR
+  STREAMER
+  ADMIN
+}
+
+enum GameStatus {
+  CREATED
+  RUNNING
+  STOPPED
+}
+
+enum RedeemType {
+  SELF
+  GIFT
+}
+
+enum AuditAction {
+  USER_BANNED
+  USER_UNBANNED
+  USER_ROLE_CHANGED
+  GAME_STOPPED
+  GAME_CREATED
+  SETTINGS_UPDATED
+  MAINTENANCE_TOGGLED
+  ADMIN_CREATED
+  STREAMER_KICKED
+}
+
+// ============================================================
+// User
+// ============================================================
+
+model User {
+  id              String    @id @default(cuid())
+  twitchId        String    @unique
+  displayName     String
+  profileImageUrl String?
+  email           String?
+  role            UserRole  @default(VIEWER)
+  isBanned        Boolean   @default(false)
+  bannedAt        DateTime?
+  bannedReason    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  sessions        Session[]
+  hostedGames     BingoGame[]     @relation("GameStreamer")
+  bingoCards      BingoCard[]
+  drawnNumbers    DrawnNumber[]
+  winners         Winner[]
+  auditLogs       AuditLog[]      @relation("AuditAdmin")
+
+  @@index([twitchId])
+  @@index([role])
+}
+
+// ============================================================
+// Session
+// ============================================================
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ============================================================
+// BingoGame
+// ============================================================
+
+model BingoGame {
+  id              String     @id @default(cuid())
+  streamerId      String
+  channelName     String     // Twitch channel name
+  title           String     @default("Bingo!")
+  status          GameStatus @default(CREATED)
+  maxWinners      Int        @default(1)
+  autoStopEnabled Boolean    @default(false)
+  autoStopAt      DateTime?  // specific datetime to stop
+  autoStopEod     Boolean    @default(false) // stop at end of day
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  startedAt       DateTime?
+  stoppedAt       DateTime?
+
+  // Relations
+  streamer        User          @relation("GameStreamer", fields: [streamerId], references: [id])
+  cards           BingoCard[]
+  drawnNumbers    DrawnNumber[]
+  winners         Winner[]
+  redeems         Redeem[]
+
+  @@index([streamerId])
+  @@index([status])
+  @@index([channelName])
+}
+
+// ============================================================
+// BingoCard – 5×5 grid, server-generated, immutable after creation
+// ============================================================
+
+model BingoCard {
+  id        String   @id @default(cuid())
+  gameId    String
+  userId    String
+  // JSON: number[][] (5x5), null = free center square
+  grid      Json
+  // JSON: boolean[][] (5x5) – which cells are marked
+  marked    Json     @default("[[false,false,false,false,false],[false,false,false,false,false],[false,false,true,false,false],[false,false,false,false,false],[false,false,false,false,false]]")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  game    BingoGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  winners Winner[]
+
+  @@unique([gameId, userId]) // one card per viewer per game
+  @@index([gameId])
+  @@index([userId])
+}
+
+// ============================================================
+// DrawnNumber
+// ============================================================
+
+model DrawnNumber {
+  id        String   @id @default(cuid())
+  gameId    String
+  number    Int
+  drawnById String?  // User who drew it (mod/streamer), null = IRC command
+  drawnAt   DateTime @default(now())
+
+  game    BingoGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  drawnBy User?     @relation(fields: [drawnById], references: [id])
+
+  @@unique([gameId, number]) // a number can only be drawn once per game
+  @@index([gameId])
+}
+
+// ============================================================
+// Winner
+// ============================================================
+
+model Winner {
+  id         String   @id @default(cuid())
+  gameId     String
+  userId     String
+  cardId     String
+  position   Int      // 1st, 2nd, 3rd etc.
+  claimedVia String   @default("AUTO") // AUTO | CHAT | BUTTON
+  claimedAt  DateTime @default(now())
+
+  game BingoGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card BingoCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, userId])
+  @@index([gameId])
+}
+
+// ============================================================
+// Redeem – Channel Point Redeem configuration
+// ============================================================
+
+model Redeem {
+  id             String     @id @default(cuid())
+  gameId         String
+  twitchRedeemId String?    // Twitch's redeem ID (set after creation)
+  type           RedeemType @default(SELF)
+  title          String
+  cost           Int        @default(100)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  game BingoGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+  @@index([twitchRedeemId])
+}
+
+// ============================================================
+// AdminSetting – key/value store for platform settings
+// ============================================================
+
+model AdminSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   // JSON string or plain text
+  updatedAt DateTime @updatedAt
+  updatedBy String?  // userId
+
+  @@index([key])
+}
+
+// ============================================================
+// AuditLog – admin actions
+// ============================================================
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  adminId    String
+  action     AuditAction
+  targetType String?     // "User" | "BingoGame" | "Setting" etc.
+  targetId   String?
+  metadata   Json?       // additional context
+  createdAt  DateTime    @default(now())
+
+  admin User @relation("AuditAdmin", fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([action])
+  @@index([createdAt])
+}

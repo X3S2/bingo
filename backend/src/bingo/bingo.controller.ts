@@ -1,0 +1,94 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { BingoService } from './bingo.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/guards/roles.guard';
+import { UserRole } from '@prisma/client';
+import { IsString, IsInt, IsOptional, Min, Max, MinLength } from 'class-validator';
+
+class CreateGameDto {
+  @IsString() @MinLength(1) title: string;
+  @IsString() @MinLength(1) channelName: string;
+  @IsInt() @Min(1) @Max(10) @IsOptional() maxWinners?: number;
+}
+
+class DrawNumberDto {
+  @IsInt() @Min(1) @Max(75) number: number;
+}
+
+@Controller('games')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class BingoController {
+  constructor(private bingoService: BingoService) {}
+
+  @Post()
+  @Roles(UserRole.STREAMER)
+  createGame(@Body() dto: CreateGameDto, @Req() req: any) {
+    return this.bingoService.createGame(req.user.id, dto.channelName, dto.title, dto.maxWinners);
+  }
+
+  @Patch(':id/start')
+  @Roles(UserRole.STREAMER)
+  startGame(@Param('id') id: string, @Req() req: any) {
+    return this.bingoService.startGame(id, req.user.id);
+  }
+
+  @Patch(':id/stop')
+  @Roles(UserRole.MODERATOR)
+  stopGame(@Param('id') id: string, @Req() req: any) {
+    return this.bingoService.stopGame(id, req.user.id, req.user.role);
+  }
+
+  @Get(':id')
+  getGame(@Param('id') id: string) {
+    return this.bingoService.getGame(id);
+  }
+
+  @Get(':id/cards')
+  @Roles(UserRole.MODERATOR)
+  getAllCards(@Param('id') id: string) {
+    return this.bingoService.getAllCards(id);
+  }
+
+  @Get(':id/winners')
+  getWinners(@Param('id') id: string) {
+    return this.bingoService.getWinners(id);
+  }
+
+  @Get(':id/my-card')
+  getMyCard(@Param('id') id: string, @Req() req: any) {
+    return this.bingoService.getUserCard(id, req.user.id);
+  }
+
+  @Post(':id/numbers')
+  @Roles(UserRole.MODERATOR)
+  drawNumber(@Param('id') id: string, @Body() dto: DrawNumberDto, @Req() req: any) {
+    return this.bingoService.drawNumber(id, dto.number, req.user.id);
+  }
+
+  @Delete(':id/numbers/:number')
+  @Roles(UserRole.MODERATOR)
+  removeNumber(@Param('id') id: string, @Param('number') number: string) {
+    return this.bingoService.removeNumber(id, parseInt(number, 10));
+  }
+
+  @Post(':id/claim-bingo')
+  claimBingo(@Param('id') id: string, @Req() req: any) {
+    return this.bingoService.claimBingo(id, req.user.id, 'BUTTON');
+  }
+
+  @Post(':id/cards')
+  @Roles(UserRole.STREAMER)
+  createCard(@Param('id') id: string, @Body('userId') userId: string) {
+    return this.bingoService.createCardForUser(id, userId);
+  }
+}
