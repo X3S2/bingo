@@ -87,7 +87,7 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         include: {
           streamer: { select: { displayName: true } },
-          _count: { select: { cards: true, winners: true } },
+          _count: { select: { cards: true, winners: true, drawnNumbers: true } },
         },
       }),
       this.prisma.bingoGame.count(),

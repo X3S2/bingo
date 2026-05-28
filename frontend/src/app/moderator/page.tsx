@@ -1,0 +1,68 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
+import { useQuery } from '@tanstack/react-query';
+import { Navbar } from '@/components/navigation/navbar';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const API = process.env.NEXT_PUBLIC_API_URL!;
+
+/**
+ * /moderator — Finds the currently running game for the configured channel
+ * and redirects the moderator there. Useful as a bookmark target.
+ */
+export default function ModeratorIndexPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !user) router.replace('/login');
+    if (!authLoading && user && !['MODERATOR', 'STREAMER', 'ADMIN'].includes(user.role)) {
+      router.replace('/dashboard');
+    }
+  }, [user, authLoading, router]);
+
+  const { data: games, isLoading: gamesLoading } = useQuery({
+    queryKey: ['my-games'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/games/my-games`, { credentials: 'include' });
+      if (!r.ok) return [];
+      return r.json();
+    },
+    enabled: !!user && ['STREAMER', 'ADMIN'].includes(user?.role ?? ''),
+  });
+
+  // Streamer: redirect to their own running game
+  useEffect(() => {
+    if (!games) return;
+    const running = games.find((g: { status: string; id: string }) => g.status === 'RUNNING');
+    if (running) {
+      router.replace(`/moderator/${running.id}`);
+    }
+  }, [games, router]);
+
+  const isLoading = authLoading || gamesLoading;
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="container mx-auto px-4 py-16 flex flex-col items-center gap-4 text-center">
+        {isLoading ? (
+          <>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold">Moderator-Dashboard</h1>
+            <p className="text-muted-foreground">
+              Kein aktives Spiel gefunden. Bitte navigiere direkt zum Spiel.
+            </p>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}

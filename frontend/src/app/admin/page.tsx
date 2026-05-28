@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAuth } from '@/providers/auth-provider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,8 +16,48 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
+
+const ROLES = ['VIEWER', 'MODERATOR', 'STREAMER', 'ADMIN'] as const;
+
+interface AdminUser {
+  id: string;
+  displayName: string;
+  profileImageUrl?: string;
+  role: string;
+  isBanned: boolean;
+  bannedReason?: string;
+  createdAt: string;
+}
+
+interface AdminGame {
+  id: string;
+  title: string;
+  channelName: string;
+  status: string;
+  createdAt: string;
+  _count?: { cards: number; drawnNumbers: number; winners: number };
+}
+
+interface AuditEntry {
+  id: string;
+  action: string;
+  actorId: string;
+  targetType?: string;
+  targetId?: string;
+  metadata?: unknown;
+  createdAt: string;
+  admin?: { displayName: string };
+}
 
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -39,10 +79,28 @@ export default function AdminPage() {
     enabled: !!user,
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery({
+  const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const r = await fetch(`${API}/admin/users?limit=50`, { credentials: 'include' });
+      const r = await fetch(`${API}/admin/users?limit=100`, { credentials: 'include' });
+      return r.json();
+    },
+    enabled: !!user,
+  });
+
+  const { data: gamesData, isLoading: gamesLoading } = useQuery({
+    queryKey: ['admin-games'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/admin/games?limit=50`, { credentials: 'include' });
+      return r.json();
+    },
+    enabled: !!user,
+  });
+
+  const { data: auditData, isLoading: auditLoading } = useQuery({
+    queryKey: ['admin-audit'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/admin/audit-log?limit=50`, { credentials: 'include' });
       return r.json();
     },
     enabled: !!user,
@@ -60,12 +118,13 @@ export default function AdminPage() {
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
   const [impressumText, setImpressumText] = useState('');
   const [datenschutzText, setDatenschutzText] = useState('');
+  const [userSearch, setUserSearch] = useState('');
 
   useEffect(() => {
     if (settings) {
-      setMaintenanceMsg(settings.find((s: { key: string; value: string }) => s.key === 'maintenance_message')?.value ?? '');
-      setImpressumText(settings.find((s: { key: string; value: string }) => s.key === 'impressum')?.value ?? '');
-      setDatenschutzText(settings.find((s: { key: string; value: string }) => s.key === 'datenschutz')?.value ?? '');
+      setMaintenanceMsg(settings.find((s: { key: string }) => s.key === 'maintenance_message')?.value ?? '');
+      setImpressumText(settings.find((s: { key: string }) => s.key === 'impressum')?.value ?? '');
+      setDatenschutzText(settings.find((s: { key: string }) => s.key === 'datenschutz')?.value ?? '');
     }
   }, [settings]);
 
@@ -81,8 +140,45 @@ export default function AdminPage() {
     onSuccess: () => {
       toast.success('Nutzer aktualisiert');
       void qc.invalidateQueries({ queryKey: ['admin-users'] });
+      void qc.invalidateQueries({ queryKey: ['admin-audit'] });
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const r = await fetch(`${API}/admin/users/${userId}/role`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      if (!r.ok) throw new Error('Failed to change role');
+      return r.json();
+    },
+    onSuccess: (_, { role }) => {
+      toast.success(`Rolle geÃ¤ndert zu ${role}`);
+      void qc.invalidateQueries({ queryKey: ['admin-users'] });
+      void qc.invalidateQueries({ queryKey: ['admin-audit'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const stopGameMutation = useMutation({
+    mutationFn: async (gameId: string) => {
+      const r = await fetch(`${API}/admin/games/${gameId}/stop`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error('Failed to stop game');
+      return r.json();
+    },
+    onSuccess: () => {
+      toast.success('Spiel beendet');
+      void qc.invalidateQueries({ queryKey: ['admin-games'] });
+      void qc.invalidateQueries({ queryKey: ['admin-audit'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const maintenanceMutation = useMutation({
@@ -97,7 +193,7 @@ export default function AdminPage() {
       return r.json();
     },
     onSuccess: () => toast.success('Wartungsmodus aktualisiert'),
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const saveSettingMutation = useMutation({
@@ -115,22 +211,32 @@ export default function AdminPage() {
       toast.success('Gespeichert');
       void qc.invalidateQueries({ queryKey: ['admin-settings'] });
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  const maintenanceEnabled = settings?.find((s: { key: string; value: string }) => s.key === 'maintenance_enabled')?.value === 'true';
+  const maintenanceEnabled = settings?.find((s: { key: string }) => s.key === 'maintenance_enabled')?.value === 'true';
+
+  const users: AdminUser[] = Array.isArray(usersData) ? usersData : usersData?.users ?? [];
+  const games: AdminGame[] = Array.isArray(gamesData) ? gamesData : gamesData?.games ?? [];
+  const auditEntries: AuditEntry[] = Array.isArray(auditData) ? auditData : auditData?.logs ?? [];
+
+  const filteredUsers = users.filter((u) =>
+    u.displayName.toLowerCase().includes(userSearch.toLowerCase()),
+  );
 
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="container mx-auto px-4 py-8 flex flex-col gap-6 max-w-5xl">
-        <h1 className="text-2xl font-bold">⚙️ {t('title')}</h1>
+        <h1 className="text-2xl font-bold">âš™ï¸ {t('title')}</h1>
 
         <Tabs defaultValue="stats">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="stats">{t('stats')}</TabsTrigger>
             <TabsTrigger value="users">{t('users')}</TabsTrigger>
+            <TabsTrigger value="games">{t('games')}</TabsTrigger>
             <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
+            <TabsTrigger value="audit">{t('auditLog')}</TabsTrigger>
           </TabsList>
 
           {/* Stats */}
@@ -145,41 +251,68 @@ export default function AdminPage() {
                 ].map((s) => (
                   <Card key={s.label}>
                     <CardContent className="pt-4">
-                      <p className="text-3xl font-bold">{s.value ?? '–'}</p>
+                      <p className="text-3xl font-bold">{s.value ?? 'â€“'}</p>
                       <p className="text-sm text-muted-foreground">{s.label}</p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-            ) : <p className="text-muted-foreground">Lädt...</p>}
+            ) : <p className="text-muted-foreground">LÃ¤dt...</p>}
           </TabsContent>
 
           {/* Users */}
           <TabsContent value="users" className="mt-4">
-            <div className="flex flex-col gap-2">
-              {usersLoading ? <p>Lädt...</p> : (Array.isArray(users) ? users : users?.data ?? []).map((u: {
-                id: string;
-                displayName: string;
-                profileImageUrl?: string;
-                role: string;
-                isBanned: boolean;
-              }) => (
+            <div className="flex flex-col gap-3">
+              <Input
+                placeholder="Nutzer suchen..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="max-w-xs"
+              />
+              {usersLoading && <p className="text-muted-foreground">LÃ¤dt...</p>}
+              {filteredUsers.map((u) => (
                 <Card key={u.id}>
                   <CardContent className="flex items-center gap-3 py-3 px-4 flex-wrap">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarImage src={u.profileImageUrl} alt={u.displayName} />
                       <AvatarFallback>{u.displayName[0]}</AvatarFallback>
                     </Avatar>
-                    <span className="font-medium text-sm">{u.displayName}</span>
-                    <Badge variant="outline">{u.role}</Badge>
-                    {u.isBanned && <Badge variant="destructive">Gesperrt</Badge>}
-                    <div className="ml-auto flex gap-2">
+                    <span className="font-medium text-sm flex-1 min-w-0 truncate">{u.displayName}</span>
+                    <Badge variant="outline" className="flex-shrink-0">{u.role}</Badge>
+                    {u.isBanned && <Badge variant="destructive" className="flex-shrink-0">Gesperrt</Badge>}
+                    <div className="flex gap-2 flex-wrap ml-auto">
+                      {/* Role change */}
+                      <Select
+                        defaultValue={u.role}
+                        onValueChange={(role) => roleMutation.mutate({ userId: u.id, role })}
+                        disabled={u.id === user?.id}
+                      >
+                        <SelectTrigger className="w-32 h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLES.map((r) => (
+                            <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {/* Ban/unban */}
                       {u.isBanned ? (
-                        <Button size="sm" variant="outline" onClick={() => banMutation.mutate({ userId: u.id, action: 'unban' })}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => banMutation.mutate({ userId: u.id, action: 'unban' })}
+                          disabled={banMutation.isPending}
+                        >
                           {t('unbanUser')}
                         </Button>
                       ) : (
-                        <Button size="sm" variant="destructive" onClick={() => banMutation.mutate({ userId: u.id, action: 'ban' })}>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => banMutation.mutate({ userId: u.id, action: 'ban' })}
+                          disabled={banMutation.isPending || u.id === user?.id}
+                        >
                           {t('banUser')}
                         </Button>
                       )}
@@ -187,6 +320,52 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* Games */}
+          <TabsContent value="games" className="mt-4">
+            <div className="flex flex-col gap-3">
+              {gamesLoading && <p className="text-muted-foreground">LÃ¤dt...</p>}
+              {games.map((g) => (
+                <Card key={g.id}>
+                  <CardContent className="flex items-center gap-3 py-3 px-4 flex-wrap">
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate">{g.title}</span>
+                        <Badge
+                          variant={
+                            g.status === 'RUNNING' ? 'default' : g.status === 'CREATED' ? 'outline' : 'secondary'
+                          }
+                        >
+                          {g.status}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        #{g.channelName} — {g._count?.cards ?? 0} Karten, {g._count?.drawnNumbers ?? 0} Zahlen
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {g.status !== 'STOPPED' && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => stopGameMutation.mutate(g.id)}
+                          disabled={stopGameMutation.isPending}
+                        >
+                          {t('forceStop')}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" asChild>
+                        <a href={`/game/${g.id}`} target="_blank" rel="noreferrer">Ã–ffnen</a>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {games.length === 0 && !gamesLoading && (
+                <p className="text-muted-foreground text-sm">Keine Spiele gefunden.</p>
+              )}
             </div>
           </TabsContent>
 
@@ -210,7 +389,10 @@ export default function AdminPage() {
                     value={maintenanceMsg}
                     onChange={(e) => setMaintenanceMsg(e.target.value)}
                   />
-                  <Button variant="outline" onClick={() => saveSettingMutation.mutate({ key: 'maintenance_message', value: maintenanceMsg })}>
+                  <Button
+                    variant="outline"
+                    onClick={() => saveSettingMutation.mutate({ key: 'maintenance_message', value: maintenanceMsg })}
+                  >
                     Speichern
                   </Button>
                 </div>
@@ -221,8 +403,18 @@ export default function AdminPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">{t('impressum')}</CardTitle></CardHeader>
               <CardContent className="flex flex-col gap-2">
-                <Textarea rows={6} value={impressumText} onChange={(e) => setImpressumText(e.target.value)} placeholder="Impressum HTML/Text..." />
-                <Button variant="outline" onClick={() => saveSettingMutation.mutate({ key: 'impressum', value: impressumText })}>
+                <Textarea
+                  rows={8}
+                  value={impressumText}
+                  onChange={(e) => setImpressumText(e.target.value)}
+                  placeholder="Impressum-Text (Markdown oder Plain-Text)..."
+                  className="font-mono text-xs"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => saveSettingMutation.mutate({ key: 'impressum', value: impressumText })}
+                  disabled={saveSettingMutation.isPending}
+                >
                   Speichern
                 </Button>
               </CardContent>
@@ -232,15 +424,59 @@ export default function AdminPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">{t('privacy')}</CardTitle></CardHeader>
               <CardContent className="flex flex-col gap-2">
-                <Textarea rows={6} value={datenschutzText} onChange={(e) => setDatenschutzText(e.target.value)} placeholder="Datenschutzerklärung HTML/Text..." />
-                <Button variant="outline" onClick={() => saveSettingMutation.mutate({ key: 'datenschutz', value: datenschutzText })}>
+                <Textarea
+                  rows={8}
+                  value={datenschutzText}
+                  onChange={(e) => setDatenschutzText(e.target.value)}
+                  placeholder="DatenschutzerklÃ¤rung (Markdown oder Plain-Text)..."
+                  className="font-mono text-xs"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => saveSettingMutation.mutate({ key: 'datenschutz', value: datenschutzText })}
+                  disabled={saveSettingMutation.isPending}
+                >
                   Speichern
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Audit Log */}
+          <TabsContent value="audit" className="mt-4">
+            <ScrollArea className="h-[600px]">
+              <div className="flex flex-col gap-2 pr-4">
+                {auditLoading && <p className="text-muted-foreground">LÃ¤dt...</p>}
+                {auditEntries.length === 0 && !auditLoading && (
+                  <p className="text-muted-foreground text-sm">{t('noAuditLog')}</p>
+                )}
+                {auditEntries.map((entry) => (
+                  <Card key={entry.id}>
+                    <CardContent className="py-2 px-4 flex items-center gap-3 flex-wrap text-sm">
+                      <Badge variant="outline" className="font-mono text-xs flex-shrink-0">
+                        {entry.action}
+                      </Badge>
+                      <span className="text-muted-foreground flex-shrink-0">
+                        {entry.admin?.displayName ?? entry.actorId?.slice(0, 8) ?? 'â€“'}
+                      </span>
+                      {entry.targetType && (
+                        <span className="text-xs text-muted-foreground">
+                          â†’ {entry.targetType} {entry.targetId?.slice(0, 8)}
+                        </span>
+                      )}
+                      <span className="ml-auto text-xs text-muted-foreground flex-shrink-0">
+                        {new Date(entry.createdAt).toLocaleString('de-DE')}
+                      </span>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </main>
     </div>
   );
 }
+
+

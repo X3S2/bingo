@@ -6,19 +6,24 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Req,
+  HttpCode,
 } from '@nestjs/common';
 import { BingoService } from './bingo.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { UserRole } from '@prisma/client';
-import { IsString, IsInt, IsOptional, Min, Max, MinLength } from 'class-validator';
+import { IsString, IsInt, IsOptional, Min, Max, MinLength, IsBoolean } from 'class-validator';
 
 class CreateGameDto {
   @IsString() @MinLength(1) title: string;
   @IsString() @MinLength(1) channelName: string;
   @IsInt() @Min(1) @Max(10) @IsOptional() maxWinners?: number;
+  @IsBoolean() @IsOptional() autoStopEnabled?: boolean;
+  @IsBoolean() @IsOptional() autoStopEod?: boolean;
+  @IsString() @IsOptional() autoStopAt?: string;
 }
 
 class DrawNumberDto {
@@ -33,7 +38,11 @@ export class BingoController {
   @Post()
   @Roles(UserRole.STREAMER)
   createGame(@Body() dto: CreateGameDto, @Req() req: any) {
-    return this.bingoService.createGame(req.user.id, dto.channelName, dto.title, dto.maxWinners);
+    return this.bingoService.createGame(req.user.id, dto.channelName, dto.title, dto.maxWinners, {
+      autoStopEnabled: dto.autoStopEnabled,
+      autoStopEod: dto.autoStopEod,
+      autoStopAt: dto.autoStopAt,
+    });
   }
 
   @Patch(':id/start')
@@ -46,6 +55,17 @@ export class BingoController {
   @Roles(UserRole.MODERATOR)
   stopGame(@Param('id') id: string, @Req() req: any) {
     return this.bingoService.stopGame(id, req.user.id, req.user.role);
+  }
+
+  @Get('active')
+  getActiveGame(@Query('channel') channel: string) {
+    return this.bingoService.getActiveGameByChannel(channel);
+  }
+
+  @Get('my-games')
+  @Roles(UserRole.STREAMER)
+  getMyGames(@Req() req: any) {
+    return this.bingoService.getGamesByStreamer(req.user.id);
   }
 
   @Get(':id')

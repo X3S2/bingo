@@ -22,9 +22,23 @@ export class BingoService {
 
   // ── Game Management ───────────────────────────────────────
 
-  async createGame(streamerId: string, channelName: string, title: string, maxWinners = 1) {
+  async createGame(
+    streamerId: string,
+    channelName: string,
+    title: string,
+    maxWinners = 1,
+    opts?: { autoStopEnabled?: boolean; autoStopEod?: boolean; autoStopAt?: string },
+  ) {
     return this.prisma.bingoGame.create({
-      data: { streamerId, channelName, title, maxWinners },
+      data: {
+        streamerId,
+        channelName,
+        title,
+        maxWinners,
+        autoStopEnabled: opts?.autoStopEnabled ?? false,
+        autoStopEod: opts?.autoStopEod ?? false,
+        autoStopAt: opts?.autoStopAt ? new Date(opts.autoStopAt) : null,
+      },
     });
   }
 
@@ -61,6 +75,24 @@ export class BingoService {
 
   async getGame(gameId: string) {
     return this.getGameOrThrow(gameId);
+  }
+
+  async getActiveGameByChannel(channelName: string) {
+    if (!channelName) return null;
+    return this.prisma.bingoGame.findFirst({
+      where: { channelName, status: GameStatus.RUNNING },
+      select: { id: true, title: true, channelName: true, status: true, startedAt: true },
+    });
+  }
+
+  async getGamesByStreamer(streamerId: string) {
+    return this.prisma.bingoGame.findMany({
+      where: { streamerId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { cards: true, winners: true, drawnNumbers: true } },
+      },
+    });
   }
 
   async getActiveGameForChannel(channelName: string) {

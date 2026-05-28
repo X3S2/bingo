@@ -1,9 +1,10 @@
 # StreamBingo
 
-A modern, production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
+**v1.0.0** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -93,7 +94,7 @@ On first start, the **Setup Wizard** will guide you through:
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-See [docs/deployment.md](docs/deployment.md) for full NAS setup guide.
+See [docs/deployment-synology.md](docs/deployment-synology.md) for the full Synology NAS setup guide and [docs/twitch-setup.md](docs/twitch-setup.md) for Twitch developer application configuration.
 
 ---
 

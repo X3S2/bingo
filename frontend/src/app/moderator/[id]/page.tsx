@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useAuth } from '@/providers/auth-provider';
 import { useSocket } from '@/providers/socket-provider';
@@ -17,8 +17,40 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Trophy } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
+
+const COLS = ['B', 'I', 'N', 'G', 'O'];
+
+// Calculates how many cells away from bingo (lower = closer to bingo)
+function proximityScore(marked: boolean[][]): number {
+  let best = 999;
+  // rows
+  for (let r = 0; r < 5; r++) {
+    const unmarked = marked[r].filter((v) => !v).length;
+    if (unmarked < best) best = unmarked;
+  }
+  // cols
+  for (let c = 0; c < 5; c++) {
+    const unmarked = marked.map((row) => row[c]).filter((v) => !v).length;
+    if (unmarked < best) best = unmarked;
+  }
+  // diagonal TL-BR
+  const d1 = [0, 1, 2, 3, 4].map((i) => marked[i][i]).filter((v) => !v).length;
+  if (d1 < best) best = d1;
+  // diagonal TR-BL
+  const d2 = [0, 1, 2, 3, 4].map((i) => marked[i][4 - i]).filter((v) => !v).length;
+  if (d2 < best) best = d2;
+  return best;
+}
+
+interface BingoCardMini {
+  id: string;
+  grid: (number | null)[][];
+  marked: boolean[][];
+  user: { id: string; displayName: string; profileImageUrl?: string };
+}
 
 interface ModPage {
   params: Promise<{ id: string }>;
@@ -34,6 +66,7 @@ export default function ModeratorPage({ params }: ModPage) {
   const tb = useTranslations('bingo');
   const [numberInput, setNumberInput] = useState('');
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'proximity' | 'name'>('proximity');
 
   useEffect(() => {
     if (!authLoading && user && !['MODERATOR', 'STREAMER', 'ADMIN'].includes(user.role)) {
@@ -45,28 +78,28 @@ export default function ModeratorPage({ params }: ModPage) {
   const { data: game } = useQuery({
     queryKey: ['game', id],
     queryFn: async () => {
-      const r = await fetch(`${API}/bingo/${id}`, { credentials: 'include' });
+      const r = await fetch(`${API}/games/${id}`, { credentials: 'include' });
       if (!r.ok) throw new Error('Game not found');
       return r.json();
     },
     enabled: !!user,
   });
 
-  const { data: cards } = useQuery({
+  const { data: cards } = useQuery<BingoCardMini[]>({
     queryKey: ['cards', id],
     queryFn: async () => {
-      const r = await fetch(`${API}/bingo/${id}/cards`, { credentials: 'include' });
+      const r = await fetch(`${API}/games/${id}/cards`, { credentials: 'include' });
       if (!r.ok) return [];
       return r.json();
     },
     enabled: !!user,
-    refetchInterval: 10_000,
+    refetchInterval: 15_000,
   });
 
   const { data: winners } = useQuery({
     queryKey: ['winners', id],
     queryFn: async () => {
-      const r = await fetch(`${API}/bingo/${id}/winners`, { credentials: 'include' });
+      const r = await fetch(`${API}/games/${id}/winners`, { credentials: 'include' });
       if (!r.ok) return [];
       return r.json();
     },
@@ -75,37 +108,45 @@ export default function ModeratorPage({ params }: ModPage) {
 
   const drawMutation = useMutation({
     mutationFn: async (number: number) => {
-      const r = await fetch(`${API}/bingo/${id}/numbers`, {
+      const r = await fetch(`${API}/games/${id}/numbers`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ number }),
       });
-      if (!r.ok) throw new Error('Failed to draw number');
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.message || 'Failed to draw number');
+      }
       return r.json();
     },
-    onSuccess: () => {
-      toast.success(`Zahl ${numberInput} gezogen`);
+    onSuccess: (_, number) => {
+      toast.success(`Zahl ${number} gezogen`);
       setNumberInput('');
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['cards', id] });
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const removeMutation = useMutation({
     mutationFn: async (number: number) => {
-      const r = await fetch(`${API}/bingo/${id}/numbers/${number}`, {
+      const r = await fetch(`${API}/games/${id}/numbers/${number}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      if (!r.ok) throw new Error('Failed to remove number');
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.message || 'Failed to remove number');
+      }
     },
     onSuccess: () => {
+      toast.success('Zahl entfernt');
+      setNumberInput('');
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['cards', id] });
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   useEffect(() => {
@@ -129,27 +170,63 @@ export default function ModeratorPage({ params }: ModPage) {
   }, [socket, id, qc]);
 
   const drawnNumbers = (game?.drawnNumbers ?? []).map((d: { number: number }) => d.number);
-  const filteredCards = (cards ?? []).filter((c: { user: { displayName: string } }) =>
-    c.user?.displayName?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const winnerIds = new Set((winners ?? []).map((w: { userId: string }) => w.userId));
+
+  const processedCards = (cards ?? [])
+    .filter((c) => c.user?.displayName?.toLowerCase().includes(search.toLowerCase()))
+    .map((c) => ({
+      ...c,
+      score: proximityScore(c.marked ?? Array(5).fill(Array(5).fill(false))),
+    }))
+    .sort((a, b) =>
+      sortBy === 'proximity' ? a.score - b.score : a.user.displayName.localeCompare(b.user.displayName),
+    );
+
+  const handleDraw = () => {
+    const n = parseInt(numberInput, 10);
+    if (n >= 1 && n <= 75) drawMutation.mutate(n);
+    else toast.error('Zahl muss zwischen 1 und 75 liegen');
+  };
+
+  const handleRemove = () => {
+    const n = parseInt(numberInput, 10);
+    if (n >= 1 && n <= 75) removeMutation.mutate(n);
+    else toast.error('Zahl muss zwischen 1 und 75 liegen');
+  };
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <Skeleton className="h-8 w-64 mb-6" />
+          <Skeleton className="h-24 w-full mb-4" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="container mx-auto px-4 py-6 flex flex-col gap-6">
+        {/* Header */}
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-xl font-bold">{t('title')}</h1>
           {game && (
-            <Badge variant={game.status === 'RUNNING' ? 'default' : 'secondary'}>
-              {game.status === 'RUNNING' ? tb('gameRunning') : tb('gameStopped')}
-            </Badge>
+            <>
+              <Badge variant={game.status === 'RUNNING' ? 'default' : 'secondary'}>
+                {game.status === 'RUNNING' ? tb('gameRunning') : tb('gameStopped')}
+              </Badge>
+              <span className="text-sm text-muted-foreground">{game.title}</span>
+            </>
           )}
         </div>
 
-        {/* Draw / remove number */}
+        {/* Draw / remove panel */}
         <Card>
           <CardHeader><CardTitle className="text-base">{t('drawNumber')}</CardTitle></CardHeader>
-          <CardContent className="flex gap-2">
+          <CardContent className="flex flex-wrap gap-2 items-center">
             <Input
               type="number"
               min={1}
@@ -157,17 +234,15 @@ export default function ModeratorPage({ params }: ModPage) {
               placeholder={t('numberInput')}
               value={numberInput}
               onChange={(e) => setNumberInput(e.target.value)}
-              className="max-w-[140px]"
+              onKeyDown={(e) => e.key === 'Enter' && handleDraw()}
+              className="max-w-[150px]"
             />
-            <Button
-              onClick={() => drawMutation.mutate(parseInt(numberInput, 10))}
-              disabled={!numberInput || drawMutation.isPending}
-            >
+            <Button onClick={handleDraw} disabled={!numberInput || drawMutation.isPending}>
               {t('drawNumber')}
             </Button>
             <Button
               variant="outline"
-              onClick={() => removeMutation.mutate(parseInt(numberInput, 10))}
+              onClick={handleRemove}
               disabled={!numberInput || removeMutation.isPending}
             >
               {t('removeNumber')}
@@ -178,41 +253,98 @@ export default function ModeratorPage({ params }: ModPage) {
         <NumberBoard numbers={drawnNumbers} />
         <WinnerBoard winners={winners ?? []} />
 
-        {/* All cards */}
+        {/* Card grid */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">{t('allCards')} ({filteredCards.length})</h2>
-            <Input
-              placeholder={t('search')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-[200px]"
-            />
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 className="font-semibold">
+              {t('allCards')} ({processedCards.length})
+            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                size="sm"
+                variant={sortBy === 'proximity' ? 'default' : 'outline'}
+                onClick={() => setSortBy('proximity')}
+              >
+                {t('sortByProximity')}
+              </Button>
+              <Button
+                size="sm"
+                variant={sortBy === 'name' ? 'default' : 'outline'}
+                onClick={() => setSortBy('name')}
+              >
+                {t('sortByName')}
+              </Button>
+              <Input
+                placeholder={t('search')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="max-w-[180px]"
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filteredCards.map((c: {
-              id: string;
-              user: { displayName: string; profileImageUrl?: string };
-              proximityScore?: number;
-            }) => (
-              <Card key={c.id} className="overflow-hidden">
-                <CardHeader className="py-2 px-3 flex-row items-center gap-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={c.user.profileImageUrl} alt={c.user.displayName} />
-                    <AvatarFallback>{c.user.displayName[0]}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium truncate">{c.user.displayName}</span>
-                  {c.proximityScore !== undefined && (
-                    <Badge variant="outline" className="ml-auto text-xs">
-                      {t('proximity')}: {c.proximityScore}
-                    </Badge>
-                  )}
-                </CardHeader>
-              </Card>
-            ))}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {processedCards.map((c) => {
+              const isWinner = winnerIds.has(c.user.id);
+              return (
+                <Card
+                  key={c.id}
+                  className={`overflow-hidden transition-colors ${isWinner ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950' : ''}`}
+                >
+                  <CardHeader className="py-2 px-3 flex-row items-center gap-2">
+                    <Avatar className="h-6 w-6 flex-shrink-0">
+                      <AvatarImage src={c.user.profileImageUrl} alt={c.user.displayName} />
+                      <AvatarFallback>{c.user.displayName[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium truncate flex-1">{c.user.displayName}</span>
+                    {isWinner ? (
+                      <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                    ) : (
+                      <Badge variant="outline" className="text-xs flex-shrink-0">
+                        -{c.score}
+                      </Badge>
+                    )}
+                  </CardHeader>
+                  <CardContent className="px-2 pb-2">
+                    {/* Mini 5x5 bingo card */}
+                    <div className="grid grid-cols-5 gap-0.5">
+                      {COLS.map((col) => (
+                        <div key={col} className="text-center text-[9px] font-bold text-muted-foreground py-0.5">
+                          {col}
+                        </div>
+                      ))}
+                      {(c.grid ?? []).flat().map((num, idx) => {
+                        const row = Math.floor(idx / 5);
+                        const col = idx % 5;
+                        const isMarked = c.marked?.[row]?.[col] ?? false;
+                        const isCenter = row === 2 && col === 2;
+                        return (
+                          <div
+                            key={idx}
+                            className={`
+                              aspect-square flex items-center justify-center text-[8px] font-medium rounded-sm
+                              ${isCenter ? 'bg-primary/30 text-primary' : isMarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
+                            `}
+                          >
+                            {isCenter ? 'â˜…' : num ?? ''}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {processedCards.length === 0 && (
+              <p className="text-muted-foreground col-span-full text-center py-8">
+                Keine Karten gefunden.
+              </p>
+            )}
           </div>
         </div>
       </main>
     </div>
   );
 }
+
+

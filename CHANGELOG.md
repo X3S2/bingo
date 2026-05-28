@@ -11,6 +11,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2026-05-28
+
+### Added
+- Production-ready release: StreamBingo v1.0.0
+- Environment validation on startup (validates DATABASE_URL, JWT_SECRET, Twitch credentials, APP_URL)
+- JWT_SECRET length check (≥32 chars) with descriptive error on misconfiguration
+- Comprehensive DSGVO-compliant legal templates: Impressum (TMG §5) and Datenschutzerklärung (Art. 6 DSGVO) with `[PLACEHOLDER]` fields in seed
+- Deployment guide for Synology NAS Container Manager (`docs/deployment-synology.md`)
+- Twitch developer application setup guide (`docs/twitch-setup.md`)
+
+### Changed
+- Legal pages (impressum, datenschutz) use `react-markdown` instead of `dangerouslySetInnerHTML`
+- @tailwindcss/typography plugin added for prose rendering of legal Markdown content
+- Frontend `_count` fields corrected from `bingoCards` to `cards` to match Prisma BingoGame relation
+
+### Fixed
+- Prisma relation name `bingoCards` → `cards` in admin.service.ts and bingo.service.ts
+- Duplicate export default function in game/[id], moderator/[id], admin, and streamer pages
+
+---
+
+## [0.9.0] - 2026-05-28
+
+### Added
+- **Phase 9 – Viewer UX polish**: Socket.IO connection indicator (Wifi/WifiOff), last drawn number badge, toast on `number:drawn`, join game button for RUNNING games, game-stopped Alert
+- **Phase 10 – Moderator card grid**: Mini 5×5 bingo card rendering, proximity score algorithm (min unmarked cells from any bingo line), sort by proximity/name, winner highlighting with Trophy icon and gold border, user search
+- **Phase 11 – Streamer dashboard**: `GET /api/games/my-games` integration, copy game link button, external link, card/draw count stats, auto-fill channelName from user.displayName, redirect to moderator view after game creation
+- **Phase 12 – Admin portal enhancements**: 5-tab layout (Stats, Users, Games, Settings, Audit), role change via Select dropdown, ban/unban buttons, user search, force-stop game, audit log with ScrollArea, maintenance toggle, impressum/datenschutz text editors
+- **Phase 13 – DSGVO legal**: Seed with full German legal templates for Impressum and Datenschutzerklärung
+- **Phase 14 – Production hardening**: Environment variable validation at startup, react-markdown for legal pages, deployment docs
+- Backend: `GET /api/games/active?channel=X` route to fetch running game by channel name
+- Backend: `GET /api/games/my-games` route for streamer's games with `_count`
+- Root moderator page (`/moderator`) redirects streamer/admin to their active game
+
+### Changed
+- Admin `listGames()` includes `_count: { cards, winners, drawnNumbers }`
+- Bingo `getGamesByStreamer()` includes `_count: { cards, winners, drawnNumbers }`
+- BingoController `createGame` passes autoStop options from DTO
+
+---
+
 ## [0.8.0] - 2026-05-28
 
 ### Added
