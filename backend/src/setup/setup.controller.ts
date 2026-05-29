@@ -1,14 +1,17 @@
 import { Controller, Post, Body, ForbiddenException, Get } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { IsString, MinLength } from 'class-validator';
+import { IsString, MinLength, IsOptional } from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 
 class SetupDto {
-  @IsString() setupToken: string;
+  @IsString() adminSetupToken: string;
+  @IsOptional() @IsString() twitchClientId?: string;
+  @IsOptional() @IsString() twitchClientSecret?: string;
   @IsString() @MinLength(1) botLogin: string;
   @IsString() @MinLength(1) botAccessToken: string;
+  @IsOptional() @IsString() botRefreshToken?: string;
 }
 
 @Controller('setup')
@@ -25,7 +28,7 @@ export class SetupController {
       where: { key: 'setup_complete' },
     });
     return {
-      setupComplete: !!isConfigured,
+      setupComplete: isConfigured?.value === 'true',
       hasAdmin: adminExists > 0,
     };
   }
@@ -34,7 +37,7 @@ export class SetupController {
   async runSetup(@Body() dto: SetupDto) {
     // Verify setup token
     const expectedToken = this.config.get<string>('ADMIN_SETUP_TOKEN');
-    if (!expectedToken || dto.setupToken !== expectedToken) {
+    if (!expectedToken || dto.adminSetupToken !== expectedToken) {
       throw new ForbiddenException('Invalid setup token');
     }
 
@@ -42,8 +45,24 @@ export class SetupController {
     const alreadyDone = await this.prisma.adminSetting.findUnique({
       where: { key: 'setup_complete' },
     });
-    if (alreadyDone) {
+    if (alreadyDone?.value === 'true') {
       throw new ForbiddenException('Setup already completed');
+    }
+
+    // Store Twitch app credentials (if provided)
+    if (dto.twitchClientId) {
+      await this.prisma.adminSetting.upsert({
+        where: { key: 'twitch_client_id' },
+        create: { key: 'twitch_client_id', value: dto.twitchClientId },
+        update: { value: dto.twitchClientId },
+      });
+    }
+    if (dto.twitchClientSecret) {
+      await this.prisma.adminSetting.upsert({
+        where: { key: 'twitch_client_secret' },
+        create: { key: 'twitch_client_secret', value: dto.twitchClientSecret },
+        update: { value: dto.twitchClientSecret },
+      });
     }
 
     // Store bot credentials
@@ -58,6 +77,14 @@ export class SetupController {
       create: { key: 'bot_access_token', value: dto.botAccessToken },
       update: { value: dto.botAccessToken },
     });
+
+    if (dto.botRefreshToken) {
+      await this.prisma.adminSetting.upsert({
+        where: { key: 'bot_refresh_token' },
+        create: { key: 'bot_refresh_token', value: dto.botRefreshToken },
+        update: { value: dto.botRefreshToken },
+      });
+    }
 
     // Mark setup as complete
     await this.prisma.adminSetting.upsert({

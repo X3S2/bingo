@@ -1,10 +1,12 @@
 # StreamBingo
 
-**v1.0.0** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
+**v1.0.2** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
+
+> 🇩🇪 [Deutsche Version → README.de.md](README.de.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -40,7 +42,7 @@ All services are containerized with Docker and orchestrated via Docker Compose. 
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 15 (App Router), TypeScript, TailwindCSS 4, shadcn/ui |
+| Frontend | Next.js 16 (App Router, Turbopack), TypeScript, TailwindCSS 4, shadcn/ui |
 | Backend | NestJS 11, TypeScript, Socket.IO |
 | Database | PostgreSQL 17 + Prisma ORM |
 | Cache | Redis 7 |
@@ -122,9 +124,10 @@ See [docs/deployment-synology.md](docs/deployment-synology.md) for the full Syno
 ## Twitch Setup
 
 1. Go to [dev.twitch.tv/console](https://dev.twitch.tv/console) → **Register Your Application**
-2. Set **OAuth Redirect URLs** to `https://yourdomain.com/api/auth/callback/twitch`
-3. Copy **Client ID** and **Client Secret** to `.env`
-4. During first setup, configure EventSub webhooks via the Setup Wizard
+2. Set **OAuth Redirect URLs** to exactly: `https://yourdomain.com/api/auth/callback/twitch`  
+   ⚠️ No trailing slash. For local dev: `http://localhost:4000/api/auth/callback/twitch`
+3. Copy **Client ID** and **Client Secret** — you'll enter them in the Setup Wizard (not `.env`)
+4. Bot credentials: generate an Access Token + Refresh Token via [twitchtokengenerator.com](https://twitchtokengenerator.com)
 
 For Channel Point Redeems:
 - The streamer must partner or affiliate with Twitch

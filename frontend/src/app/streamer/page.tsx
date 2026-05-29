@@ -140,11 +140,16 @@ export default function StreamerPage() {
     });
   };
 
+  if (authLoading || !user || !['STREAMER', 'ADMIN'].includes(user.role)) return null;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="container mx-auto px-4 py-8 flex flex-col gap-8 max-w-3xl">
-        <h1 className="text-2xl font-bold">ðŸŽ¬ Streamer-Verwaltung</h1>
+        <div className="flex items-center gap-4 mb-2">
+          <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Dashboard</a>
+          <h1 className="text-2xl font-bold">🎬 Streamer-Verwaltung</h1>
+        </div>
 
         {/* Create game form */}
         <Card>
@@ -275,7 +280,7 @@ export default function StreamerPage() {
                   <Button size="sm" variant="ghost" onClick={() => copyLink(g.id)} title="Link kopieren">
                     <Copy className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" asChild title="Spiel Ã¶ffnen">
+                  <Button size="sm" variant="ghost" asChild title="Spiel öffnen">
                     <a href={`/game/${g.id}`} target="_blank" rel="noreferrer">
                       <ExternalLink className="w-4 h-4" />
                     </a>

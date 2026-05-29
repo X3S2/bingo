@@ -51,7 +51,7 @@ services:
     networks:
       - streambingo-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ > /dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5

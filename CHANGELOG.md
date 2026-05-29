@@ -11,6 +11,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2026-05-29
+
+### Added
+- **PageToolbar** component (DE/EN language toggle + dark/light mode) on all public pages (home, login, help, setup)
+- **Setup wizard**: explicit Redirect URI hint — users must register `http://<host>/api/auth/callback/twitch` exactly in the Twitch dev console
+- **Help page**: all guide content now fully translated (DE + EN), no more mixed-language display on locale switch
+- **Back button** (← Dashboard) on admin portal, streamer management
+
+### Fixed
+- **Security**: admin portal, streamer page — content is now only rendered after auth check; no more 1-second content flash for unauthenticated visitors
+- **Navbar**: `document.cookie` accessed during SSR caused a `document is not defined` runtime error — moved to `useEffect`
+- **Navbar**: `useTranslations()` called inside an async callback (React Hook rules violation) — extracted to component scope
+- **Navbar**: Twitch login link changed from Next.js `<Link>` to `<a>` to prevent RSC payload fetch to the backend OAuth redirect
+- **Navbar**: StreamBingo logo now links to `/dashboard` when logged in instead of `/`
+- **Auth**: `getTwitchUser()` now reads Client ID from the DB (via setup wizard) instead of the `.env` placeholder — this fixed "Anmeldung fehlgeschlagen" after Twitch OAuth callback
+- **Streamer page**: mojibake encoding corruption fixed (`ðŸŽ¬` → `🎬`, `Ã¶ffnen` → `öffnen`)
+- **Admin page**: mojibake encoding corruption fixed (`âš™ï¸` → `⚙️`, `â€"` → `—`, `â†'` → `→`)
+- **Redirect URI mismatch**: setup wizard step 2 now shows exact required URI with explicit label
+
+### Notes
+- `next-themes` v0.4.6 + React 19 produces a cosmetic console warning ("Encountered a script tag while rendering React component"). This is a known upstream issue — no fix available in current next-themes; warning does not affect functionality
+
+---
+
+## [1.0.1] - 2026-05-29
+
+### Added
+- Setup wizard: DE/EN language toggle (default: German, persisted in cookie)
+- Setup wizard: detailed step-by-step instructions per step with clickable links to dev.twitch.tv/console and twitchtokengenerator.com
+- Setup wizard: Refresh Token field for automatic bot token renewal
+- Setup wizard: `oauth:` prefix normalization (accepted with or without prefix)
+- Twitch IRC bot: replaced `StaticAuthProvider` with `RefreshingAuthProvider` — tokens are renewed automatically and saved to DB
+
+### Fixed
+- nginx: WebSocket proxy for `/_next/webpack-hmr` — React now hydrates correctly through port 4000
+- Setup page: UTF-8 encoding corruption (German umlauts restored)
+- Setup wizard: step 1 was incorrectly showing bot token fields instead of setup token field
+
+### Removed
+- Tanstack Query Devtools panel (no longer shown in any mode)
+- Next.js development indicator (devIndicators disabled)
+
+---
+
 ## [1.0.0] - 2026-05-28
 
 ### Added

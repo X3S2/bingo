@@ -5,6 +5,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  devIndicators: false,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'static-cdn.jtvnw.net' },

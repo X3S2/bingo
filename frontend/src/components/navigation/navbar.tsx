@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/providers/auth-provider';
@@ -18,9 +19,26 @@ import { toast } from 'sonner';
 
 export function Navbar() {
   const t = useTranslations('nav');
+  const tAuth = useTranslations('auth');
   const { user, isLoading, refetch } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+
+  const [locale, setLocale] = useState('de');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const m = document.cookie.match(/locale=([^;]+)/);
+    setLocale(m?.[1] ?? 'de');
+    setMounted(true);
+  }, []);
+
+  const toggleLocale = () => {
+    const next = locale === 'de' ? 'en' : 'de';
+    document.cookie = `locale=${next}; path=/; max-age=31536000`;
+    setLocale(next);
+    window.location.reload();
+  };
 
   const handleLogout = async () => {
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
@@ -28,29 +46,21 @@ export function Navbar() {
       credentials: 'include',
     });
     await refetch();
-    toast.success(useTranslations('auth')('logoutSuccess'));
+    toast.success(tAuth('logoutSuccess'));
     router.push('/');
   };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between mx-auto px-4">
-        <Link href="/" className="font-bold text-xl text-primary">
+        <Link href={user ? '/dashboard' : '/'} className="font-bold text-xl text-primary">
           StreamBingo
         </Link>
 
         <nav className="flex items-center gap-2">
           {/* Language toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const current = document.cookie.match(/locale=([^;]+)/)?.[1] ?? 'de';
-              document.cookie = `locale=${current === 'de' ? 'en' : 'de'}; path=/; max-age=31536000`;
-              window.location.reload();
-            }}
-          >
-            {document.cookie.includes('locale=en') ? '🇩🇪' : '🇬🇧'}
+          <Button variant="ghost" size="sm" onClick={toggleLocale} aria-label="Toggle language">
+            {locale === 'en' ? '🇩🇪' : '🇬🇧'}
           </Button>
 
           {/* Theme toggle */}
@@ -60,7 +70,7 @@ export function Navbar() {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {mounted ? (theme === 'dark' ? '☀️' : '🌙') : '🌙'}
           </Button>
 
           {!isLoading && (
@@ -96,7 +106,7 @@ export function Navbar() {
                 </DropdownMenu>
               ) : (
                 <Button asChild size="sm">
-                  <Link href="/api/auth/twitch">{t('login')}</Link>
+                  <a href="/api/auth/twitch">{t('login')}</a>
                 </Button>
               )}
             </>

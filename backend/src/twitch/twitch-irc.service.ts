@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { BingoService } from '../bingo/bingo.service';
-import { StaticAuthProvider } from '@twurple/auth';
+import { RefreshingAuthProvider } from '@twurple/auth';
 import { ChatClient } from '@twurple/chat';
 import { ApiClient } from '@twurple/api';
 
@@ -18,7 +18,9 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private apiClient: ApiClient | null = null;
   private activeChannels = new Map<string, ActiveChannel>(); // channelName → channel info
   private botToken: string | null = null;
+  private botRefreshToken: string | null = null;
   private clientId: string | null = null;
+  private clientSecret: string | null = null;
 
   constructor(
     private config: ConfigService,
@@ -35,29 +37,66 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async initializeFromSettings() {
-    // Load bot token from AdminSettings (set via Setup Wizard)
-    const botTokenSetting = await this.prisma.adminSetting.findUnique({
-      where: { key: 'bot_access_token' },
-    });
-    const botLoginSetting = await this.prisma.adminSetting.findUnique({
-      where: { key: 'bot_login' },
-    });
+    // Load bot credentials from AdminSettings (set via Setup Wizard)
+    const [botTokenSetting, botRefreshSetting, botLoginSetting, clientSecretSetting] =
+      await Promise.all([
+        this.prisma.adminSetting.findUnique({ where: { key: 'bot_access_token' } }),
+        this.prisma.adminSetting.findUnique({ where: { key: 'bot_refresh_token' } }),
+        this.prisma.adminSetting.findUnique({ where: { key: 'bot_login' } }),
+        this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_secret' } }),
+      ]);
 
     this.clientId = this.config.get<string>('TWITCH_CLIENT_ID') || null;
+    this.clientSecret =
+      clientSecretSetting?.value || this.config.get<string>('TWITCH_CLIENT_SECRET') || null;
 
-    if (!botTokenSetting?.value || !botLoginSetting?.value || !this.clientId) {
+    if (!botTokenSetting?.value || !botLoginSetting?.value || !this.clientId || !this.clientSecret) {
       this.logger.warn('Twitch IRC: Bot credentials not configured. Skipping IRC initialization.');
       return;
     }
 
     this.botToken = botTokenSetting.value;
+    this.botRefreshToken = botRefreshSetting?.value || null;
     await this.connect(botLoginSetting.value);
   }
 
   async connect(botLogin: string) {
-    if (!this.botToken || !this.clientId) return;
+    if (!this.botToken || !this.clientId || !this.clientSecret) return;
 
-    const authProvider = new StaticAuthProvider(this.clientId, this.botToken);
+    const authProvider = new RefreshingAuthProvider({
+      clientId: this.clientId,
+      clientSecret: this.clientSecret,
+    });
+
+    authProvider.onRefresh(async (_userId, newTokenData) => {
+      this.botToken = newTokenData.accessToken;
+      await this.prisma.adminSetting.upsert({
+        where: { key: 'bot_access_token' },
+        create: { key: 'bot_access_token', value: newTokenData.accessToken },
+        update: { value: newTokenData.accessToken },
+      });
+      if (newTokenData.refreshToken) {
+        this.botRefreshToken = newTokenData.refreshToken;
+        await this.prisma.adminSetting.upsert({
+          where: { key: 'bot_refresh_token' },
+          create: { key: 'bot_refresh_token', value: newTokenData.refreshToken },
+          update: { value: newTokenData.refreshToken },
+        });
+      }
+      this.logger.log('Twitch bot token refreshed and saved to DB');
+    });
+
+    await authProvider.addUserForToken(
+      {
+        accessToken: this.botToken,
+        refreshToken: this.botRefreshToken,
+        expiresIn: null,
+        obtainmentTimestamp: 0,
+        scope: ['chat:read', 'chat:edit'],
+      },
+      ['chat'],
+    );
+
     this.apiClient = new ApiClient({ authProvider });
 
     this.chatClient = new ChatClient({

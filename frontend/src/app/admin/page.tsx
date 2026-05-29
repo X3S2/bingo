@@ -157,7 +157,7 @@ export default function AdminPage() {
       return r.json();
     },
     onSuccess: (_, { role }) => {
-      toast.success(`Rolle geÃ¤ndert zu ${role}`);
+      toast.success(`Rolle geändert zu ${role}`);
       void qc.invalidateQueries({ queryKey: ['admin-users'] });
       void qc.invalidateQueries({ queryKey: ['admin-audit'] });
     },
@@ -224,11 +224,16 @@ export default function AdminPage() {
     u.displayName.toLowerCase().includes(userSearch.toLowerCase()),
   );
 
+  if (authLoading || !user || user.role !== 'ADMIN') return null;
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="container mx-auto px-4 py-8 flex flex-col gap-6 max-w-5xl">
-        <h1 className="text-2xl font-bold">âš™ï¸ {t('title')}</h1>
+        <div className="flex items-center gap-4 mb-2">
+          <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Dashboard</a>
+          <h1 className="text-2xl font-bold">⚙️ {t('title')}</h1>
+        </div>
 
         <Tabs defaultValue="stats">
           <TabsList className="flex-wrap h-auto gap-1">
@@ -251,13 +256,13 @@ export default function AdminPage() {
                 ].map((s) => (
                   <Card key={s.label}>
                     <CardContent className="pt-4">
-                      <p className="text-3xl font-bold">{s.value ?? 'â€“'}</p>
+                      <p className="text-3xl font-bold">{s.value ?? '—'}</p>
                       <p className="text-sm text-muted-foreground">{s.label}</p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-            ) : <p className="text-muted-foreground">LÃ¤dt...</p>}
+            ) : <p className="text-muted-foreground">Lädt...</p>}
           </TabsContent>
 
           {/* Users */}
@@ -269,7 +274,7 @@ export default function AdminPage() {
                 onChange={(e) => setUserSearch(e.target.value)}
                 className="max-w-xs"
               />
-              {usersLoading && <p className="text-muted-foreground">LÃ¤dt...</p>}
+              {usersLoading && <p className="text-muted-foreground">Lädt...</p>}
               {filteredUsers.map((u) => (
                 <Card key={u.id}>
                   <CardContent className="flex items-center gap-3 py-3 px-4 flex-wrap">
@@ -326,7 +331,7 @@ export default function AdminPage() {
           {/* Games */}
           <TabsContent value="games" className="mt-4">
             <div className="flex flex-col gap-3">
-              {gamesLoading && <p className="text-muted-foreground">LÃ¤dt...</p>}
+              {gamesLoading && <p className="text-muted-foreground">Lädt...</p>}
               {games.map((g) => (
                 <Card key={g.id}>
                   <CardContent className="flex items-center gap-3 py-3 px-4 flex-wrap">
@@ -357,7 +362,7 @@ export default function AdminPage() {
                         </Button>
                       )}
                       <Button size="sm" variant="ghost" asChild>
-                        <a href={`/game/${g.id}`} target="_blank" rel="noreferrer">Ã–ffnen</a>
+                        <a href={`/game/${g.id}`} target="_blank" rel="noreferrer">Öffnen</a>
                       </Button>
                     </div>
                   </CardContent>
@@ -428,7 +433,7 @@ export default function AdminPage() {
                   rows={8}
                   value={datenschutzText}
                   onChange={(e) => setDatenschutzText(e.target.value)}
-                  placeholder="DatenschutzerklÃ¤rung (Markdown oder Plain-Text)..."
+                  placeholder="Datenschutzerklärung (Markdown oder Plain-Text)..."
                   className="font-mono text-xs"
                 />
                 <Button
@@ -446,7 +451,7 @@ export default function AdminPage() {
           <TabsContent value="audit" className="mt-4">
             <ScrollArea className="h-[600px]">
               <div className="flex flex-col gap-2 pr-4">
-                {auditLoading && <p className="text-muted-foreground">LÃ¤dt...</p>}
+                {auditLoading && <p className="text-muted-foreground">Lädt...</p>}
                 {auditEntries.length === 0 && !auditLoading && (
                   <p className="text-muted-foreground text-sm">{t('noAuditLog')}</p>
                 )}
@@ -457,11 +462,11 @@ export default function AdminPage() {
                         {entry.action}
                       </Badge>
                       <span className="text-muted-foreground flex-shrink-0">
-                        {entry.admin?.displayName ?? entry.actorId?.slice(0, 8) ?? 'â€“'}
+                        {entry.admin?.displayName ?? entry.actorId?.slice(0, 8) ?? '—'}
                       </span>
                       {entry.targetType && (
                         <span className="text-xs text-muted-foreground">
-                          â†’ {entry.targetType} {entry.targetId?.slice(0, 8)}
+                          → {entry.targetType} {entry.targetId?.slice(0, 8)}
                         </span>
                       )}
                       <span className="ml-auto text-xs text-muted-foreground flex-shrink-0">

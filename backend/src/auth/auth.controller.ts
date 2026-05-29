@@ -28,11 +28,11 @@ export class AuthController {
    * Initiate Twitch OAuth – redirect user to Twitch
    */
   @Get('twitch')
-  initiateLogin(@Res() res: Response) {
+  async initiateLogin(@Res() res: Response) {
     const state = crypto.randomBytes(16).toString('hex');
     // Store state with 10-minute expiry
     oauthStates.set(state, Date.now() + 10 * 60 * 1000);
-    const authUrl = this.authService.buildAuthUrl(state);
+    const authUrl = await this.authService.buildAuthUrl(state);
     return res.redirect(authUrl);
   }
 

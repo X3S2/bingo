@@ -82,11 +82,21 @@ export class AuthService {
     return user;
   }
 
+  private async getClientId(): Promise<string> {
+    const setting = await this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_id' } });
+    return setting?.value || this.config.get<string>('TWITCH_CLIENT_ID') || '';
+  }
+
+  private async getClientSecret(): Promise<string> {
+    const setting = await this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_secret' } });
+    return setting?.value || this.config.get<string>('TWITCH_CLIENT_SECRET') || '';
+  }
+
   /**
    * Build the Twitch OAuth authorization URL with PKCE state
    */
-  buildAuthUrl(state: string): string {
-    const clientId = this.config.get<string>('TWITCH_CLIENT_ID');
+  async buildAuthUrl(state: string): Promise<string> {
+    const clientId = await this.getClientId();
     const redirectUri = this.config.get<string>('TWITCH_REDIRECT_URI');
     const scopes = [
       'user:read:email',
@@ -113,8 +123,8 @@ export class AuthService {
    * Exchange authorization code for access token
    */
   async exchangeCode(code: string): Promise<any> {
-    const clientId = this.config.get<string>('TWITCH_CLIENT_ID');
-    const clientSecret = this.config.get<string>('TWITCH_CLIENT_SECRET');
+    const clientId = await this.getClientId();
+    const clientSecret = await this.getClientSecret();
     const redirectUri = this.config.get<string>('TWITCH_REDIRECT_URI');
 
     const response = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -140,7 +150,7 @@ export class AuthService {
    * Get Twitch user info using access token
    */
   async getTwitchUser(accessToken: string): Promise<TwitchUserData> {
-    const clientId = this.config.get<string>('TWITCH_CLIENT_ID');
+    const clientId = await this.getClientId();
 
     const response = await fetch('https://api.twitch.tv/helix/users', {
       headers: {
