@@ -419,12 +419,8 @@ export default function ModeratorPage({ params }: ModPage) {
                       <AvatarFallback>{c.user.displayName[0]}</AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium truncate flex-1">{c.user.displayName}</span>
-                    {isWinner ? (
+                    {isWinner && (
                       <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />
-                    ) : (
-                      <Badge variant="outline" className="text-xs flex-shrink-0">
-                        -{c.score}
-                      </Badge>
                     )}
                   </CardHeader>
                   <CardContent className="px-2 pb-2">
