@@ -82,6 +82,11 @@ export class BingoController {
     return this.bingoService.getGame(id);
   }
 
+  @Get(':id/join-info')
+  getJoinInfo(@Param('id') id: string) {
+    return this.bingoService.getJoinInfo(id);
+  }
+
   @Get(':id/cards')
   @Roles(UserRole.MODERATOR)
   getAllCards(@Param('id') id: string) {

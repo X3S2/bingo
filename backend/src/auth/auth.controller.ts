@@ -27,13 +27,22 @@ export class AuthController {
   /**
    * Initiate Twitch OAuth – redirect user to Twitch
    * Optional ?invite=TOKEN query param embeds invite token into state
+   * Optional ?returnTo=PATH query param redirects after login (relative paths only)
    */
   @Get('twitch')
-  async initiateLogin(@Res() res: Response, @Query('invite') invite?: string) {
+  async initiateLogin(
+    @Res() res: Response,
+    @Query('invite') invite?: string,
+    @Query('returnTo') returnTo?: string,
+  ) {
     const rand = crypto.randomBytes(16).toString('hex');
-    // Embed optional invite token in state: "{rand}:{invite}"
-    const state = invite ? `${rand}:${invite}` : rand;
-    // Store the rand part as the state key with 10-minute expiry
+    const invitePart = invite || '';
+    // Validate returnTo: must be a relative path, no external redirects
+    let returnToPart = '';
+    if (returnTo && returnTo.startsWith('/') && !returnTo.includes('://') && returnTo.length < 200) {
+      returnToPart = encodeURIComponent(returnTo);
+    }
+    const state = [rand, invitePart, returnToPart].join(':');
     oauthStates.set(rand, Date.now() + 10 * 60 * 1000);
     const authUrl = await this.authService.buildAuthUrl(state);
     return res.redirect(authUrl);
@@ -55,8 +64,12 @@ export class AuthController {
       return res.redirect(`${appUrl}/auth/error?reason=access_denied`);
     }
 
-    // Parse state: may be "{rand}:{invite}" or just "{rand}"
-    const [rand, inviteToken] = state.split(':');
+    // Parse state: may be "{rand}", "{rand}:{invite}", or "{rand}:{invite}:{returnTo}"
+    const parts = state.split(':');
+    const rand = parts[0];
+    const inviteToken = parts[1] || '';
+    const returnToEncoded = parts[2] || '';
+    const returnToPath = returnToEncoded ? decodeURIComponent(returnToEncoded) : '';
 
     // Validate state (CSRF protection)
     const expiry = oauthStates.get(rand);
@@ -84,7 +97,8 @@ export class AuthController {
         path: '/',
       });
 
-      return res.redirect(`${appUrl}/dashboard`);
+      const redirectPath = returnToPath && returnToPath.startsWith('/') && !returnToPath.includes('://') ? returnToPath : '/dashboard';
+      return res.redirect(`${appUrl}${redirectPath}`);
     } catch {
       return res.redirect(`${appUrl}/auth/error?reason=auth_failed`);
     }

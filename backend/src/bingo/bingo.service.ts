@@ -107,6 +107,24 @@ export class BingoService {
     return game;
   }
 
+  async getJoinInfo(gameId: string) {
+    const game = await this.prisma.bingoGame.findUnique({
+      where: { id: gameId },
+      select: { channelName: true, streamerId: true, status: true },
+    });
+    if (!game) throw new NotFoundException('Game not found');
+    const settings = await this.twitchReward.getSettings(game.streamerId);
+    return {
+      channelName: game.channelName,
+      status: game.status,
+      selfEnabled: settings.selfEnabled,
+      selfName: settings.selfName,
+      giftEnabled: settings.giftEnabled,
+      giftName: settings.giftName,
+      configured: settings.configured ?? false,
+    };
+  }
+
   async getActiveGameByChannel(channelName: string) {
     if (!channelName) return null;
     return this.prisma.bingoGame.findFirst({

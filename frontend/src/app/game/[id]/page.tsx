@@ -56,8 +56,8 @@ export default function GamePage({ params }: GamePage) {
   }, [saveMarksMutation]);
 
   useEffect(() => {
-    if (!authLoading && !user) router.replace('/login');
-  }, [user, authLoading, router]);
+    if (!authLoading && !user) router.replace(`/login?returnTo=/game/${id}`);
+  }, [user, authLoading, router, id]);
 
   const { data: game, isLoading: gameLoading } = useQuery({
     queryKey: ['game', id],
@@ -87,6 +87,24 @@ export default function GamePage({ params }: GamePage) {
       return r.json();
     },
     enabled: !!user,
+  });
+
+  const { data: joinInfo } = useQuery<{
+    channelName: string;
+    status: string;
+    selfEnabled: boolean;
+    selfName: string;
+    giftEnabled: boolean;
+    giftName: string;
+    configured: boolean;
+  }>({
+    queryKey: ['join-info', id],
+    queryFn: async () => {
+      const r = await fetch(`${API}/games/${id}/join-info`, { credentials: 'include' });
+      if (!r.ok) return null;
+      return r.json();
+    },
+    enabled: !!user && !cardData,
   });
 
   const joinMutation = useMutation({
@@ -292,14 +310,31 @@ export default function GamePage({ params }: GamePage) {
             </p>
           </div>
         ) : game.status === 'RUNNING' ? (
-          <div className="flex flex-col items-center gap-4 py-10 text-center">
-            <p className="text-muted-foreground">{t('noCard')}</p>
-            <Button
-              onClick={() => joinMutation.mutate()}
-              disabled={joinMutation.isPending}
-            >
-              {joinMutation.isPending ? t('waitPlease') : t('joinGame')}
-            </Button>
+          <div className="flex flex-col gap-4 py-8 max-w-md mx-auto w-full">
+            <div className="rounded-lg border bg-muted/40 p-5 flex flex-col gap-3 text-sm">
+              <p className="font-semibold text-base">{t('noCardTitle')}</p>
+              <p className="text-muted-foreground">
+                {t('noCardCpHint1')}{' '}
+                <a
+                  href={`https://www.twitch.tv/${joinInfo?.channelName ?? game.channelName}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-violet-600 dark:text-violet-400 underline underline-offset-2"
+                >
+                  {joinInfo?.channelName ?? game.channelName}
+                </a>
+                {' '}{t('noCardCpHint2')}{' '}
+                <strong className="text-foreground font-mono">{joinInfo?.selfName ?? t('noCardDefaultRewardName')}</strong>
+                {' '}{t('noCardCpHint3')}
+              </p>
+              {joinInfo?.giftEnabled && (
+                <p className="text-muted-foreground">
+                  {t('noCardGiftHint1')}{' '}
+                  <strong className="text-foreground font-mono">{joinInfo.giftName}</strong>
+                  {' '}{t('noCardGiftHint2')}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <p className="text-muted-foreground text-center py-8">{t('noCard')}</p>

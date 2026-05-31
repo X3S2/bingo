@@ -329,19 +329,21 @@ export default function StreamerPage() {
                       />
                     </div>
                   </div>
-                  {cpSettings.giftEnabled && (
-                    <div className="flex flex-col gap-3 rounded-lg border p-3">
-                      <div className="flex items-center gap-3">
-                        <Switch
-                          id="cp-gift-enabled-manual"
-                          checked={cpSettings.giftEnabled}
-                          onCheckedChange={(v) => setCpSettings((s) => ({ ...s, giftEnabled: v }))}
-                        />
-                        <Label htmlFor="cp-gift-enabled-manual" className="cursor-pointer flex items-center gap-1.5">
-                          <Gift className="w-3.5 h-3.5" />
-                          {t('cpGiftReward')}
-                        </Label>
-                      </div>
+                  {/* Gift reward – always visible in manual mode, toggle to enable */}
+                  <div className="flex flex-col gap-3 rounded-lg border p-3">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="cp-gift-enabled-manual"
+                        checked={cpSettings.giftEnabled}
+                        onCheckedChange={(v) => setCpSettings((s) => ({ ...s, giftEnabled: v }))}
+                      />
+                      <Label htmlFor="cp-gift-enabled-manual" className="cursor-pointer flex items-center gap-1.5">
+                        <Gift className="w-3.5 h-3.5" />
+                        {t('cpGiftReward')}
+                        <span className="text-xs text-muted-foreground ml-1">({t('optional')})</span>
+                      </Label>
+                    </div>
+                    {cpSettings.giftEnabled && (
                       <div className="flex flex-col gap-1">
                         <Label htmlFor="cp-gift-name-manual">{t('cpRewardName')}</Label>
                         <Input
@@ -351,8 +353,8 @@ export default function StreamerPage() {
                           maxLength={45}
                         />
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   {/* Step-by-step instructions */}
                   <div className="rounded-md bg-muted p-3 flex flex-col gap-1.5 text-sm text-muted-foreground">
                     <p className="font-medium text-foreground">{t('cpManualHintTitle')}</p>
@@ -363,6 +365,17 @@ export default function StreamerPage() {
                       <li>{t('cpManualStep4')}</li>
                       <li>{t('cpManualStep5')}</li>
                     </ol>
+                    {cpSettings.giftEnabled && (
+                      <div className="mt-2 border-t pt-2">
+                        <p className="font-medium text-foreground text-xs">{t('cpManualGiftHintTitle')}</p>
+                        <ol className="list-decimal list-inside space-y-1 text-xs mt-1">
+                          <li>{t('cpManualStep2')}</li>
+                          <li>{t('cpManualStep3a')} <strong className="font-mono text-foreground">{cpSettings.giftName}</strong> {t('cpManualStep3b')}</li>
+                          <li>{t('cpManualStep4')}</li>
+                          <li>{t('cpManualStep5')}</li>
+                        </ol>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

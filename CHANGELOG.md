@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.3] - 2026-05-31
+
+### Fixed
+- **Login-Weiterleitung** — Nach dem Login über einen Spiellink wird der User nun direkt zum Spiel weitergeleitet statt ins Dashboard. Der Login-Flow unterstützt jetzt `?returnTo=/game/<id>` (nur relative Pfade, CSRF-sicher)
+
+### Added
+- **Game-Page: Channel Points Kaufanleitung** — Viewer ohne Karte sehen jetzt eine klare Anleitung: Link zum Twitch-Chat des Streamers, Name des Self-Rewards, optionaler Hinweis auf den Gift-Reward wenn aktiviert. Der alte "Jetzt mitspielen"-Button wurde entfernt
+- **Backend: `GET /games/:id/join-info`** — Neuer Endpunkt gibt Channel-Infos und Reward-Namen für die Kaufanleitung zurück
+- **Streamer Manuell: Gift-Reward immer sichtbar** — Im Manuell-Modus ist der Gift-Reward-Toggle jetzt immer sichtbar (als optional markiert), auch wenn er noch nicht aktiviert ist. Anleitung enthält auch einen Abschnitt für das Gift-Reward
+- **Git Tags** — Releases werden jetzt als annotierte Git Tags gepusht (v1.1.2, v1.1.3)
+
+### Changed
+- **Game-Page Redirect** — Unauthentifizierte User werden mit `?returnTo` zur Login-Seite geleitet und nach erfolgreichem Login direkt zum Spiel weitergeleitet
+
+---
+
 ## [1.1.2] - 2025-06-01
 
 ### Fixed
