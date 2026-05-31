@@ -11,7 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-06-01
+## [1.1.2] - 2025-06-01
+
+### Fixed
+- **Wartungsmodus-Schalter** — Der Toggle im Admin-Panel hat den Status nun korrekt angezeigt; `invalidateQueries` nach dem Speichern ergänzt + optimistischer lokaler State damit der Schalter sich sofort bewegt
+
+### Changed
+- **Admin: Wartungsmodus** — Statustext jetzt zweisprachig (DE/EN); zeigt "Wartungsmodus aktiv / inaktiv" mit kurzer Erklärung
+- **Streamer: Link-Button** — Der Einladungslink-Button ist nun grün (`bg-green-600`); auf PC-Ansicht wird der Text "Link kopieren / Copy link" ausgeschrieben; auf Mobilgeräten nur Icon
+
+### Added
+- **Streamer: Hilfe-Popup** — Floating `?`-Button (unten rechts, violett) öffnet ein seitliches Sheet-Panel mit einer schrittweisen Anleitung für Streamer (Setup-Assistent → Einstellungen → Channel Points → Spiel starten → Moderieren); vollständig DE + EN übersetzt
+- **Moderator: Chat-Befehle EN** — Chat-Befehlsnamen sind nun in beiden Sprachen verfügbar; i18n-Keys `cmd_zahl_add`, `cmd_zahl_remove`, `cmd_bingo`, `cmd_buycard`, `cmd_zahlen`, `cmd_winners` in DE + EN
+- **i18n** — Neue Schlüssel in `de.json` und `en.json`: Wartungsmodus-Status, Streamer-Hilfe, Link kopieren, Chat-Befehle
+
+---
+
+## [1.1.1] - 2025-05-25
 
 ### Added
 - **Channel Points System** — Streamer können auf Twitch Channel Point Rewards für StreamBingo automatisch verwalten. Zwei Reward-Typen: SELF (Karte für sich selbst einlösen) und GIFT (Karte an einen anderen Viewer verschenken)

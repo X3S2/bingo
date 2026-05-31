@@ -362,14 +362,14 @@ export default function ModeratorPage({ params }: ModPage) {
                   {Object.entries(botCmds).map(([slug, cfg]) => (
                     <div key={slug} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${!cfg.enabled ? 'opacity-40' : ''}`}>
                       <code className="font-mono font-semibold text-primary">{cfg.name}</code>
-                      <span className="text-muted-foreground flex-1">{cfg.label}</span>
+                      <span className="text-muted-foreground flex-1">{t(`cmd_${slug}` as Parameters<typeof t>[0])}</span>
                       <Badge variant="outline" className="text-xs">{cfg.perm}</Badge>
                       {!cfg.enabled && <Badge variant="secondary" className="text-xs">off</Badge>}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Wird geladen...</p>
+                <p className="text-sm text-muted-foreground">{t('loading')}</p>
               )}
             </CardContent>
           )}

@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Users, Hash, Wifi, ChevronDown, ChevronUp, Gift, Zap } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Copy, ExternalLink, Users, Hash, Wifi, ChevronDown, ChevronUp, Gift, Zap, AlertTriangle, HelpCircle } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -32,24 +33,29 @@ interface CpSettings {
   selfName: string;
   selfCost: number;
   selfMaxPerUser: number;
+  selfMaxPerStream: number;
   selfRewardId?: string;
   giftEnabled: boolean;
   giftName: string;
   giftCost: number;
   giftMaxPerUser: number;
+  giftMaxPerStream: number;
   giftRewardId?: string;
+  configured?: boolean;
 }
 
 const DEFAULT_CP: CpSettings = {
-  mode: 'manual',
+  mode: 'auto',
   selfEnabled: true,
   selfName: 'StreamBingoKarte',
   selfCost: 5000,
   selfMaxPerUser: 1,
+  selfMaxPerStream: -1,
   giftEnabled: false,
   giftName: 'StreamBingoKarte verschenken',
   giftCost: 5000,
   giftMaxPerUser: -1,
+  giftMaxPerStream: -1,
 };
 
 export default function StreamerPage() {
@@ -80,6 +86,9 @@ export default function StreamerPage() {
     }
   }, [user, authLoading, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-open settings when user has never created a game
+  // NOTE: must be declared AFTER the useQuery that provides `games`
+
   const { data: games } = useQuery<Game[]>({
     queryKey: ['my-games'],
     queryFn: async () => {
@@ -90,7 +99,13 @@ export default function StreamerPage() {
     enabled: !!user,
   });
 
-  useQuery<CpSettings>({
+  useEffect(() => {
+    if (games !== undefined && games.length === 0) {
+      setCpOpen(true);
+    }
+  }, [games]);
+
+  const { data: cpData } = useQuery<CpSettings>({
     queryKey: ['cp-settings'],
     queryFn: async () => {
       const r = await fetch(`${API}/twitch/rewards/settings`, { credentials: 'include' });
@@ -98,8 +113,11 @@ export default function StreamerPage() {
       return r.json();
     },
     enabled: !!user && ['STREAMER', 'ADMIN'].includes(user?.role ?? ''),
-    onSuccess: (data) => setCpSettings(data),
-  } as any);
+  });
+
+  useEffect(() => {
+    if (cpData) setCpSettings(cpData);
+  }, [cpData]);
 
   const saveCpMutation = useMutation({
     mutationFn: async (settings: CpSettings) => {
@@ -112,7 +130,11 @@ export default function StreamerPage() {
       if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'Fehler'); }
       return r.json();
     },
-    onSuccess: () => { toast.success(t('cpSettingsSaved')); void qc.invalidateQueries({ queryKey: ['cp-settings'] }); },
+    onSuccess: () => {
+      toast.success(t('cpSettingsSaved'));
+      setCpSettings((s) => ({ ...s, configured: true }));
+      void qc.invalidateQueries({ queryKey: ['cp-settings'] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -234,6 +256,13 @@ export default function StreamerPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // True if settings have been saved & rewards are ready (or games already exist)
+  const rewardsConfigured = cpSettings.configured === true || (games?.length ?? 0) > 0;
+  // Draw attention to settings card when first-time user hasn't configured yet
+  const showAttention = !rewardsConfigured && games !== undefined && games.length === 0;
+
+  const [helpOpen, setHelpOpen] = useState(false);
+
   const copyLink = (gameId: string) => {
     const origin = window.location.origin;
     void navigator.clipboard.writeText(`${origin}/game/${gameId}`).then(() => {
@@ -253,15 +282,20 @@ export default function StreamerPage() {
         </div>
 
         {/* Allgemeine Einstellungen – Channel Points */}
-        <Card>
+        <Card className={showAttention ? 'border-amber-500 shadow-amber-500/20 shadow-md' : ''}>
           <CardHeader
             className="py-3 px-4 cursor-pointer select-none"
             onClick={() => setCpOpen((v) => !v)}
           >
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-500" />
+                <Zap className={`w-4 h-4 ${showAttention ? 'text-amber-500 animate-bounce' : 'text-yellow-500'}`} />
                 {t('generalSettings')}
+                {showAttention && (
+                  <span className="text-xs font-normal text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full">
+                    {t('cpSetupNeeded')}
+                  </span>
+                )}
               </CardTitle>
               {cpOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </div>
@@ -281,7 +315,56 @@ export default function StreamerPage() {
               </div>
 
               {cpSettings.mode === 'manual' ? (
-                <p className="text-sm text-muted-foreground bg-muted rounded-md p-3">{t('cpManualHint')}</p>
+                <div className="flex flex-col gap-3">
+                  {/* Name fields so streamer knows exactly what to enter on Twitch */}
+                  <div className="flex flex-col gap-3 rounded-lg border p-3">
+                    <p className="text-sm font-semibold">{t('cpSelfReward')}</p>
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="cp-self-name-manual">{t('cpRewardName')}</Label>
+                      <Input
+                        id="cp-self-name-manual"
+                        value={cpSettings.selfName}
+                        onChange={(e) => setCpSettings((s) => ({ ...s, selfName: e.target.value }))}
+                        maxLength={45}
+                      />
+                    </div>
+                  </div>
+                  {cpSettings.giftEnabled && (
+                    <div className="flex flex-col gap-3 rounded-lg border p-3">
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          id="cp-gift-enabled-manual"
+                          checked={cpSettings.giftEnabled}
+                          onCheckedChange={(v) => setCpSettings((s) => ({ ...s, giftEnabled: v }))}
+                        />
+                        <Label htmlFor="cp-gift-enabled-manual" className="cursor-pointer flex items-center gap-1.5">
+                          <Gift className="w-3.5 h-3.5" />
+                          {t('cpGiftReward')}
+                        </Label>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="cp-gift-name-manual">{t('cpRewardName')}</Label>
+                        <Input
+                          id="cp-gift-name-manual"
+                          value={cpSettings.giftName}
+                          onChange={(e) => setCpSettings((s) => ({ ...s, giftName: e.target.value }))}
+                          maxLength={45}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {/* Step-by-step instructions */}
+                  <div className="rounded-md bg-muted p-3 flex flex-col gap-1.5 text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">{t('cpManualHintTitle')}</p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <li>{t('cpManualStep1')}</li>
+                      <li>{t('cpManualStep2')}</li>
+                      <li>{t('cpManualStep3a')} <strong className="font-mono text-foreground">{cpSettings.selfName}</strong> {t('cpManualStep3b')}</li>
+                      <li>{t('cpManualStep4')}</li>
+                      <li>{t('cpManualStep5')}</li>
+                    </ol>
+                  </div>
+                </div>
               ) : (
                 <>
                   {/* SELF reward settings */}
@@ -308,13 +391,24 @@ export default function StreamerPage() {
                         />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <Label htmlFor="cp-self-max">{t('cpMaxPerUser')}</Label>
+                        <Label htmlFor="cp-self-max-user">{t('cpMaxPerUser')}</Label>
                         <Input
-                          id="cp-self-max"
+                          id="cp-self-max-user"
                           type="number"
                           min={-1}
                           value={cpSettings.selfMaxPerUser}
                           onChange={(e) => setCpSettings((s) => ({ ...s, selfMaxPerUser: parseInt(e.target.value, 10) || -1 }))}
+                        />
+                        <p className="text-xs text-muted-foreground">{t('cpMaxHint')}</p>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="cp-self-max-stream">{t('cpMaxPerStream')}</Label>
+                        <Input
+                          id="cp-self-max-stream"
+                          type="number"
+                          min={-1}
+                          value={cpSettings.selfMaxPerStream}
+                          onChange={(e) => setCpSettings((s) => ({ ...s, selfMaxPerStream: parseInt(e.target.value, 10) || -1 }))}
                         />
                         <p className="text-xs text-muted-foreground">{t('cpMaxHint')}</p>
                       </div>
@@ -359,13 +453,24 @@ export default function StreamerPage() {
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <Label htmlFor="cp-gift-max">{t('cpMaxPerUser')}</Label>
+                          <Label htmlFor="cp-gift-max-user">{t('cpMaxPerUser')}</Label>
                           <Input
-                            id="cp-gift-max"
+                            id="cp-gift-max-user"
                             type="number"
                             min={-1}
                             value={cpSettings.giftMaxPerUser}
                             onChange={(e) => setCpSettings((s) => ({ ...s, giftMaxPerUser: parseInt(e.target.value, 10) || -1 }))}
+                          />
+                          <p className="text-xs text-muted-foreground">{t('cpMaxHint')}</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label htmlFor="cp-gift-max-stream">{t('cpMaxPerStream')}</Label>
+                          <Input
+                            id="cp-gift-max-stream"
+                            type="number"
+                            min={-1}
+                            value={cpSettings.giftMaxPerStream}
+                            onChange={(e) => setCpSettings((s) => ({ ...s, giftMaxPerStream: parseInt(e.target.value, 10) || -1 }))}
                           />
                           <p className="text-xs text-muted-foreground">{t('cpMaxHint')}</p>
                         </div>
@@ -402,7 +507,17 @@ export default function StreamerPage() {
 
         {/* Create game form */}
         <Card>
-          <CardHeader><CardTitle>{t('createGame')}</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center gap-3 flex-wrap">
+              <CardTitle>{t('createGame')}</CardTitle>
+              {!rewardsConfigured && games !== undefined && (
+                <span className="flex items-center gap-1 text-xs text-destructive font-medium">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  {t('cpSettingsRequired')}
+                </span>
+              )}
+            </div>
+          </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
@@ -472,7 +587,7 @@ export default function StreamerPage() {
           <CardFooter>
             <Button
               onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending || !form.channelName}
+              disabled={createMutation.isPending || !form.channelName || !rewardsConfigured}
             >
               {createMutation.isPending ? t('creating') : t('createGame')}
             </Button>
@@ -536,8 +651,9 @@ export default function StreamerPage() {
                       </Button>
                     </>
                   )}
-                  <Button size="sm" variant="ghost" onClick={() => copyLink(g.id)} title="Link kopieren">
-                    <Copy className="w-4 h-4" />
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1.5" onClick={() => copyLink(g.id)} title={t('copyLink')}>
+                    <Copy className="w-4 h-4 flex-shrink-0" />
+                    <span className="hidden sm:inline">{t('copyLink')}</span>
                   </Button>
                   <Button size="sm" variant="ghost" asChild title="Spiel öffnen">
                     <a href={`/game/${g.id}`} target="_blank" rel="noreferrer">
@@ -550,6 +666,49 @@ export default function StreamerPage() {
           ))}
         </div>
       </main>
+
+      {/* Floating help button */}
+      <button
+        onClick={() => setHelpOpen(true)}
+        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg flex items-center justify-center transition-colors"
+        title={t('helpOpen')}
+        aria-label={t('helpOpen')}
+      >
+        <HelpCircle className="w-6 h-6" />
+      </button>
+
+      {/* Help side panel */}
+      <Sheet open={helpOpen} onOpenChange={setHelpOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{t('helpTitle')}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 flex flex-col gap-5 text-sm">
+            <HelpSection step={1} title={t('helpStep1Title')} text={t('helpStep1Text')} />
+            <HelpSection step={2} title={t('helpStep2Title')} text={t('helpStep2Text')} />
+            <HelpSection step={3} title={t('helpStep3Title')} text={t('helpStep3Text')} />
+            <HelpSection step={4} title={t('helpStep4Title')} text={t('helpStep4Text')} />
+            <HelpSection step={5} title={t('helpStep5Title')} text={t('helpStep5Text')} />
+            <div className="mt-2 rounded-md bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-4 py-3 text-muted-foreground text-xs">
+              {t('helpFooter')}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+function HelpSection({ step, title, text }: { step: number; title: string; text: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center text-xs font-bold">
+        {step}
+      </div>
+      <div>
+        <p className="font-semibold mb-0.5">{title}</p>
+        <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{text}</p>
+      </div>
     </div>
   );
 }

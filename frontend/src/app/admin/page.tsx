@@ -87,6 +87,14 @@ export default function AdminPage() {
     if (!authLoading && !user) router.replace('/login');
   }, [user, authLoading, router]);
 
+  const [changelogContent, setChangelogContent] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/CHANGELOG.md')
+      .then((r) => r.text())
+      .then(setChangelogContent)
+      .catch(() => setChangelogContent(null));
+  }, []);
+
   const { data: stats } = useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
@@ -186,6 +194,7 @@ export default function AdminPage() {
   });
 
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
+  const [maintenanceOptimistic, setMaintenanceOptimistic] = useState<boolean | null>(null);
   const [userSearch, setUserSearch] = useState('');
   const [botCreds, setBotCreds] = useState({
     clientId: '', clientSecret: '', botLogin: '', accessToken: '', refreshToken: '',
@@ -317,7 +326,10 @@ export default function AdminPage() {
       if (!r.ok) throw new Error('Failed');
       return r.json();
     },
-    onSuccess: () => toast.success(t('maintenance')),
+    onSuccess: () => {
+      toast.success(t('maintenance'));
+      void qc.invalidateQueries({ queryKey: ['admin-settings'] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -584,7 +596,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const maintenanceEnabled = settings?.find((s: { key: string }) => s.key === 'maintenance_enabled')?.value === 'true';
+  const maintenanceEnabled = maintenanceOptimistic ?? (settings?.find((s: { key: string }) => s.key === 'maintenance_enabled')?.value === 'true');
 
   const users: AdminUser[] = Array.isArray(usersData) ? usersData : usersData?.users ?? [];
   const games: AdminGame[] = Array.isArray(gamesData) ? gamesData : gamesData?.games ?? [];
@@ -1052,13 +1064,23 @@ You have the right to lodge a complaint with a data protection supervisory autho
             <Card>
               <CardHeader><CardTitle className="text-base">{t('maintenance')}</CardTitle></CardHeader>
               <CardContent className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <Switch
                     checked={maintenanceEnabled}
-                    onCheckedChange={(v) => maintenanceMutation.mutate(v)}
+                    onCheckedChange={(v) => {
+                      setMaintenanceOptimistic(v);
+                      maintenanceMutation.mutate(v);
+                    }}
                     id="maintenance"
                   />
-                  <Label htmlFor="maintenance">{t('maintenanceEnabled')}</Label>
+                  <div className="flex flex-col gap-0.5">
+                    <Label htmlFor="maintenance" className="cursor-pointer">
+                      {maintenanceEnabled ? t('maintenanceOn') : t('maintenanceOff')}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {maintenanceEnabled ? t('maintenanceOnDesc') : t('maintenanceOffDesc')}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Input
@@ -1076,21 +1098,17 @@ You have the right to lodge a complaint with a data protection supervisory autho
               </CardContent>
             </Card>
 
-            {/* Version Info */}
+            {/* Version Info & Changelog */}
             <Card>
               <CardHeader><CardTitle className="text-base">ℹ️ {t('versionInfo')}</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge variant="default" className="font-mono text-sm">v1.1.0</Badge>
-                  <span className="text-muted-foreground">2026-06-01</span>
-                </div>
-                <ul className="list-disc list-inside text-muted-foreground space-y-1 text-xs">
-                  <li>Channel Points Rewards System (Auto-Aktivierung bei Spielstart)</li>
-                  <li>Einladungslinks für neue Streamer/Moderatoren</li>
-                  <li>Moderator-Auto-Erkennung via Twitch OAuth</li>
-                  <li>Karten-Markierungen werden serverseitig gespeichert</li>
-                  <li>Moderator-Dashboard: Name inline neben Avatar</li>
-                </ul>
+              <CardContent>
+                {changelogContent ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-sm [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h2]:mb-1.5 [&_h2]:first:mt-0 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:text-muted-foreground [&_h3]:mt-3 [&_h3]:mb-1 [&_ul]:space-y-0.5 [&_li]:text-xs [&_li]:text-muted-foreground [&_strong]:text-foreground [&_strong]:font-medium [&_hr]:my-3">
+                    <ReactMarkdown>{changelogContent}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">CHANGELOG.md nicht gefunden.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

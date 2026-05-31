@@ -29,8 +29,8 @@ services:
   # ============================================================
   streambingo-web:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       target: development
     container_name: streambingo-web
     restart: unless-stopped
@@ -45,6 +45,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
+      - ./CHANGELOG.md:/app/public/CHANGELOG.md:ro
     depends_on:
       streambingo-api:
         condition: service_healthy

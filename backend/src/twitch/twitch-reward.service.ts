@@ -9,26 +9,32 @@ export interface ChannelPointsSettings {
   selfName: string;
   selfCost: number;
   selfMaxPerUser: number; // -1 = unlimited
+  selfMaxPerStream: number; // -1 = unlimited (total redeems per stream, all users)
   selfRewardId?: string;
   giftEnabled: boolean;
   giftName: string;
   giftCost: number;
   giftMaxPerUser: number; // -1 = unlimited
+  giftMaxPerStream: number; // -1 = unlimited
   giftRewardId?: string;
+  configured?: boolean; // true once settings have been saved at least once
 }
 
 const DEFAULT_SETTINGS: ChannelPointsSettings = {
-  mode: 'manual',
+  mode: 'auto',
   selfEnabled: true,
   selfName: 'StreamBingoKarte',
   selfCost: 5000,
   selfMaxPerUser: 1,
+  selfMaxPerStream: -1,
   selfRewardId: undefined,
   giftEnabled: false,
   giftName: 'StreamBingoKarte verschenken',
   giftCost: 5000,
   giftMaxPerUser: -1,
+  giftMaxPerStream: -1,
   giftRewardId: undefined,
+  configured: false,
 };
 
 @Injectable()
@@ -68,8 +74,9 @@ export class TwitchRewardService {
 
   async getSettings(userId: string): Promise<ChannelPointsSettings> {
     const keys = [
-      'mode', 'self_enabled', 'self_name', 'self_cost', 'self_max_per_user', 'self_reward_id',
-      'gift_enabled', 'gift_name', 'gift_cost', 'gift_max_per_user', 'gift_reward_id',
+      'mode', 'self_enabled', 'self_name', 'self_cost', 'self_max_per_user', 'self_max_per_stream', 'self_reward_id',
+      'gift_enabled', 'gift_name', 'gift_cost', 'gift_max_per_user', 'gift_max_per_stream', 'gift_reward_id',
+      'cp_configured',
     ];
     const records = await this.prisma.adminSetting.findMany({
       where: { key: { in: keys.map((k) => this.settingKey(userId, k)) } },
@@ -83,12 +90,15 @@ export class TwitchRewardService {
       selfName: get('self_name') ?? DEFAULT_SETTINGS.selfName,
       selfCost: parseInt(get('self_cost') ?? String(DEFAULT_SETTINGS.selfCost), 10),
       selfMaxPerUser: parseInt(get('self_max_per_user') ?? String(DEFAULT_SETTINGS.selfMaxPerUser), 10),
+      selfMaxPerStream: parseInt(get('self_max_per_stream') ?? String(DEFAULT_SETTINGS.selfMaxPerStream), 10),
       selfRewardId: get('self_reward_id') ?? undefined,
       giftEnabled: (get('gift_enabled') ?? 'false') === 'true',
       giftName: get('gift_name') ?? DEFAULT_SETTINGS.giftName,
       giftCost: parseInt(get('gift_cost') ?? String(DEFAULT_SETTINGS.giftCost), 10),
       giftMaxPerUser: parseInt(get('gift_max_per_user') ?? String(DEFAULT_SETTINGS.giftMaxPerUser), 10),
+      giftMaxPerStream: parseInt(get('gift_max_per_stream') ?? String(DEFAULT_SETTINGS.giftMaxPerStream), 10),
       giftRewardId: get('gift_reward_id') ?? undefined,
+      configured: get('cp_configured') === 'true',
     };
   }
 
@@ -99,12 +109,16 @@ export class TwitchRewardService {
     if (settings.selfName !== undefined) ops.push(this.setSetting(userId, 'self_name', settings.selfName));
     if (settings.selfCost !== undefined) ops.push(this.setSetting(userId, 'self_cost', String(settings.selfCost)));
     if (settings.selfMaxPerUser !== undefined) ops.push(this.setSetting(userId, 'self_max_per_user', String(settings.selfMaxPerUser)));
+    if (settings.selfMaxPerStream !== undefined) ops.push(this.setSetting(userId, 'self_max_per_stream', String(settings.selfMaxPerStream)));
     if (settings.selfRewardId !== undefined) ops.push(this.setSetting(userId, 'self_reward_id', settings.selfRewardId));
     if (settings.giftEnabled !== undefined) ops.push(this.setSetting(userId, 'gift_enabled', String(settings.giftEnabled)));
     if (settings.giftName !== undefined) ops.push(this.setSetting(userId, 'gift_name', settings.giftName));
     if (settings.giftCost !== undefined) ops.push(this.setSetting(userId, 'gift_cost', String(settings.giftCost)));
     if (settings.giftMaxPerUser !== undefined) ops.push(this.setSetting(userId, 'gift_max_per_user', String(settings.giftMaxPerUser)));
+    if (settings.giftMaxPerStream !== undefined) ops.push(this.setSetting(userId, 'gift_max_per_stream', String(settings.giftMaxPerStream)));
     if (settings.giftRewardId !== undefined) ops.push(this.setSetting(userId, 'gift_reward_id', settings.giftRewardId));
+    // Mark settings as configured
+    ops.push(this.setSetting(userId, 'cp_configured', 'true'));
     await Promise.all(ops);
   }
 
@@ -250,6 +264,8 @@ export class TwitchRewardService {
               is_enabled: false,
               is_max_per_user_per_stream_enabled: settings.selfMaxPerUser > 0,
               max_per_user_per_stream: settings.selfMaxPerUser > 0 ? settings.selfMaxPerUser : undefined,
+              is_max_per_stream_enabled: settings.selfMaxPerStream > 0,
+              max_per_stream: settings.selfMaxPerStream > 0 ? settings.selfMaxPerStream : undefined,
               should_redemptions_skip_request_queue: true,
               background_color: '#9147FF',
             });
@@ -289,6 +305,8 @@ export class TwitchRewardService {
               prompt: 'Gib den Twitch-Namen des Empfängers ein (max. 200 Zeichen). Groß-/Kleinschreibung egal.',
               is_max_per_user_per_stream_enabled: settings.giftMaxPerUser > 0,
               max_per_user_per_stream: settings.giftMaxPerUser > 0 ? settings.giftMaxPerUser : undefined,
+              is_max_per_stream_enabled: settings.giftMaxPerStream > 0,
+              max_per_stream: settings.giftMaxPerStream > 0 ? settings.giftMaxPerStream : undefined,
               should_redemptions_skip_request_queue: true,
               background_color: '#9147FF',
             });
