@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { Navbar } from '@/components/navigation/navbar';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -16,6 +17,7 @@ const API = process.env.NEXT_PUBLIC_API_URL!;
 export default function ModeratorIndexPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations('moderator');
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login');
@@ -62,9 +64,9 @@ export default function ModeratorIndexPage() {
             >
               ← Dashboard
             </a>
-            <h1 className="text-2xl font-bold">Moderator-Dashboard</h1>
+            <h1 className="text-2xl font-bold">{t('title')}</h1>
             <p className="text-muted-foreground">
-              Kein aktives Spiel gefunden. Bitte navigiere direkt zum Spiel.
+              {t('noGame')}
             </p>
           </>
         )}

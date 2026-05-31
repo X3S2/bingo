@@ -120,7 +120,7 @@ export default function GamePage({ params }: GamePage) {
       return r.json();
     },
     onSuccess: () => {
-      toast.success('Spiel gestartet!');
+      toast.success(t('gameStarted'));
       void qc.invalidateQueries({ queryKey: ['game', id] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -141,7 +141,7 @@ export default function GamePage({ params }: GamePage) {
 
     socket.on('number:drawn', (data: { number: number }) => {
       setLastDrawnNumber(data.number);
-      toast.info(`🎱 Nummer ${data.number} gezogen!`, { duration: 4000 });
+      toast.info(t('numberDrawnToast', { number: data.number }), { duration: 4000 });
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['card', id] });
     });
@@ -152,12 +152,12 @@ export default function GamePage({ params }: GamePage) {
     socket.on('card:updated', () => void qc.invalidateQueries({ queryKey: ['card', id] }));
     socket.on('winner:added', (data: { user?: { displayName?: string } }) => {
       const name = data?.user?.displayName ?? 'Jemand';
-      toast.success(`ðŸ† ${name} hat BINGO!`, { duration: 6000 });
+      toast.success(`🏆 ${name} hat BINGO!`, { duration: 6000 });
       void qc.invalidateQueries({ queryKey: ['winners', id] });
     });
     socket.on('game:status', (data: { status: string }) => {
       if (data.status === 'STOPPED') {
-        toast.info('Das Spiel wurde beendet.');
+        toast.info(t('gameStoppedAlert'));
       }
       void qc.invalidateQueries({ queryKey: ['game', id] });
     });
@@ -194,7 +194,7 @@ export default function GamePage({ params }: GamePage) {
       <div className="flex flex-col min-h-screen">
         <Navbar />
         <main className="container mx-auto px-4 py-16 text-center text-muted-foreground">
-          Spiel nicht gefunden.
+          {t('gameNotFound')}
         </main>
       </div>
     );
@@ -215,7 +215,7 @@ export default function GamePage({ params }: GamePage) {
             </a>
             <h1 className="text-xl font-bold">{game.title || 'Bingo'}</h1>
             <Badge variant={game.status === 'RUNNING' ? 'default' : game.status === 'CREATED' ? 'outline' : 'secondary'}>
-              {game.status === 'RUNNING' ? t('gameRunning') : game.status === 'CREATED' ? 'Bereit' : t('gameStopped')}
+              {game.status === 'RUNNING' ? t('gameRunning') : game.status === 'CREATED' ? t('gameCreated') : t('gameStopped')}
             </Badge>
             {lastDrawnNumber && game.status === 'RUNNING' && (
               <Badge variant="outline" className="text-lg font-bold px-3">
@@ -231,14 +231,14 @@ export default function GamePage({ params }: GamePage) {
                 onClick={() => startMutation.mutate()}
                 disabled={startMutation.isPending}
               >
-                {startMutation.isPending ? 'Startet...' : '▶ Spiel starten'}
+                {startMutation.isPending ? t('starting') : t('startGame')}
               </Button>
             )}
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               {socketConnected ? (
-                <><Wifi className="w-3 h-3 text-green-500" /> Live</>
+                <><Wifi className="w-3 h-3 text-green-500" /> {t('live')}</>
               ) : (
-                <><WifiOff className="w-3 h-3 text-red-500" /> Getrennt</>
+                <><WifiOff className="w-3 h-3 text-red-500" /> {t('disconnectedLabel')}</>
               )}
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function GamePage({ params }: GamePage) {
         {game.status === 'STOPPED' && (
           <Alert>
             <AlertDescription>
-              Dieses Spiel wurde beendet. Du kannst das Ergebnis noch einsehen.
+              {t('gameStoppedAlert')}
             </AlertDescription>
           </Alert>
         )}
@@ -265,8 +265,8 @@ export default function GamePage({ params }: GamePage) {
         ) : ['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <p className="text-sm text-muted-foreground">
-              Als {user?.role} benötigst du keine eigene Karte.
-              Nutze das <a href={`/moderator/${id}`} className="underline underline-offset-2">Moderator-Dashboard</a> für die Spielverwaltung.
+              {t('nonViewerNote', { role: user?.role ?? '' })}
+              {' '}<a href={`/moderator/${id}`} className="underline underline-offset-2">{t('drawnNumbers')}</a>
             </p>
           </div>
         ) : game.status === 'RUNNING' ? (
@@ -276,7 +276,7 @@ export default function GamePage({ params }: GamePage) {
               onClick={() => joinMutation.mutate()}
               disabled={joinMutation.isPending}
             >
-              {joinMutation.isPending ? 'Bitte warten…' : t('joinGame')}
+              {joinMutation.isPending ? t('waitPlease') : t('joinGame')}
             </Button>
           </div>
         ) : (

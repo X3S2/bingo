@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/providers/auth-provider';
+import { useTranslations } from 'next-intl';
 import { Navbar } from '@/components/navigation/navbar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ const API = process.env.NEXT_PUBLIC_API_URL!;
 export default function GameRedirectPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations('bingo');
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login');
@@ -45,9 +47,9 @@ export default function GameRedirectPage() {
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-bold">Kein aktives Spiel</h1>
+            <h1 className="text-2xl font-bold">{t('noActiveGame')}</h1>
             <p className="text-muted-foreground">
-              Gerade läuft kein Bingo-Spiel. Schau später nochmal rein!
+              {t('noActiveGameDesc')}
             </p>
             <Button variant="outline" onClick={() => router.push('/dashboard')}>
               ← Dashboard

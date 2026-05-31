@@ -152,7 +152,7 @@ export default function ModeratorPage({ params }: ModPage) {
       }
     },
     onSuccess: () => {
-      toast.success('Zahl entfernt');
+      toast.success(t('numberRemoved'));
       setNumberInput('');
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['cards', id] });
@@ -243,12 +243,12 @@ export default function ModeratorPage({ params }: ModPage) {
               {botJoinStatus?.botJoined ? (
                 <>
                   <Wifi className="w-3.5 h-3.5 text-green-500" />
-                  <span className="text-green-600 dark:text-green-400 font-medium">Bot verbunden</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">{t('botJoined')}</span>
                 </>
               ) : (
                 <>
                   <WifiOff className="w-3.5 h-3.5 text-red-400" />
-                  <span className="text-muted-foreground">Bot nicht verbunden</span>
+                  <span className="text-muted-foreground">{t('botNotJoined')}</span>
                 </>
               )}
             </div>

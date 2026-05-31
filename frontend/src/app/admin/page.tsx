@@ -65,6 +65,9 @@ export default function AdminPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useTranslations('admin');
+  const tb = useTranslations('bot');
+  const tbi = useTranslations('bingo');
+  const tc = useTranslations('common');
 
   useEffect(() => {
     if (!authLoading && user && user.role !== 'ADMIN') router.replace('/dashboard');
@@ -128,14 +131,18 @@ export default function AdminPage() {
 
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
   const [impressumText, setImpressumText] = useState('');
+  const [impressumEnText, setImpressumEnText] = useState('');
   const [datenschutzText, setDatenschutzText] = useState('');
+  const [datenschutzEnText, setDatenschutzEnText] = useState('');
   const [userSearch, setUserSearch] = useState('');
 
   useEffect(() => {
     if (settings) {
       setMaintenanceMsg(settings.find((s: { key: string }) => s.key === 'maintenance_message')?.value ?? '');
       setImpressumText(settings.find((s: { key: string }) => s.key === 'impressum')?.value ?? '');
+      setImpressumEnText(settings.find((s: { key: string }) => s.key === 'impressum_en')?.value ?? '');
       setDatenschutzText(settings.find((s: { key: string }) => s.key === 'datenschutz')?.value ?? '');
+      setDatenschutzEnText(settings.find((s: { key: string }) => s.key === 'datenschutz_en')?.value ?? '');
     }
   }, [settings]);
 
@@ -168,7 +175,7 @@ export default function AdminPage() {
       return r.json();
     },
     onSuccess: (_, { role }) => {
-      toast.success(`Rolle geändert zu ${role}`);
+      toast.success(`${t('changeRole')}: ${role}`);
       void qc.invalidateQueries({ queryKey: ['admin-users'] });
       void qc.invalidateQueries({ queryKey: ['admin-audit'] });
     },
@@ -185,7 +192,7 @@ export default function AdminPage() {
       return r.json();
     },
     onSuccess: () => {
-      toast.success('Spiel beendet');
+      toast.success(t('stopGame'));
       void qc.invalidateQueries({ queryKey: ['admin-games'] });
       void qc.invalidateQueries({ queryKey: ['admin-audit'] });
     },
@@ -203,7 +210,7 @@ export default function AdminPage() {
       if (!r.ok) throw new Error('Failed');
       return r.json();
     },
-    onSuccess: () => toast.success('Wartungsmodus aktualisiert'),
+    onSuccess: () => toast.success(t('maintenance')),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -235,7 +242,7 @@ export default function AdminPage() {
       return r.json();
     },
     onSuccess: () => {
-      toast.success('Gespeichert');
+      toast.success(tc('save'));
       void qc.invalidateQueries({ queryKey: ['admin-settings'] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -290,19 +297,19 @@ export default function AdminPage() {
                   </Card>
                 ))}
               </div>
-            ) : <p className="text-muted-foreground">Lädt...</p>}
+            ) : <p className="text-muted-foreground">{tc('loading')}</p>}
           </TabsContent>
 
           {/* Users */}
           <TabsContent value="users" className="mt-4">
             <div className="flex flex-col gap-3">
               <Input
-                placeholder="Nutzer suchen..."
+                placeholder={t('searchUsers')}
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 className="max-w-xs"
               />
-              {usersLoading && <p className="text-muted-foreground">Lädt...</p>}
+              {usersLoading && <p className="text-muted-foreground">{tc('loading')}</p>}
               {filteredUsers.map((u) => (
                 <Card key={u.id}>
                   <CardContent className="flex items-center gap-3 py-3 px-4 flex-wrap">
@@ -312,7 +319,7 @@ export default function AdminPage() {
                     </Avatar>
                     <span className="font-medium text-sm flex-1 min-w-0 truncate">{u.displayName}</span>
                     <Badge variant="outline" className="flex-shrink-0">{u.role}</Badge>
-                    {u.isBanned && <Badge variant="destructive" className="flex-shrink-0">Gesperrt</Badge>}
+                    {u.isBanned && <Badge variant="destructive" className="flex-shrink-0">{t('banned')}</Badge>}
                     <div className="flex gap-2 flex-wrap ml-auto">
                       {/* Role change */}
                       <Select
@@ -359,7 +366,7 @@ export default function AdminPage() {
           {/* Games */}
           <TabsContent value="games" className="mt-4">
             <div className="flex flex-col gap-3">
-              {gamesLoading && <p className="text-muted-foreground">Lädt...</p>}
+              {gamesLoading && <p className="text-muted-foreground">{tc('loading')}</p>}
               {games.map((g) => (
                 <Card key={g.id}>
                   <CardContent className="flex items-center gap-3 py-3 px-4 flex-wrap">
@@ -371,11 +378,11 @@ export default function AdminPage() {
                             g.status === 'RUNNING' ? 'default' : g.status === 'CREATED' ? 'outline' : 'secondary'
                           }
                         >
-                          {g.status}
+                          {g.status === 'RUNNING' ? tbi('gameRunning') : g.status === 'CREATED' ? tbi('gameCreated') : tbi('gameStopped')}
                         </Badge>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        #{g.channelName} — {g._count?.cards ?? 0} Karten, {g._count?.drawnNumbers ?? 0} Zahlen
+                        #{g.channelName} — {g._count?.cards ?? 0} {t('cards')}, {g._count?.drawnNumbers ?? 0} {t('numbers')}
                       </span>
                     </div>
                     <div className="flex gap-2">
@@ -390,14 +397,14 @@ export default function AdminPage() {
                         </Button>
                       )}
                       <Button size="sm" variant="ghost" asChild>
-                        <a href={`/game/${g.id}`} target="_blank" rel="noreferrer">Öffnen</a>
+                        <a href={`/game/${g.id}`} target="_blank" rel="noreferrer">{t('openGame')}</a>
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
               {games.length === 0 && !gamesLoading && (
-                <p className="text-muted-foreground text-sm">Keine Spiele gefunden.</p>
+                <p className="text-muted-foreground text-sm">{t('noGames')}</p>
               )}
             </div>
           </TabsContent>
@@ -408,12 +415,12 @@ export default function AdminPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  🤖 Bot-Status
+                  🤖 {tb('status')}
                   <Button size="sm" variant="ghost" onClick={() => void refetchBotStatus()} className="ml-auto h-7 px-2">
                     <RefreshCw className="w-3 h-3" />
                   </Button>
                 </CardTitle>
-                <CardDescription>Verbindungsstatus des Twitch IRC Bots</CardDescription>
+                <CardDescription>{tb('connectionStatus')}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
                 {botStatus ? (
@@ -422,30 +429,30 @@ export default function AdminPage() {
                       {botStatus.connected
                         ? <Wifi className="w-4 h-4 text-green-500" />
                         : <WifiOff className="w-4 h-4 text-red-500" />}
-                      <span className="font-medium">IRC:</span>
+                      <span className="font-medium">{tb('irc')}</span>
                       <Badge variant={botStatus.connected ? 'default' : 'destructive'} className="text-xs">
-                        {botStatus.connected ? 'Verbunden' : 'Getrennt'}
+                        {botStatus.connected ? tb('connected') : tb('disconnected')}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2">
                       {botStatus.tokenValid
                         ? <ShieldCheck className="w-4 h-4 text-green-500" />
                         : <ShieldX className="w-4 h-4 text-red-500" />}
-                      <span className="font-medium">Token:</span>
+                      <span className="font-medium">{tb('token')}</span>
                       <Badge variant={botStatus.tokenValid ? 'default' : 'destructive'} className="text-xs">
-                        {botStatus.tokenValid ? 'Gültig' : 'Ungültig'}
+                        {botStatus.tokenValid ? tb('valid') : tb('invalid')}
                       </Badge>
                     </div>
                     {botStatus.botLogin && (
                       <div className="col-span-2 text-muted-foreground">
-                        Bot-Login: <span className="font-mono font-medium text-foreground">@{botStatus.botLogin}</span>
+                        {tb('botLogin')} <span className="font-mono font-medium text-foreground">@{botStatus.botLogin}</span>
                       </div>
                     )}
                     {botStatus.tokenValid && botStatus.tokenExpiresIn != null && (
                       <div className="col-span-2 text-muted-foreground">
-                        Token gültig noch:{' '}
+                        {tb('expiresIn')}{' '}
                         {botStatus.tokenExpiresIn <= 0 ? (
-                          <span className="font-medium text-yellow-600 dark:text-yellow-400">Läuft bald ab / wird erneuert</span>
+                          <span className="font-medium text-yellow-600 dark:text-yellow-400">{tb('expiringSoon')}</span>
                         ) : botStatus.tokenExpiresIn < 3600 ? (
                           <span className="font-medium text-yellow-600 dark:text-yellow-400">
                             {Math.floor(botStatus.tokenExpiresIn / 60)}min
@@ -459,22 +466,22 @@ export default function AdminPage() {
                     )}
                     {botStatus.lastRefreshedAt && (
                       <div className="col-span-2 text-muted-foreground">
-                        Letzter Refresh: <span className="font-medium text-foreground">
+                        {tb('lastRefresh')} <span className="font-medium text-foreground">
                           {new Date(botStatus.lastRefreshedAt).toLocaleString('de-DE')}
                         </span>
                       </div>
                     )}
                     <div className="col-span-2 text-muted-foreground">
-                      Gejoinnte Channels:{' '}
+                      {tb('joinedChannels')}{' '}
                       {botStatus.joinedChannels?.length > 0
                         ? botStatus.joinedChannels.map((ch: string) => (
                             <span key={ch} className="font-mono font-medium text-foreground mr-2">#{ch}</span>
                           ))
-                        : <span className="text-muted-foreground italic">Keine</span>}
+                        : <span className="text-muted-foreground italic">{tb('noChannels')}</span>}
                     </div>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-sm">Lädt...</p>
+                  <p className="text-muted-foreground text-sm">{tc('loading')}</p>
                 )}
                 <Button
                   variant="outline"
@@ -484,7 +491,7 @@ export default function AdminPage() {
                   disabled={botRefreshMutation.isPending}
                 >
                   <RefreshCw className="w-3 h-3 mr-2" />
-                  {botRefreshMutation.isPending ? 'Wird aktualisiert...' : 'Token manuell refreshen'}
+                  {botRefreshMutation.isPending ? tb('refreshing') : tb('manualRefresh')}
                 </Button>
               </CardContent>
             </Card>
@@ -492,8 +499,8 @@ export default function AdminPage() {
             {/* Chat Commands */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">💬 Chat-Befehle</CardTitle>
-                <CardDescription>Alle verfügbaren IRC-Befehle im Twitch-Chat</CardDescription>
+                <CardTitle className="text-base">💬 {tb('chatCommands')}</CardTitle>
+                <CardDescription>{tb('chatCommandsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-3">
@@ -588,7 +595,28 @@ export default function AdminPage() {
                   onClick={() => saveSettingMutation.mutate({ key: 'impressum', value: impressumText })}
                   disabled={saveSettingMutation.isPending}
                 >
-                  Speichern
+                  {tc('save')}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Impressum EN */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t('impressumEN')}</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <Textarea
+                  rows={8}
+                  value={impressumEnText}
+                  onChange={(e) => setImpressumEnText(e.target.value)}
+                  placeholder="Imprint text (Markdown or plain text)..."
+                  className="font-mono text-xs"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => saveSettingMutation.mutate({ key: 'impressum_en', value: impressumEnText })}
+                  disabled={saveSettingMutation.isPending}
+                >
+                  {tc('save')}
                 </Button>
               </CardContent>
             </Card>
@@ -609,7 +637,28 @@ export default function AdminPage() {
                   onClick={() => saveSettingMutation.mutate({ key: 'datenschutz', value: datenschutzText })}
                   disabled={saveSettingMutation.isPending}
                 >
-                  Speichern
+                  {tc('save')}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Datenschutz EN */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t('privacyEN')}</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <Textarea
+                  rows={8}
+                  value={datenschutzEnText}
+                  onChange={(e) => setDatenschutzEnText(e.target.value)}
+                  placeholder="Privacy Policy (Markdown or plain text)..."
+                  className="font-mono text-xs"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => saveSettingMutation.mutate({ key: 'datenschutz_en', value: datenschutzEnText })}
+                  disabled={saveSettingMutation.isPending}
+                >
+                  {tc('save')}
                 </Button>
               </CardContent>
             </Card>
@@ -619,7 +668,7 @@ export default function AdminPage() {
           <TabsContent value="audit" className="mt-4">
             <ScrollArea className="h-[600px]">
               <div className="flex flex-col gap-2 pr-4">
-                {auditLoading && <p className="text-muted-foreground">Lädt...</p>}
+                {auditLoading && <p className="text-muted-foreground">{tc('loading')}</p>}
                 {auditEntries.length === 0 && !auditLoading && (
                   <p className="text-muted-foreground text-sm">{t('noAuditLog')}</p>
                 )}

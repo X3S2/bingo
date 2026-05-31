@@ -37,8 +37,8 @@ export default function StreamerPage() {
     title: '',
     channelName: '',
     maxWinners: 3,
-    autoStopEnabled: false,
-    autoStopEod: false,
+    autoStopEnabled: true,
+    autoStopEod: true,
     autoStopAt: '',
   });
 
@@ -148,7 +148,7 @@ export default function StreamerPage() {
       <main className="container mx-auto px-4 py-8 flex flex-col gap-8 max-w-3xl">
         <div className="flex items-center gap-4 mb-2">
           <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Dashboard</a>
-          <h1 className="text-2xl font-bold">🎬 Streamer-Verwaltung</h1>
+          <h1 className="text-2xl font-bold">🎦 {t('title')}</h1>
         </div>
 
         {/* Create game form */}
@@ -193,7 +193,7 @@ export default function StreamerPage() {
                     onCheckedChange={(v) => setForm({ ...form, autoStopEnabled: v })}
                     id="autoStop"
                   />
-                  <span className="text-sm text-muted-foreground">aktivieren</span>
+                  <span className="text-sm text-muted-foreground">{t('enable')}</span>
                 </div>
               </div>
             </div>
@@ -224,16 +224,16 @@ export default function StreamerPage() {
               onClick={() => createMutation.mutate()}
               disabled={createMutation.isPending || !form.channelName}
             >
-              {createMutation.isPending ? 'Erstelle...' : t('createGame')}
+              {createMutation.isPending ? t('creating') : t('createGame')}
             </Button>
           </CardFooter>
         </Card>
 
         {/* Game list */}
         <div className="flex flex-col gap-3">
-          <h2 className="font-semibold text-lg">Meine Spiele</h2>
+          <h2 className="font-semibold text-lg">{t('myGames')}</h2>
           {(games ?? []).length === 0 && (
-            <p className="text-muted-foreground text-sm">Noch keine Spiele erstellt.</p>
+            <p className="text-muted-foreground text-sm">{t('noGames')}</p>
           )}
           {(games ?? []).map((g) => (
             <Card key={g.id}>
@@ -246,13 +246,13 @@ export default function StreamerPage() {
                         g.status === 'RUNNING' ? 'default' : g.status === 'CREATED' ? 'outline' : 'secondary'
                       }
                     >
-                      {g.status === 'RUNNING' ? tb('gameRunning') : g.status === 'CREATED' ? 'Erstellt' : tb('gameStopped')}
+                      {g.status === 'RUNNING' ? tb('gameRunning') : g.status === 'CREATED' ? tb('gameCreated') : tb('gameStopped')}
                     </Badge>
                   </div>
                   {g._count && (
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{g._count.cards} Karten</span>
-                      <span className="flex items-center gap-1"><Hash className="w-3 h-3" />{g._count.drawnNumbers} Zahlen</span>
+                      <span className="flex items-center gap-1"><Users className="w-3 h-3" />{g._count.cards} {t('cards')}</span>
+                      <span className="flex items-center gap-1"><Hash className="w-3 h-3" />{g._count.drawnNumbers} {t('numbers')}</span>
                     </div>
                   )}
                 </div>
@@ -265,7 +265,7 @@ export default function StreamerPage() {
                   {g.status === 'RUNNING' && (
                     <>
                       <Button size="sm" variant="outline" asChild>
-                        <a href={`/moderator/${g.id}`}>Moderieren</a>
+                        <a href={`/moderator/${g.id}`}>{t('moderate')}</a>
                       </Button>
                       <Button
                         size="sm"
