@@ -300,7 +300,7 @@ export class BingoService {
     return this.prisma.winner.findMany({
       where: { gameId },
       orderBy: { position: 'asc' },
-      include: { user: { select: { displayName: true, profileImageUrl: true } } },
+      include: { user: { select: { id: true, displayName: true, profileImageUrl: true } } },
     });
   }
 
