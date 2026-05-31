@@ -230,6 +230,22 @@ export default function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const botReconnectMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`${API}/admin/bot-reconnect`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error('Reconnect fehlgeschlagen');
+      return r.json();
+    },
+    onSuccess: (data) => {
+      toast.success(data.message ?? 'Reconnect gestartet');
+      setTimeout(() => void refetchBotStatus(), 2000);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const saveSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       const r = await fetch(`${API}/admin/settings/${key}`, {
@@ -483,16 +499,28 @@ export default function AdminPage() {
                 ) : (
                   <p className="text-muted-foreground text-sm">{tc('loading')}</p>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-fit"
-                  onClick={() => botRefreshMutation.mutate()}
-                  disabled={botRefreshMutation.isPending}
-                >
-                  <RefreshCw className="w-3 h-3 mr-2" />
-                  {botRefreshMutation.isPending ? tb('refreshing') : tb('manualRefresh')}
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    onClick={() => botRefreshMutation.mutate()}
+                    disabled={botRefreshMutation.isPending}
+                  >
+                    <RefreshCw className="w-3 h-3 mr-2" />
+                    {botRefreshMutation.isPending ? tb('refreshing') : tb('manualRefresh')}
+                  </Button>
+                  <Button
+                    variant={botStatus?.connected ? 'outline' : 'default'}
+                    size="sm"
+                    className="w-fit"
+                    onClick={() => botReconnectMutation.mutate()}
+                    disabled={botReconnectMutation.isPending || botStatus?.connected}
+                  >
+                    <Wifi className="w-3 h-3 mr-2" />
+                    {botReconnectMutation.isPending ? tb('reconnecting') : tb('reconnect')}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 

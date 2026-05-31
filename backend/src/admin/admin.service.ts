@@ -163,6 +163,10 @@ export class AdminService {
     return this.twitchIrc.forceRefreshToken(adminId);
   }
 
+  async reconnectBot() {
+    return this.twitchIrc.reconnect();
+  }
+
   // ── Audit Log ──────────────────────────────────────────────
 
   async getAuditLog(page = 1, limit = 50) {

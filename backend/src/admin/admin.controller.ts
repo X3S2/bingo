@@ -113,6 +113,12 @@ export class AdminController {
     return this.adminService.refreshBotToken(req.user.id);
   }
 
+  @Post('bot-reconnect')
+  @HttpCode(200)
+  reconnectBot() {
+    return this.adminService.reconnectBot();
+  }
+
   @Get('audit-log')
   getAuditLog(@Query('page') page = '1', @Query('limit') limit = '50') {
     return this.adminService.getAuditLog(+page, +limit);

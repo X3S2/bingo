@@ -34,6 +34,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private clientSecret: string | null = null;
   private botLogin: string | null = null;
   private lastRefreshedAt: Date | null = null;
+  private _connected = false;
 
   constructor(
     private config: ConfigService,
@@ -143,14 +144,17 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.chatClient.onConnect(() => {
+      this._connected = true;
       this.logger.log('Twitch IRC connected');
     });
 
     this.chatClient.onDisconnect((manually, reason) => {
+      this._connected = false;
       this.logger.warn(`Twitch IRC disconnected (manual: ${manually}): ${reason?.message}`);
     });
 
     await this.chatClient.connect();
+    this._connected = true;
 
     // Rejoin active game channels
     for (const [channelName] of this.activeChannels) {
@@ -176,7 +180,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   async getBotStatus(): Promise<BotStatus> {
     const tokenInfo = await this.validateToken();
     return {
-      connected: this.chatClient?.isConnected ?? false,
+      connected: this._connected,
       botLogin: this.botLogin,
       tokenValid: tokenInfo.valid,
       tokenExpiresIn: tokenInfo.expiresIn,
@@ -222,6 +226,28 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       return { success: true, message: 'Token-Refresh angefordert. Neues Token wird nach dem nächsten API-Aufruf gespeichert.' };
     } catch (e: any) {
       return { success: false, message: `Refresh fehlgeschlagen: ${e.message}` };
+    }
+  }
+
+  /** Reconnect the IRC bot (e.g. after a disconnect) */
+  async reconnect(): Promise<{ success: boolean; message: string }> {
+    if (!this.botLogin) {
+      return { success: false, message: 'Bot nicht konfiguriert.' };
+    }
+    try {
+      if (this.chatClient) {
+        try { await this.chatClient.quit(); } catch { /* ignore */ }
+        this.chatClient = null;
+        this._connected = false;
+      }
+      await this.connect(this.botLogin);
+      // Re-register all known active channels
+      for (const channelName of this.activeChannels.keys()) {
+        void this.joinChannel(channelName);
+      }
+      return { success: true, message: 'IRC-Verbindung wird neu aufgebaut.' };
+    } catch (e: any) {
+      return { success: false, message: `Reconnect fehlgeschlagen: ${e.message}` };
     }
   }
 

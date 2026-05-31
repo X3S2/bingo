@@ -144,6 +144,8 @@
     "noChannels": "Keine",
     "refreshing": "Wird aktualisiert...",
     "manualRefresh": "Token manuell refreshen",
+    "reconnect": "IRC neu verbinden",
+    "reconnecting": "Verbinde...",
     "chatCommands": "Chat-Befehle",
     "chatCommandsDesc": "Alle verfügbaren IRC-Befehle im Twitch-Chat",
     "joined": "Bot verbunden",
