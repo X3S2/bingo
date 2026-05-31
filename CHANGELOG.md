@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.4] - 2026-05-31
+
+### Added
+- **Bot credentials editor** in admin bot tab: two-section UI with step-by-step guide linking to `dev.twitch.tv/console` and `twitchtokengenerator.com`; fields for Client ID, Client Secret, bot login, Access Token, Refresh Token; saves all fields and reconnects in one click
+- **Client-side locale switch** (no page reload): new `LocaleProvider` dynamically imports message bundles client-side; `navbar` and `page-toolbar` use `useLocaleToggle()` hook instead of `window.location.reload()`
+- **Markdown preview** for Impressum and Datenschutz in admin: previews now render formatted HTML via `ReactMarkdown` instead of raw markdown text
+- **Bot auto-join on game start**: bot joins the streamer's channel automatically when a game starts; manual "Bot-Join" button on streamer page for reconnection
+
+### Changed
+- **`GET /games/:id`** now includes `drawnNumbers` relation — fixes drawn numbers display on game and moderator pages (numbers were always empty before)
+- **`reconnect()`** re-reads all bot credentials from DB before reconnecting — picks up any credential changes immediately
+- **`initializeFromSettings()`** reads `twitch_client_id` from DB with env var as fallback (previously env-only)
+
+### Fixed
+- **Drawn numbers not appearing** on game and moderator pages after `!zahl+N` command or moderator draw: root cause was missing `include: { drawnNumbers }` in `getGame`
+- **"Invalid refresh token" on startup**: `expiresIn: 0 / obtainmentTimestamp: 0` forced an immediate token refresh before IRC connect; changed to `expiresIn: null / obtainmentTimestamp: Date.now()` so the access token is used as-is until Twitch returns a real 401
+- **Bingo error messages in English**: all `BadRequestException` messages in `bingo.service.ts` translated to German
+
+---
+
 ## [1.0.3] - 2026-05-31
 
 ### Added

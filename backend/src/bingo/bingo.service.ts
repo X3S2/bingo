@@ -83,7 +83,12 @@ export class BingoService {
   }
 
   async getGame(gameId: string) {
-    return this.getGameOrThrow(gameId);
+    const game = await this.prisma.bingoGame.findUnique({
+      where: { id: gameId },
+      include: { drawnNumbers: { orderBy: { drawnAt: 'asc' }, select: { number: true, drawnAt: true } } },
+    });
+    if (!game) throw new NotFoundException('Game not found');
+    return game;
   }
 
   async getActiveGameByChannel(channelName: string) {
@@ -174,16 +179,16 @@ export class BingoService {
   async drawNumber(gameId: string, number: number, drawnById?: string) {
     const game = await this.getGameOrThrow(gameId);
     if (game.status !== GameStatus.RUNNING)
-      throw new BadRequestException('Game is not running');
+      throw new BadRequestException('Das Spiel läuft nicht.');
 
     if (number < 1 || number > 75)
-      throw new BadRequestException('Number must be between 1 and 75');
+      throw new BadRequestException('Die Zahl muss zwischen 1 und 75 liegen.');
 
     // Check if already drawn
     const existing = await this.prisma.drawnNumber.findUnique({
       where: { gameId_number: { gameId, number } },
     });
-    if (existing) throw new BadRequestException(`Number ${number} already drawn`);
+    if (existing) throw new BadRequestException(`Zahl ${number} wurde bereits gezogen.`);
 
     const drawn = await this.prisma.drawnNumber.create({
       data: { gameId, number, drawnById },
@@ -199,7 +204,7 @@ export class BingoService {
   async removeNumber(gameId: string, number: number) {
     const game = await this.getGameOrThrow(gameId);
     if (game.status !== GameStatus.RUNNING)
-      throw new BadRequestException('Game is not running');
+      throw new BadRequestException('Das Spiel läuft nicht.');
 
     await this.prisma.drawnNumber.deleteMany({ where: { gameId, number } });
 
@@ -214,27 +219,27 @@ export class BingoService {
   async claimBingo(gameId: string, userId: string, claimedVia = 'BUTTON') {
     const game = await this.getGameOrThrow(gameId);
     if (game.status !== GameStatus.RUNNING)
-      throw new BadRequestException('Game is not running');
+      throw new BadRequestException('Das Spiel läuft nicht.');
 
     const card = await this.prisma.bingoCard.findUnique({
       where: { gameId_userId: { gameId, userId } },
     });
-    if (!card) throw new NotFoundException('Card not found');
+    if (!card) throw new NotFoundException('Keine Karte gefunden.');
 
     const marked = card.marked as boolean[][];
     const { hasWon } = this.winCondition.checkWin(marked);
-    if (!hasWon) throw new BadRequestException('No winning condition found on card');
+    if (!hasWon) throw new BadRequestException('Keine Gewinnbedingung auf deiner Karte erfüllt.');
 
     // Check if already a winner
     const existing = await this.prisma.winner.findUnique({
       where: { gameId_userId: { gameId, userId } },
     });
-    if (existing) throw new BadRequestException('Already claimed Bingo');
+    if (existing) throw new BadRequestException('Du hast bereits Bingo gemeldet.');
 
     // Check max winners
     const winnerCount = await this.prisma.winner.count({ where: { gameId } });
     if (winnerCount >= game.maxWinners)
-      throw new BadRequestException('Maximum winners already reached');
+      throw new BadRequestException('Die maximale Anzahl an Gewinnern wurde bereits erreicht.');
 
     const winner = await this.prisma.winner.create({
       data: {

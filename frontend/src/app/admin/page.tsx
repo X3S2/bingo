@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RefreshCw, Wifi, WifiOff, ShieldCheck, ShieldX, Eye, EyeOff } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -1015,15 +1016,33 @@ You have the right to lodge a complaint with a data protection supervisory autho
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewDE')}</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base text-muted-foreground text-sm">{t('previewDE')}</CardTitle>
+                <CardDescription className="text-xs">Vorschau des generierten Impressums — so erscheint es später auf der Seite.</CardDescription>
+              </CardHeader>
               <CardContent>
-                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap">{buildImpressumDE(legalData) || '(Felder ausfüllen...)'}</pre>
+                {legalData.name && legalData.email ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30">
+                    <ReactMarkdown>{buildImpressumDE(legalData)}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Name und E-Mail ausfüllen, um die Vorschau anzuzeigen.</p>
+                )}
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewEN')}</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base text-muted-foreground text-sm">{t('previewEN')}</CardTitle>
+                <CardDescription className="text-xs">Preview of the generated English imprint.</CardDescription>
+              </CardHeader>
               <CardContent>
-                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap">{buildImpressumEN(legalData) || '(Fill in fields...)'}</pre>
+                {legalData.name && legalData.email ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30">
+                    <ReactMarkdown>{buildImpressumEN(legalData)}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Fill in Name and Email to see the preview.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1080,15 +1099,33 @@ You have the right to lodge a complaint with a data protection supervisory autho
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewDE')}</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base text-muted-foreground text-sm">{t('previewDE')}</CardTitle>
+                <CardDescription className="text-xs">Vorschau der generierten Datenschutzerklärung.</CardDescription>
+              </CardHeader>
               <CardContent>
-                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap max-h-96 overflow-y-auto">{buildDatenschutzDE(legalData)}</pre>
+                {legalData.name && legalData.email ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30 max-h-96 overflow-y-auto">
+                    <ReactMarkdown>{buildDatenschutzDE(legalData)}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Name und E-Mail ausfüllen, um die Vorschau anzuzeigen.</p>
+                )}
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewEN')}</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-base text-muted-foreground text-sm">{t('previewEN')}</CardTitle>
+                <CardDescription className="text-xs">Preview of the generated English privacy policy.</CardDescription>
+              </CardHeader>
               <CardContent>
-                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap max-h-96 overflow-y-auto">{buildDatenschutzEN(legalData)}</pre>
+                {legalData.name && legalData.email ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30 max-h-96 overflow-y-auto">
+                    <ReactMarkdown>{buildDatenschutzEN(legalData)}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Fill in Name and Email to see the preview.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
