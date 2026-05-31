@@ -750,59 +750,116 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 </CardTitle>
                 <CardDescription>{tb('credentialsDesc')}</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Twitch Client ID *</Label>
-                    <Input
-                      value={botCreds.clientId}
-                      onChange={(e) => setBotCreds((c) => ({ ...c, clientId: e.target.value }))}
-                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      type={showBotSecrets ? 'text' : 'password'}
-                      autoComplete="off"
-                    />
+              <CardContent className="flex flex-col gap-5">
+
+                {/* Section 1: Twitch App */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2">
+                      1 · Twitch App —{' '}
+                      <a
+                        href="https://dev.twitch.tv/console"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline normal-case font-normal"
+                      >
+                        dev.twitch.tv/console
+                      </a>
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Twitch Client Secret *</Label>
-                    <Input
-                      value={botCreds.clientSecret}
-                      onChange={(e) => setBotCreds((c) => ({ ...c, clientSecret: e.target.value }))}
-                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      type={showBotSecrets ? 'text' : 'password'}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Bot Twitch-Login *</Label>
-                    <Input
-                      value={botCreds.botLogin}
-                      onChange={(e) => setBotCreds((c) => ({ ...c, botLogin: e.target.value }))}
-                      placeholder="mein_bot_account"
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1 sm:col-span-1" />
-                  <div className="flex flex-col gap-1 sm:col-span-2">
-                    <Label className="text-xs">Bot Access Token *</Label>
-                    <Input
-                      value={botCreds.accessToken}
-                      onChange={(e) => setBotCreds((c) => ({ ...c, accessToken: e.target.value }))}
-                      placeholder="oauth:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      type={showBotSecrets ? 'text' : 'password'}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1 sm:col-span-2">
-                    <Label className="text-xs">Bot Refresh Token</Label>
-                    <Input
-                      value={botCreds.refreshToken}
-                      onChange={(e) => setBotCreds((c) => ({ ...c, refreshToken: e.target.value }))}
-                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      type={showBotSecrets ? 'text' : 'password'}
-                      autoComplete="off"
-                    />
+                  <p className="text-xs text-muted-foreground">
+                    Einmalig aus deiner registrierten Twitch-Anwendung. Diese Zugangsdaten laufen <strong>nicht</strong> ab.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs">Client ID *</Label>
+                      <Input
+                        value={botCreds.clientId}
+                        onChange={(e) => setBotCreds((c) => ({ ...c, clientId: e.target.value }))}
+                        placeholder="gpvv37qzyach..."
+                        type={showBotSecrets ? 'text' : 'password'}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs">Client Secret *</Label>
+                      <Input
+                        value={botCreds.clientSecret}
+                        onChange={(e) => setBotCreds((c) => ({ ...c, clientSecret: e.target.value }))}
+                        placeholder="vwrdks19wbke..."
+                        type={showBotSecrets ? 'text' : 'password'}
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
                 </div>
+
+                {/* Section 2: Bot Account Tokens */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2">
+                      2 · Bot-Account Token —{' '}
+                      <a
+                        href="https://twitchtokengenerator.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline normal-case font-normal"
+                      >
+                        twitchtokengenerator.com
+                      </a>
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                  <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex flex-col gap-1">
+                    <strong>⚠️ Wichtig beim Token generieren:</strong>
+                    <ol className="list-decimal list-inside space-y-0.5 mt-0.5">
+                      <li>Auf twitchtokengenerator.com <strong>„Custom Scope Token"</strong> wählen</li>
+                      <li>Oben rechts <strong>„Use my own client credentials"</strong> aktivieren</li>
+                      <li>Deine Client ID + Secret von oben eintragen</li>
+                      <li>Scopes: <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">chat:read</code> und <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">chat:edit</code> auswählen</li>
+                      <li>Als <strong>Bot-Account</strong> (nicht als Streamer) einloggen</li>
+                    </ol>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <Label className="text-xs">Bot Twitch-Benutzername *</Label>
+                      <Input
+                        value={botCreds.botLogin}
+                        onChange={(e) => setBotCreds((c) => ({ ...c, botLogin: e.target.value }))}
+                        placeholder="mein_bot_account"
+                        autoComplete="off"
+                      />
+                      <span className="text-xs text-muted-foreground">Twitch-Login des Bot-Accounts (Kleinbuchstaben)</span>
+                    </div>
+                    <div className="hidden sm:block" />
+                    <div className="flex flex-col gap-1 sm:col-span-2">
+                      <Label className="text-xs">Access Token *</Label>
+                      <Input
+                        value={botCreds.accessToken}
+                        onChange={(e) => setBotCreds((c) => ({ ...c, accessToken: e.target.value }))}
+                        placeholder="ACCESS TOKEN aus twitchtokengenerator.com"
+                        type={showBotSecrets ? 'text' : 'password'}
+                        autoComplete="off"
+                      />
+                      <span className="text-xs text-muted-foreground">Beginnt typischerweise nicht mit „oauth:" — den Token-Wert direkt kopieren.</span>
+                    </div>
+                    <div className="flex flex-col gap-1 sm:col-span-2">
+                      <Label className="text-xs">Refresh Token *</Label>
+                      <Input
+                        value={botCreds.refreshToken}
+                        onChange={(e) => setBotCreds((c) => ({ ...c, refreshToken: e.target.value }))}
+                        placeholder="REFRESH TOKEN aus twitchtokengenerator.com"
+                        type={showBotSecrets ? 'text' : 'password'}
+                        autoComplete="off"
+                      />
+                      <span className="text-xs text-muted-foreground">Ermöglicht automatische Erneuerung — ohne Refresh Token muss nach ~4 h manuell neu verbunden werden.</span>
+                    </div>
+                  </div>
+                </div>
+
                 <Button
                   onClick={() => saveBotCredsMutation.mutate()}
                   disabled={saveBotCredsMutation.isPending || !botCreds.clientId || !botCreds.clientSecret || !botCreds.botLogin || !botCreds.accessToken}

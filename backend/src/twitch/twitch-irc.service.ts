@@ -121,14 +121,17 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       }
     });
 
-    // obtainmentTimestamp=0 forces twurple to refresh immediately on first use
-    // if the token might be expired — safe because RefreshingAuthProvider handles it
+    // expiresIn: null + current timestamp = use the access token as-is;
+    // twurple will only call the refresh endpoint when Twitch returns a 401.
+    // Using expiresIn:0/obtainmentTimestamp:0 would force an immediate refresh
+    // attempt before any API call, which fails if the refresh token is tied to
+    // a different client application.
     await this.authProvider.addUserForToken(
       {
         accessToken: this.botToken,
         refreshToken: this.botRefreshToken,
-        expiresIn: 0,
-        obtainmentTimestamp: 0,
+        expiresIn: null,
+        obtainmentTimestamp: Date.now(),
         scope: ['chat:read', 'chat:edit'],
       },
       ['chat'],
