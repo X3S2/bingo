@@ -40,7 +40,12 @@ export default function DatenschutzPage() {
       <Navbar />
       <main className="container mx-auto px-4 py-12 max-w-3xl">
         <div className="flex items-center justify-between mb-8 gap-4">
-          <h1 className="text-3xl font-bold">{t('privacy')}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">{t('privacy')}</h1>
+            <span className="text-sm font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
+              {showEn ? 'EN' : 'DE'}
+            </span>
+          </div>
           <Button variant="outline" size="sm" onClick={() => setShowEn((v) => !v)}>
             {showEn ? t('showGerman') : t('showEnglish')}
           </Button>

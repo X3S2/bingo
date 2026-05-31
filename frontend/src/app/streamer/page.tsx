@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Users, Hash } from 'lucide-react';
+import { Copy, ExternalLink, Users, Hash, Wifi } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -109,6 +109,7 @@ export default function StreamerPage() {
     onSuccess: (data: Game) => {
       toast.success('Spiel gestartet!');
       void qc.invalidateQueries({ queryKey: ['my-games'] });
+      triggerBotJoin(data.channelName);
       router.push(`/moderator/${data.id}`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -130,6 +131,31 @@ export default function StreamerPage() {
       toast.success('Spiel beendet!');
       void qc.invalidateQueries({ queryKey: ['my-games'] });
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const triggerBotJoin = (channelName: string) => {
+    void fetch(`${API}/twitch/bot-join`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channelName }),
+    }).then(async (r) => {
+      const d = await r.json();
+      if (d.success) toast.success(d.message);
+      else toast.error(d.message);
+    }).catch(() => { /* ignore */ });
+  };
+
+  const botJoinMutation = useMutation({
+    mutationFn: async (channelName: string) => {
+      const r = await fetch(`${API}/twitch/bot-join`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelName }),
+      });
+      return r.json();
+    },
+    onSuccess: (d) => { if (d.success) toast.success(d.message); else toast.error(d.message); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -266,6 +292,15 @@ export default function StreamerPage() {
                     <>
                       <Button size="sm" variant="outline" asChild>
                         <a href={`/moderator/${g.id}`}>{t('moderate')}</a>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => botJoinMutation.mutate(g.channelName)}
+                        disabled={botJoinMutation.isPending}
+                        title={t('botJoin')}
+                      >
+                        <Wifi className="w-3 h-3 mr-1" />{t('botJoin')}
                       </Button>
                       <Button
                         size="sm"

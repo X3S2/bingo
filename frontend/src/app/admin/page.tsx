@@ -130,19 +130,27 @@ export default function AdminPage() {
   });
 
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
-  const [impressumText, setImpressumText] = useState('');
-  const [impressumEnText, setImpressumEnText] = useState('');
-  const [datenschutzText, setDatenschutzText] = useState('');
-  const [datenschutzEnText, setDatenschutzEnText] = useState('');
   const [userSearch, setUserSearch] = useState('');
+
+  interface LegalData {
+    name: string; firma: string; strasse: string; plzOrt: string; land: string;
+    email: string; telefon: string; website: string; ustId: string; responsible: string;
+  }
+  const [legalData, setLegalData] = useState<LegalData>({
+    name: '', firma: '', strasse: '', plzOrt: '', land: 'Deutschland',
+    email: '', telefon: '', website: '', ustId: '', responsible: '',
+  });
 
   useEffect(() => {
     if (settings) {
       setMaintenanceMsg(settings.find((s: { key: string }) => s.key === 'maintenance_message')?.value ?? '');
-      setImpressumText(settings.find((s: { key: string }) => s.key === 'impressum')?.value ?? '');
-      setImpressumEnText(settings.find((s: { key: string }) => s.key === 'impressum_en')?.value ?? '');
-      setDatenschutzText(settings.find((s: { key: string }) => s.key === 'datenschutz')?.value ?? '');
-      setDatenschutzEnText(settings.find((s: { key: string }) => s.key === 'datenschutz_en')?.value ?? '');
+      const g = (k: string) => settings.find((s: { key: string }) => s.key === k)?.value ?? '';
+      setLegalData({
+        name: g('legal_name'), firma: g('legal_firma'), strasse: g('legal_strasse'),
+        plzOrt: g('legal_plz_ort'), land: g('legal_land') || 'Deutschland',
+        email: g('legal_email'), telefon: g('legal_telefon'),
+        website: g('legal_website'), ustId: g('legal_ust_id'), responsible: g('legal_responsible'),
+      });
     }
   }, [settings]);
 
@@ -264,6 +272,172 @@ export default function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const saveLegalFields = async (d: typeof legalData) => {
+    const entries: [string, string][] = [
+      ['legal_name', d.name], ['legal_firma', d.firma], ['legal_strasse', d.strasse],
+      ['legal_plz_ort', d.plzOrt], ['legal_land', d.land], ['legal_email', d.email],
+      ['legal_telefon', d.telefon], ['legal_website', d.website],
+      ['legal_ust_id', d.ustId], ['legal_responsible', d.responsible],
+    ];
+    await Promise.all(entries.map(([key, value]) =>
+      fetch(`${API}/admin/settings/${key}`, {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+      })
+    ));
+  };
+
+  const buildImpressumDE = (d: typeof legalData) => {
+    const lines = ['## Impressum\n', '### Angaben gemäß § 5 TMG\n'];
+    if (d.firma) lines.push(`**${d.firma}**  `);
+    if (d.name) lines.push(`${d.name}  `);
+    if (d.strasse) lines.push(`${d.strasse}  `);
+    if (d.plzOrt) lines.push(`${d.plzOrt}  `);
+    if (d.land) lines.push(`${d.land}\n`);
+    lines.push('### Kontakt\n');
+    if (d.email) lines.push(`E-Mail: ${d.email}  `);
+    if (d.telefon) lines.push(`Telefon: ${d.telefon}  `);
+    if (d.website) lines.push(`Website: ${d.website}\n`);
+    if (d.ustId) lines.push(`### Umsatzsteuer-ID\n\nUmsatzsteuer-Identifikationsnummer gemäß § 27a UStG: ${d.ustId}\n`);
+    if (d.responsible) lines.push(`### Inhaltlich Verantwortlicher\n\nVerantwortlicher gem. § 18 Abs. 2 MStV: ${d.responsible}\n`);
+    return lines.join('\n');
+  };
+
+  const buildImpressumEN = (d: typeof legalData) => {
+    const lines = ['## Imprint\n', '### Information pursuant to § 5 TMG\n'];
+    if (d.firma) lines.push(`**${d.firma}**  `);
+    if (d.name) lines.push(`${d.name}  `);
+    if (d.strasse) lines.push(`${d.strasse}  `);
+    if (d.plzOrt) lines.push(`${d.plzOrt}  `);
+    if (d.land) lines.push(`${d.land}\n`);
+    lines.push('### Contact\n');
+    if (d.email) lines.push(`Email: ${d.email}  `);
+    if (d.telefon) lines.push(`Phone: ${d.telefon}  `);
+    if (d.website) lines.push(`Website: ${d.website}\n`);
+    if (d.ustId) lines.push(`### VAT ID\n\nVAT identification number pursuant to § 27a German VAT Act: ${d.ustId}\n`);
+    if (d.responsible) lines.push(`### Person responsible for content\n\nResponsible pursuant to § 18 Para. 2 MStV: ${d.responsible}\n`);
+    return lines.join('\n');
+  };
+
+  const buildDatenschutzDE = (d: typeof legalData) => {
+    const op = [d.firma, d.name].filter(Boolean).join(' / ');
+    const addr = [d.strasse, d.plzOrt, d.land].filter(Boolean).join(', ');
+    return `## Datenschutzerklärung
+
+### 1. Verantwortlicher
+
+Verantwortlicher im Sinne der DSGVO:
+
+**${op}**  
+${addr}  
+E-Mail: ${d.email}${d.telefon ? `  \nTelefon: ${d.telefon}` : ''}
+
+### 2. Erhobene Daten
+
+Bei der Nutzung dieser Website werden folgende Daten verarbeitet:
+
+- **Twitch-OAuth-Daten**: Benutzername, Profilbild (für die Anmeldung per Twitch)
+- **Bingo-Spielstände**: Zugewiesene Karten und Spielergebnisse
+- **Technische Daten**: IP-Adresse, Browser-Typ, Datum und Uhrzeit des Zugriffs (Server-Logs)
+
+### 3. Rechtsgrundlage
+
+Die Verarbeitung erfolgt auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) und Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).
+
+### 4. Cookies und Sessions
+
+Diese Website verwendet Session-Cookies zur Authentifizierung. Diese Cookies sind technisch notwendig und werden nach Sitzungsende gelöscht.
+
+### 5. Drittdienste
+
+Zur Anmeldung wird **Twitch** (Twitch Interactive, Inc., San Francisco, CA, USA) als OAuth-Anbieter genutzt. Es gelten die [Datenschutzrichtlinien von Twitch](https://www.twitch.tv/p/de-de/legal/privacy-policy/).
+
+### 6. Speicherdauer
+
+Personenbezogene Daten werden gelöscht, sobald sie für den Zweck, für den sie erhoben wurden, nicht mehr benötigt werden. Account-Daten werden auf Anfrage gelöscht.
+
+### 7. Deine Rechte
+
+Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Datenübertragbarkeit. Wende dich dafür an: ${d.email}
+
+### 8. Beschwerderecht
+
+Du hast das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren.
+`;
+  };
+
+  const buildDatenschutzEN = (d: typeof legalData) => {
+    const op = [d.firma, d.name].filter(Boolean).join(' / ');
+    const addr = [d.strasse, d.plzOrt, d.land].filter(Boolean).join(', ');
+    return `## Privacy Policy
+
+### 1. Controller
+
+Controller within the meaning of the GDPR:
+
+**${op}**  
+${addr}  
+Email: ${d.email}${d.telefon ? `  \nPhone: ${d.telefon}` : ''}
+
+### 2. Data Collected
+
+The following data is processed when using this website:
+
+- **Twitch OAuth data**: Username, profile picture (for Twitch login)
+- **Bingo game data**: Assigned cards and game results
+- **Technical data**: IP address, browser type, date and time of access (server logs)
+
+### 3. Legal Basis
+
+Processing is based on Art. 6(1)(b) GDPR (contractual performance) and Art. 6(1)(f) GDPR (legitimate interest).
+
+### 4. Cookies and Sessions
+
+This website uses session cookies for authentication. These cookies are technically necessary and are deleted after the session ends.
+
+### 5. Third-Party Services
+
+**Twitch** (Twitch Interactive, Inc., San Francisco, CA, USA) is used as an OAuth provider for login. The [Twitch Privacy Policy](https://www.twitch.tv/p/legal/privacy-policy/) applies.
+
+### 6. Storage Duration
+
+Personal data is deleted when it is no longer needed for the purpose for which it was collected. Account data is deleted upon request.
+
+### 7. Your Rights
+
+You have the right to access, rectification, erasure, restriction of processing, and data portability. Contact: ${d.email}
+
+### 8. Right to Lodge a Complaint
+
+You have the right to lodge a complaint with a data protection supervisory authority.
+`;
+  };
+
+  const generateImpressumMutation = useMutation({
+    mutationFn: async () => {
+      await saveLegalFields(legalData);
+      await Promise.all([
+        fetch(`${API}/admin/settings/impressum`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: buildImpressumDE(legalData) }) }),
+        fetch(`${API}/admin/settings/impressum_en`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: buildImpressumEN(legalData) }) }),
+      ]);
+    },
+    onSuccess: () => { toast.success('Impressum generiert & gespeichert!'); void qc.invalidateQueries({ queryKey: ['admin-settings'] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const generateDatenschutzMutation = useMutation({
+    mutationFn: async () => {
+      await saveLegalFields(legalData);
+      await Promise.all([
+        fetch(`${API}/admin/settings/datenschutz`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: buildDatenschutzDE(legalData) }) }),
+        fetch(`${API}/admin/settings/datenschutz_en`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: buildDatenschutzEN(legalData) }) }),
+      ]);
+    },
+    onSuccess: () => { toast.success('Datenschutzerklärung generiert & gespeichert!'); void qc.invalidateQueries({ queryKey: ['admin-settings'] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const maintenanceEnabled = settings?.find((s: { key: string }) => s.key === 'maintenance_enabled')?.value === 'true';
 
   const users: AdminUser[] = Array.isArray(usersData) ? usersData : usersData?.users ?? [];
@@ -292,6 +466,8 @@ export default function AdminPage() {
             <TabsTrigger value="games">{t('games')}</TabsTrigger>
             <TabsTrigger value="bot">🤖 Bot</TabsTrigger>
             <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
+            <TabsTrigger value="impressum">📄 {t('impressumTab')}</TabsTrigger>
+            <TabsTrigger value="datenschutz">🔒 {t('datenschutzTab')}</TabsTrigger>
             <TabsTrigger value="audit">{t('auditLog')}</TabsTrigger>
           </TabsList>
 
@@ -601,96 +777,151 @@ export default function AdminPage() {
                     variant="outline"
                     onClick={() => saveSettingMutation.mutate({ key: 'maintenance_message', value: maintenanceMsg })}
                   >
-                    Speichern
+                    {tc('save')}
                   </Button>
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Impressum */}
+          {/* Impressum Tab */}
+          <TabsContent value="impressum" className="mt-4 flex flex-col gap-4">
             <Card>
-              <CardHeader><CardTitle className="text-base">{t('impressum')}</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Textarea
-                  rows={8}
-                  value={impressumText}
-                  onChange={(e) => setImpressumText(e.target.value)}
-                  placeholder="Impressum-Text (Markdown oder Plain-Text)..."
-                  className="font-mono text-xs"
-                />
+              <CardHeader>
+                <CardTitle className="text-base">{t('legalFields')}</CardTitle>
+                <CardDescription>{t('legalFieldsDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalName')} *</Label>
+                    <Input value={legalData.name} onChange={(e) => setLegalData((d) => ({ ...d, name: e.target.value }))} placeholder="Max Mustermann" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalFirma')}</Label>
+                    <Input value={legalData.firma} onChange={(e) => setLegalData((d) => ({ ...d, firma: e.target.value }))} placeholder="Muster GmbH" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalStrasse')} *</Label>
+                    <Input value={legalData.strasse} onChange={(e) => setLegalData((d) => ({ ...d, strasse: e.target.value }))} placeholder="Musterstraße 1" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalPlzOrt')} *</Label>
+                    <Input value={legalData.plzOrt} onChange={(e) => setLegalData((d) => ({ ...d, plzOrt: e.target.value }))} placeholder="12345 Musterstadt" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalLand')} *</Label>
+                    <Input value={legalData.land} onChange={(e) => setLegalData((d) => ({ ...d, land: e.target.value }))} placeholder="Deutschland" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalEmail')} *</Label>
+                    <Input type="email" value={legalData.email} onChange={(e) => setLegalData((d) => ({ ...d, email: e.target.value }))} placeholder="kontakt@example.de" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalTelefon')}</Label>
+                    <Input value={legalData.telefon} onChange={(e) => setLegalData((d) => ({ ...d, telefon: e.target.value }))} placeholder="+49 123 456789" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalWebsite')}</Label>
+                    <Input value={legalData.website} onChange={(e) => setLegalData((d) => ({ ...d, website: e.target.value }))} placeholder="https://example.de" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalUstId')}</Label>
+                    <Input value={legalData.ustId} onChange={(e) => setLegalData((d) => ({ ...d, ustId: e.target.value }))} placeholder="DE123456789" />
+                  </div>
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <Label className="text-xs">{t('legalResponsible')}</Label>
+                    <Input value={legalData.responsible} onChange={(e) => setLegalData((d) => ({ ...d, responsible: e.target.value }))} placeholder="Max Mustermann, Musterstraße 1, 12345 Musterstadt" />
+                  </div>
+                </div>
                 <Button
-                  variant="outline"
-                  onClick={() => saveSettingMutation.mutate({ key: 'impressum', value: impressumText })}
-                  disabled={saveSettingMutation.isPending}
+                  onClick={() => generateImpressumMutation.mutate()}
+                  disabled={generateImpressumMutation.isPending || !legalData.name || !legalData.email}
+                  className="w-fit"
                 >
-                  {tc('save')}
+                  {generateImpressumMutation.isPending ? t('generating') : t('generateImpressum')}
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Impressum EN */}
             <Card>
-              <CardHeader><CardTitle className="text-base">{t('impressumEN')}</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Textarea
-                  rows={8}
-                  value={impressumEnText}
-                  onChange={(e) => setImpressumEnText(e.target.value)}
-                  placeholder="Imprint text (Markdown or plain text)..."
-                  className="font-mono text-xs"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => saveSettingMutation.mutate({ key: 'impressum_en', value: impressumEnText })}
-                  disabled={saveSettingMutation.isPending}
-                >
-                  {tc('save')}
-                </Button>
+              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewDE')}</CardTitle></CardHeader>
+              <CardContent>
+                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap">{buildImpressumDE(legalData) || '(Felder ausfüllen...)'}</pre>
               </CardContent>
             </Card>
-
-            {/* Datenschutz */}
             <Card>
-              <CardHeader><CardTitle className="text-base">{t('privacy')}</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Textarea
-                  rows={8}
-                  value={datenschutzText}
-                  onChange={(e) => setDatenschutzText(e.target.value)}
-                  placeholder="Datenschutzerklärung (Markdown oder Plain-Text)..."
-                  className="font-mono text-xs"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => saveSettingMutation.mutate({ key: 'datenschutz', value: datenschutzText })}
-                  disabled={saveSettingMutation.isPending}
-                >
-                  {tc('save')}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Datenschutz EN */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">{t('privacyEN')}</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Textarea
-                  rows={8}
-                  value={datenschutzEnText}
-                  onChange={(e) => setDatenschutzEnText(e.target.value)}
-                  placeholder="Privacy Policy (Markdown or plain text)..."
-                  className="font-mono text-xs"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => saveSettingMutation.mutate({ key: 'datenschutz_en', value: datenschutzEnText })}
-                  disabled={saveSettingMutation.isPending}
-                >
-                  {tc('save')}
-                </Button>
+              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewEN')}</CardTitle></CardHeader>
+              <CardContent>
+                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap">{buildImpressumEN(legalData) || '(Fill in fields...)'}</pre>
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Datenschutz Tab */}
+          <TabsContent value="datenschutz" className="mt-4 flex flex-col gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">{t('legalFields')}</CardTitle>
+                <CardDescription>{t('legalFieldsDatenschutzDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalName')} *</Label>
+                    <Input value={legalData.name} onChange={(e) => setLegalData((d) => ({ ...d, name: e.target.value }))} placeholder="Max Mustermann" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalFirma')}</Label>
+                    <Input value={legalData.firma} onChange={(e) => setLegalData((d) => ({ ...d, firma: e.target.value }))} placeholder="Muster GmbH" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalStrasse')} *</Label>
+                    <Input value={legalData.strasse} onChange={(e) => setLegalData((d) => ({ ...d, strasse: e.target.value }))} placeholder="Musterstraße 1" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalPlzOrt')} *</Label>
+                    <Input value={legalData.plzOrt} onChange={(e) => setLegalData((d) => ({ ...d, plzOrt: e.target.value }))} placeholder="12345 Musterstadt" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalLand')} *</Label>
+                    <Input value={legalData.land} onChange={(e) => setLegalData((d) => ({ ...d, land: e.target.value }))} placeholder="Deutschland" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalEmail')} *</Label>
+                    <Input type="email" value={legalData.email} onChange={(e) => setLegalData((d) => ({ ...d, email: e.target.value }))} placeholder="kontakt@example.de" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalTelefon')}</Label>
+                    <Input value={legalData.telefon} onChange={(e) => setLegalData((d) => ({ ...d, telefon: e.target.value }))} placeholder="+49 123 456789" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">{t('legalWebsite')} *</Label>
+                    <Input value={legalData.website} onChange={(e) => setLegalData((d) => ({ ...d, website: e.target.value }))} placeholder="https://example.de" />
+                  </div>
+                </div>
+                <Button
+                  onClick={() => generateDatenschutzMutation.mutate()}
+                  disabled={generateDatenschutzMutation.isPending || !legalData.name || !legalData.email}
+                  className="w-fit"
+                >
+                  {generateDatenschutzMutation.isPending ? t('generating') : t('generateDatenschutz')}
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewDE')}</CardTitle></CardHeader>
+              <CardContent>
+                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap max-h-96 overflow-y-auto">{buildDatenschutzDE(legalData)}</pre>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base text-muted-foreground text-sm">{t('previewEN')}</CardTitle></CardHeader>
+              <CardContent>
+                <pre className="text-xs font-mono bg-muted p-3 rounded whitespace-pre-wrap max-h-96 overflow-y-auto">{buildDatenschutzEN(legalData)}</pre>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
 
           {/* Audit Log */}
           <TabsContent value="audit" className="mt-4">

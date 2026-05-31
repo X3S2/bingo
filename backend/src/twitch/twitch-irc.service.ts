@@ -156,7 +156,24 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     await this.chatClient.connect();
     this._connected = true;
 
-    // Rejoin active game channels
+    // Auto-join all currently RUNNING games from DB
+    try {
+      const runningGames = await this.prisma.bingoGame.findMany({
+        where: { status: 'RUNNING' },
+        select: { id: true, channelName: true },
+      });
+      for (const g of runningGames) {
+        this.activeChannels.set(g.channelName.toLowerCase(), { channelName: g.channelName.toLowerCase(), gameId: g.id });
+        void this.joinChannel(g.channelName.toLowerCase());
+      }
+      if (runningGames.length > 0) {
+        this.logger.log(`Auto-joined ${runningGames.length} running game channel(s) from DB`);
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not auto-join running games: ${err?.message}`);
+    }
+
+    // Rejoin any other tracked channels (in-memory)
     for (const [channelName] of this.activeChannels) {
       void this.joinChannel(channelName);
     }
@@ -275,6 +292,23 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
 
   unregisterActiveGame(channelName: string) {
     void this.leaveChannel(channelName);
+  }
+
+  async manualJoinChannel(channelName: string): Promise<{ success: boolean; message: string }> {
+    if (!this.chatClient || !this._connected) {
+      return { success: false, message: 'Bot nicht verbunden. Bitte zuerst IRC neu verbinden.' };
+    }
+    const name = channelName.toLowerCase();
+    // Look up any RUNNING or CREATED game for this channel
+    const game = await this.prisma.bingoGame.findFirst({
+      where: { channelName: name, status: { in: ['RUNNING', 'CREATED'] } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    const gameId = game?.id ?? `manual_${Date.now()}`;
+    this.activeChannels.set(name, { channelName: name, gameId });
+    void this.joinChannel(name);
+    return { success: true, message: `Bot joint #${name}.` };
   }
 
   private async handleMessage(channel: string, username: string, text: string, msg: any) {

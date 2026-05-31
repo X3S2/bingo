@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Emoji mojibake** in `game/[id]/page.tsx`: trophy icon `ðŸ†` corrected to `🏆` in winner toast
 - **503 Service Temporarily Unavailable**: transient error caused by Turbopack hot-reload during source file changes; resolved by container restart
+
+---
+
+## [1.0.2] - 2026-05-29
+
 ### Added
 - **PageToolbar** component (DE/EN language toggle + dark/light mode) on all public pages (home, login, help, setup)
 - **Setup wizard**: explicit Redirect URI hint — users must register `http://<host>/api/auth/callback/twitch` exactly in the Twitch dev console
