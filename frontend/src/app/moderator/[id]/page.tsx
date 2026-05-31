@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trophy, Wifi, WifiOff, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
@@ -65,6 +66,21 @@ export default function ModeratorPage({ params }: ModPage) {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'proximity' | 'name'>('proximity');
   const [showCmds, setShowCmds] = useState(false);
+
+  // Query all available games for the mod switcher
+  const { data: availableGames } = useQuery<{ id: string; title: string; channelName: string }[]>({
+    queryKey: ['available-mod-games', user?.role],
+    queryFn: async () => {
+      const endpoint = user?.role === 'MODERATOR' ? 'mod-games' : 'my-games';
+      const r = await fetch(`${API}/games/${endpoint}`, { credentials: 'include' });
+      if (!r.ok) return [];
+      const games = await r.json();
+      // For STREAMER/ADMIN, filter to only running
+      return user?.role === 'MODERATOR' ? games : games.filter((g: { status: string }) => g.status === 'RUNNING');
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     if (!authLoading && user && !['MODERATOR', 'STREAMER', 'ADMIN'].includes(user.role)) {
@@ -267,6 +283,21 @@ export default function ModeratorPage({ params }: ModPage) {
               </Badge>
               <span className="text-sm text-muted-foreground">{game.title}</span>
             </>
+          )}
+          {/* Game switcher: shown when multiple games are available */}
+          {availableGames && availableGames.length > 1 && (
+            <Select value={id} onValueChange={(val) => router.push(`/moderator/${val}`)}>
+              <SelectTrigger className="h-8 w-auto max-w-[220px] text-xs gap-1">
+                <SelectValue placeholder={t('switchGame')} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableGames.map((g) => (
+                  <SelectItem key={g.id} value={g.id} className="text-xs">
+                    {g.title} — {g.channelName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {game && (
             <div className="ml-auto flex items-center gap-1.5 text-xs">

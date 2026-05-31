@@ -249,9 +249,11 @@ export default function GamePage({ params }: GamePage) {
         {/* Game Header */}
         <div className="flex items-center gap-3 flex-wrap justify-between">
           <div className="flex items-center gap-3 flex-wrap">
-            <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              ← Dashboard
-            </a>
+            {user?.role !== 'VIEWER' && (
+              <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                ← Dashboard
+              </a>
+            )}
             <h1 className="text-xl font-bold">{game.title || 'Bingo'}</h1>
             <Badge variant={game.status === 'RUNNING' ? 'default' : game.status === 'CREATED' ? 'outline' : 'secondary'}>
               {game.status === 'RUNNING' ? t('gameRunning') : game.status === 'CREATED' ? t('gameCreated') : t('gameStopped')}

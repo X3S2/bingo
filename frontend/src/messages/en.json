@@ -69,6 +69,7 @@
     "waitPlease": "Please wait…",
     "noActiveGame": "No active game",
     "noActiveGameDesc": "No Bingo game is currently running. Check back later!",
+    "selectGame": "Which game do you want to play?",
     "nonViewerNote": "As a {role} you don't need your own card. Use the Moderator Dashboard to manage the game.",
     "numberDrawnToast": "🎱 Number {number} drawn!"
   },
@@ -124,6 +125,7 @@
     "saveSettings": "Save settings",
     "copyLink": "Copy link",
     "helpOpen": "Open help",
+    "helpClose": "Close help",
     "helpTitle": "Streamer Help: How to set up StreamBingo",
     "helpStep1Title": "1. Complete the Setup Wizard",
     "helpStep1Text": "Visit /setup and enter your setup token and Twitch app data (Client ID + Secret). Create an app at dev.twitch.tv. Set this as your OAuth redirect URL:\nhttp://localhost:4000/api/auth/callback/twitch",
@@ -161,7 +163,10 @@
     "cmd_bingo": "Report bingo",
     "cmd_buycard": "Get card",
     "cmd_zahlen": "Show numbers",
-    "cmd_winners": "Show winners"
+    "cmd_winners": "Show winners",
+    "selectGame": "Select game",
+    "switchGame": "Switch game",
+    "running": "Running"
   },
   "admin": {
     "title": "Admin Portal",

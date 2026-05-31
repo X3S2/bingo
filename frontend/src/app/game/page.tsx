@@ -51,9 +51,11 @@ export default function GameRedirectPage() {
             <p className="text-muted-foreground">
               {t('noActiveGameDesc')}
             </p>
-            <Button variant="outline" onClick={() => router.push('/dashboard')}>
-              ← Dashboard
-            </Button>
+            {user?.role !== 'VIEWER' && (
+              <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                ← Dashboard
+              </Button>
+            )}
           </>
         )}
       </main>

@@ -7,12 +7,21 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Navbar } from '@/components/navigation/navbar';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
+interface RunningGame {
+  id: string;
+  title: string;
+  channelName: string;
+  status: string;
+}
+
 /**
- * /moderator — Finds the currently running game for the configured channel
- * and redirects the moderator there. Useful as a bookmark target.
+ * /moderator — Finds running games for the moderator/streamer.
+ * Auto-redirects if exactly one game is running, otherwise shows a picker.
  */
 export default function ModeratorIndexPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -26,7 +35,8 @@ export default function ModeratorIndexPage() {
     }
   }, [user, authLoading, router]);
 
-  const { data: games, isLoading: gamesLoading } = useQuery({
+  // Streamer/Admin: get their own games
+  const { data: myGames, isLoading: myGamesLoading } = useQuery<RunningGame[]>({
     queryKey: ['my-games'],
     queryFn: async () => {
       const r = await fetch(`${API}/games/my-games`, { credentials: 'include' });
@@ -36,16 +46,31 @@ export default function ModeratorIndexPage() {
     enabled: !!user && ['STREAMER', 'ADMIN'].includes(user?.role ?? ''),
   });
 
-  // Streamer: redirect to their own running game
-  useEffect(() => {
-    if (!games) return;
-    const running = games.find((g: { status: string; id: string }) => g.status === 'RUNNING');
-    if (running) {
-      router.replace(`/moderator/${running.id}`);
-    }
-  }, [games, router]);
+  // Moderator: get all running games
+  const { data: modGames, isLoading: modGamesLoading } = useQuery<RunningGame[]>({
+    queryKey: ['mod-games'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/games/mod-games`, { credentials: 'include' });
+      if (!r.ok) return [];
+      return r.json();
+    },
+    enabled: !!user && user?.role === 'MODERATOR',
+  });
 
-  const isLoading = authLoading || gamesLoading;
+  // Resolve which games to show: streamer sees own running games, mod sees all running
+  const allGames: RunningGame[] = user?.role === 'MODERATOR'
+    ? (modGames ?? [])
+    : (myGames ?? []).filter((g) => g.status === 'RUNNING');
+
+  // Auto-redirect when exactly one game
+  useEffect(() => {
+    if (authLoading || myGamesLoading || modGamesLoading) return;
+    if (allGames.length === 1) {
+      router.replace(`/moderator/${allGames[0].id}`);
+    }
+  }, [allGames, authLoading, myGamesLoading, modGamesLoading, router]);
+
+  const isLoading = authLoading || myGamesLoading || modGamesLoading;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -56,18 +81,35 @@ export default function ModeratorIndexPage() {
             <Skeleton className="h-8 w-64" />
             <Skeleton className="h-4 w-48" />
           </>
+        ) : allGames.length > 1 ? (
+          <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+            <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors self-start">
+              ← Dashboard
+            </a>
+            <h1 className="text-2xl font-bold">{t('selectGame')}</h1>
+            <div className="flex flex-col gap-3 w-full">
+              {allGames.map((g) => (
+                <Link
+                  key={g.id}
+                  href={`/moderator/${g.id}`}
+                  className="rounded-xl border bg-gradient-to-br from-blue-500/10 to-cyan-500/10 hover:from-blue-500/20 hover:to-cyan-500/20 p-5 flex flex-col gap-1.5 text-left transition-all hover:shadow-md hover:border-primary/30"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">🛡️ {g.title}</span>
+                    <Badge variant="default" className="text-xs">{t('running')}</Badge>
+                  </div>
+                  <span className="text-sm text-muted-foreground">{g.channelName}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         ) : (
           <>
-            <a
-              href="/dashboard"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
-            >
+            <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-2">
               ← Dashboard
             </a>
             <h1 className="text-2xl font-bold">{t('title')}</h1>
-            <p className="text-muted-foreground">
-              {t('noGame')}
-            </p>
+            <p className="text-muted-foreground">{t('noGame')}</p>
           </>
         )}
       </main>

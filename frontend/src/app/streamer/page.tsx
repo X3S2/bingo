@@ -13,8 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Copy, ExternalLink, Users, Hash, Wifi, ChevronDown, ChevronUp, Gift, Zap, AlertTriangle, HelpCircle } from 'lucide-react';
+import { Copy, ExternalLink, Users, Hash, Wifi, ChevronDown, ChevronUp, Gift, Zap, AlertTriangle, HelpCircle, X } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -262,6 +261,11 @@ export default function StreamerPage() {
   const showAttention = !rewardsConfigured && games !== undefined && games.length === 0;
 
   const [helpOpen, setHelpOpen] = useState(false);
+  // Track whether cookie banner is still visible so we can raise the help button above it
+  const [cookieBannerVisible, setCookieBannerVisible] = useState(false);
+  useEffect(() => {
+    setCookieBannerVisible(!localStorage.getItem('cookie_accepted'));
+  }, []);
 
   const copyLink = (gameId: string) => {
     const origin = window.location.origin;
@@ -680,23 +684,35 @@ export default function StreamerPage() {
         </div>
       </main>
 
-      {/* Floating help button */}
+      {/* Floating help button — raised above cookie banner while it's visible */}
       <button
-        onClick={() => setHelpOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg flex items-center justify-center transition-colors"
-        title={t('helpOpen')}
-        aria-label={t('helpOpen')}
+        onClick={() => setHelpOpen(!helpOpen)}
+        className={`fixed right-6 z-50 w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg flex items-center justify-center transition-all duration-300 ${
+          cookieBannerVisible ? 'bottom-[4.5rem]' : 'bottom-6'
+        } ${helpOpen ? 'ring-2 ring-white/50' : ''}`}
+        title={helpOpen ? t('helpClose') : t('helpOpen')}
+        aria-label={helpOpen ? t('helpClose') : t('helpOpen')}
       >
         <HelpCircle className="w-6 h-6" />
       </button>
 
-      {/* Help side panel */}
-      <Sheet open={helpOpen} onOpenChange={setHelpOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{t('helpTitle')}</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 flex flex-col gap-5 text-sm">
+      {/* Help side panel — fixed below header, only closes via X button */}
+      {helpOpen && (
+        <div
+          className="fixed right-0 z-30 flex flex-col bg-background border-l shadow-2xl"
+          style={{ top: '3.5rem', bottom: 0, width: 'min(480px, 90vw)' }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b">
+            <h2 className="font-semibold text-base">{t('helpTitle')}</h2>
+            <button
+              onClick={() => setHelpOpen(false)}
+              className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label={t('helpClose')}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5 text-sm">
             <HelpSection step={1} title={t('helpStep1Title')} text={t('helpStep1Text')} />
             <HelpSection step={2} title={t('helpStep2Title')} text={t('helpStep2Text')} />
             <HelpSection step={3} title={t('helpStep3Title')} text={t('helpStep3Text')} />
@@ -706,8 +722,8 @@ export default function StreamerPage() {
               {t('helpFooter')}
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      )}
     </div>
   );
 }
@@ -725,5 +741,3 @@ function HelpSection({ step, title, text }: { step: number; title: string; text:
     </div>
   );
 }
-
-

@@ -1,6 +1,6 @@
 # StreamBingo
 
-**v1.0.6** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
+**v1.1.3** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
 
 > 🇩🇪 [Deutsche Version → README.de.md](README.de.md)
 

@@ -1,6 +1,6 @@
 # StreamBingo
 
-**v1.0.6** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
+**v1.1.3** � Produktionsreife Twitch-Bingo-Plattform f�r Streamer, Moderatoren und Zuschauer.
 
 > 🇬🇧 [English version → README.md](README.md)
 

@@ -42,9 +42,16 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="container flex h-14 items-center justify-between mx-auto px-4">
-        <Link href={user ? '/dashboard' : '/'} className="font-bold text-[28px] md:text-[40px] bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none py-1">
-          StreamBingo
-        </Link>
+        {/* Logo: disabled for VIEWER (no navigation), links to dashboard for other roles */}
+        {user?.role === 'VIEWER' ? (
+          <span className="font-bold text-[28px] md:text-[40px] bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none py-1 select-none cursor-default">
+            StreamBingo
+          </span>
+        ) : (
+          <Link href={user ? '/dashboard' : '/'} className="font-bold text-[28px] md:text-[40px] bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none py-1">
+            StreamBingo
+          </Link>
+        )}
 
         <nav className="flex items-center gap-2">
           {/* Language toggle */}
@@ -76,9 +83,12 @@ export function Navbar() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard">{t('dashboard')}</Link>
-                    </DropdownMenuItem>
+                    {/* Dashboard link: hidden for VIEWER */}
+                    {user.role !== 'VIEWER' && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard">{t('dashboard')}</Link>
+                      </DropdownMenuItem>
+                    )}
                     {(user.role === 'STREAMER' || user.role === 'ADMIN') && (
                       <DropdownMenuItem asChild>
                         <Link href="/streamer">{t('game')}</Link>
@@ -89,7 +99,7 @@ export function Navbar() {
                         <Link href="/admin">{t('admin')}</Link>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuSeparator />
+                    {user.role !== 'VIEWER' && <DropdownMenuSeparator />}
                     <DropdownMenuItem onClick={handleLogout}>{t('logout')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

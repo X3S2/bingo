@@ -71,10 +71,21 @@ export class BingoController {
     return this.bingoService.getRunningGame();
   }
 
+  @Get('all-running')
+  getAllRunningGames() {
+    return this.bingoService.getAllRunningGames();
+  }
+
   @Get('my-games')
   @Roles(UserRole.STREAMER)
   getMyGames(@Req() req: any) {
     return this.bingoService.getGamesByStreamer(req.user.id);
+  }
+
+  @Get('mod-games')
+  @Roles(UserRole.MODERATOR)
+  getModGames(@Req() req: any) {
+    return this.bingoService.getGamesByModerator(req.user.id);
   }
 
   @Get(':id')

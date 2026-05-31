@@ -141,6 +141,19 @@ export class BingoService {
     });
   }
 
+  async getAllRunningGames() {
+    return this.prisma.bingoGame.findMany({
+      where: { status: GameStatus.RUNNING },
+      select: { id: true, title: true, channelName: true, status: true, startedAt: true },
+      orderBy: { startedAt: 'desc' },
+    });
+  }
+
+  async getGamesByModerator(userId: string) {
+    // Moderator can access all running games
+    return this.getAllRunningGames();
+  }
+
   async getGamesByStreamer(streamerId: string) {
     return this.prisma.bingoGame.findMany({
       where: { streamerId },

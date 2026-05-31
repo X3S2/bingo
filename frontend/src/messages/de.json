@@ -69,6 +69,7 @@
     "waitPlease": "Bitte warten…",
     "noActiveGame": "Kein aktives Spiel",
     "noActiveGameDesc": "Gerade läuft kein Bingo-Spiel. Schau später nochmal rein!",
+    "selectGame": "Welches Spiel möchtest du spielen?",
     "nonViewerNote": "Als {role} benötigst du keine eigene Karte. Nutze das Moderator-Dashboard für die Spielverwaltung.",
     "numberDrawnToast": "🎱 Nummer {number} gezogen!"
   },
@@ -124,6 +125,7 @@
     "saveSettings": "Einstellungen speichern",
     "copyLink": "Link kopieren",
     "helpOpen": "Hilfe öffnen",
+    "helpClose": "Hilfe schließen",
     "helpTitle": "Streamer-Hilfe: So richtest du StreamBingo ein",
     "helpStep1Title": "1. Setup-Assistent abschließen",
     "helpStep1Text": "Besuche /setup und gib deinen Setup-Token sowie deine Twitch App-Daten (Client ID + Secret) ein. Erstelle dafür eine App auf dev.twitch.tv. Trage als OAuth-Redirect-URL ein:\nhttp://localhost:4000/api/auth/callback/twitch",
@@ -271,7 +273,10 @@
     "cmd_bingo": "Bingo melden",
     "cmd_buycard": "Karte erhalten",
     "cmd_zahlen": "Zahlen anzeigen",
-    "cmd_winners": "Gewinner anzeigen"
+    "cmd_winners": "Gewinner anzeigen",
+    "selectGame": "Spiel auswählen",
+    "switchGame": "Spiel wechseln",
+    "running": "Läuft"
   },
   "setup": {
     "title": "StreamBingo einrichten",

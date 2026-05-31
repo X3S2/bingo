@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.4] - 2026-05-31
+
+### Added
+- **Viewer: Dashboard-Bypass** — Viewer werden direkt zum laufenden Spiel weitergeleitet, ohne das Dashboard zu sehen. Bei mehreren gleichzeitigen Spielen erscheint eine Spiel-Auswahl
+- **Mod-Ansicht: Spiel-Switcher** — Moderatoren und Streamer können direkt zwischen mehreren laufenden Spielen wechseln — Dropdown im Moderator-Header, Spiel-Picker bei `/moderator` wenn mehrere Spiele aktiv
+- **Backend: `GET /games/all-running`** — Gibt alle laufenden Spiele zurück (für Viewer-Redirect und Mod-Switcher)
+- **Backend: `GET /games/mod-games`** — Gibt alle laufenden Spiele für Moderatoren zurück
+- **Cookie-Banner: Datenschutz-Link** — Der Cookie-Hinweis enthält jetzt einen direkten Link zur Datenschutzseite
+
+### Changed
+- **Navbar: Viewer-Modus** — Für Viewer ist das StreamBingo-Logo nicht mehr klickbar (kein Dashboard-Link). Im Profil-Dropdown ist nur noch "Abmelden" sichtbar (kein Dashboard-Link)
+- **Viewer: Kein "← Dashboard"-Button** — Der Zurück-zum-Dashboard-Link wurde auf der Spiel-Seite für Viewer ausgeblendet
+- **Hilfe-Panel (Streamer)** — Das Fragezeichen öffnet jetzt ein persistentes Sidebar-Panel anstatt eines modalen Sheets: beginnt unterhalb des Headers (kein Header-Overlap), bleibt beim Klick daneben offen (nur X schließt es), Toggle-Verhalten
+- **Hilfe-Button: Cookie-Banner-Abstand** — Solange der Cookie-Banner sichtbar ist, wird der Hilfe-Button nach oben verschoben, damit er nicht dahinter verschwindet
+
+---
+
 ## [1.1.3] - 2026-05-31
 
 ### Fixed
