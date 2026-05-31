@@ -196,7 +196,8 @@ export default function StreamerPage() {
                 <Input
                   id="channel"
                   value={form.channelName}
-                  onChange={(e) => setForm({ ...form, channelName: e.target.value })}
+                  disabled
+                  className="opacity-60 cursor-not-allowed"
                   placeholder="dein_twitch_name"
                 />
               </div>

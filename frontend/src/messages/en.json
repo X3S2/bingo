@@ -160,6 +160,8 @@
     "generateImpressum": "Generate & save imprint (DE + EN)",
     "generateDatenschutz": "Generate & save privacy policy (DE + EN)",
     "generating": "Generating...",
+    "saveFields": "Save fields",
+    "saving": "Saving...",
     "previewDE": "Preview German",
     "previewEN": "Preview English"
   },

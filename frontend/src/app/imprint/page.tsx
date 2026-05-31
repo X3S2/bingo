@@ -18,19 +18,20 @@ async function getLegalContent(key: string): Promise<string> {
   }
 }
 
-export default function ImpressumPage() {
-  const [showEn, setShowEn] = useState(false);
+export default function ImprintPage() {
+  // EN by default on /imprint
+  const [showDe, setShowDe] = useState(false);
 
-  const { data: deContent = '' } = useQuery({
-    queryKey: ['impressum', 'de'],
-    queryFn: () => getLegalContent('impressum'),
-  });
   const { data: enContent = '' } = useQuery({
     queryKey: ['impressum', 'en'],
     queryFn: () => getLegalContent('impressum_en'),
   });
+  const { data: deContent = '' } = useQuery({
+    queryKey: ['impressum', 'de'],
+    queryFn: () => getLegalContent('impressum'),
+  });
 
-  const content = showEn ? enContent : deContent;
+  const content = showDe ? deContent : enContent;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -38,18 +39,18 @@ export default function ImpressumPage() {
       <main className="container mx-auto px-4 py-12 max-w-3xl">
         <div className="flex items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">{showEn ? 'Imprint' : 'Impressum'}</h1>
+            <h1 className="text-3xl font-bold">{showDe ? 'Impressum' : 'Imprint'}</h1>
             <span className="text-sm font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              {showEn ? 'EN' : 'DE'}
+              {showDe ? 'DE' : 'EN'}
             </span>
           </div>
           <button
-            onClick={() => setShowEn((v) => !v)}
-            title={showEn ? 'Auf Deutsch anzeigen' : 'Show in English'}
+            onClick={() => setShowDe((v) => !v)}
+            title={showDe ? 'Show in English' : 'Auf Deutsch anzeigen'}
             className="text-2xl leading-none hover:opacity-80 transition-opacity focus:outline-none"
-            aria-label={showEn ? 'Auf Deutsch anzeigen' : 'Show in English'}
+            aria-label={showDe ? 'Show in English' : 'Auf Deutsch anzeigen'}
           >
-            {showEn ? '🇩🇪' : '🇬🇧'}
+            {showDe ? '🇬🇧' : '🇩🇪'}
           </button>
         </div>
         {content ? (
@@ -57,7 +58,7 @@ export default function ImpressumPage() {
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         ) : (
-          <p className="text-muted-foreground">Kein Inhalt vorhanden.</p>
+          <p className="text-muted-foreground">No content available.</p>
         )}
       </main>
     </div>

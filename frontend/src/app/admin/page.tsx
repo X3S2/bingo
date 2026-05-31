@@ -137,6 +137,25 @@ export default function AdminPage() {
   });
   const [showBotSecrets, setShowBotSecrets] = useState(false);
 
+  // ─── Command config ───────────────────────────────────────────────────────
+  type CmdPerm = 'all' | 'mod' | 'broadcaster';
+  interface CmdCfg { name: string; enabled: boolean; perm: CmdPerm; }
+  type CmdSlug = 'zahl_add' | 'zahl_remove' | 'bingo' | 'buycard' | 'zahlen' | 'winners';
+  const CMD_DEFAULTS: Record<CmdSlug, { label: string; defaultName: string; defaultPerm: CmdPerm }> = {
+    zahl_add:    { label: 'Zahl ziehen',   defaultName: '!zahl+',         defaultPerm: 'mod' },
+    zahl_remove: { label: 'Zahl entfernen',defaultName: '!zahl-',         defaultPerm: 'mod' },
+    bingo:       { label: 'Bingo melden',  defaultName: 'bingo',          defaultPerm: 'all' },
+    buycard:     { label: 'Karte erhalten',defaultName: '!buycard',       defaultPerm: 'all' },
+    zahlen:      { label: 'Zahlen anzeigen',defaultName: '!zahlen',       defaultPerm: 'all' },
+    winners:     { label: 'Gewinner anzeigen',defaultName: '!bingogewinner',defaultPerm: 'all' },
+  };
+  const CMD_SLUGS = Object.keys(CMD_DEFAULTS) as CmdSlug[];
+  const [cmdConfigs, setCmdConfigs] = useState<Record<CmdSlug, CmdCfg>>(() =>
+    Object.fromEntries(
+      CMD_SLUGS.map((s) => [s, { name: CMD_DEFAULTS[s].defaultName, enabled: true, perm: CMD_DEFAULTS[s].defaultPerm }])
+    ) as Record<CmdSlug, CmdCfg>
+  );
+
   interface LegalData {
     name: string; firma: string; strasse: string; plzOrt: string; land: string;
     email: string; telefon: string; website: string; ustId: string; responsible: string;
@@ -163,8 +182,21 @@ export default function AdminPage() {
         accessToken: g('bot_access_token'),
         refreshToken: g('bot_refresh_token'),
       });
+      // Load command configs
+      setCmdConfigs(
+        Object.fromEntries(
+          CMD_SLUGS.map((s) => [
+            s,
+            {
+              name:    g(`bot_cmd_${s}_name`)    || CMD_DEFAULTS[s].defaultName,
+              enabled: (g(`bot_cmd_${s}_enabled`) || 'true') === 'true',
+              perm:    (g(`bot_cmd_${s}_perm`)    || CMD_DEFAULTS[s].defaultPerm) as CmdPerm,
+            },
+          ])
+        ) as Record<CmdSlug, CmdCfg>
+      );
     }
-  }, [settings]);
+  }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const banMutation = useMutation({
     mutationFn: async ({ userId, action }: { userId: string; action: 'ban' | 'unban' }) => {
@@ -309,6 +341,19 @@ export default function AdminPage() {
       toast.success(tc('save'));
       void qc.invalidateQueries({ queryKey: ['admin-settings'] });
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveCmdMutation = useMutation({
+    mutationFn: async (slug: CmdSlug) => {
+      const cfg = cmdConfigs[slug];
+      await Promise.all([
+        fetch(`${API}/admin/settings/bot_cmd_${slug}_name`,    { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: cfg.name }) }),
+        fetch(`${API}/admin/settings/bot_cmd_${slug}_enabled`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: String(cfg.enabled) }) }),
+        fetch(`${API}/admin/settings/bot_cmd_${slug}_perm`,    { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: cfg.perm }) }),
+      ]);
+    },
+    onSuccess: () => { toast.success('Befehl gespeichert'); void qc.invalidateQueries({ queryKey: ['admin-settings'] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -475,6 +520,12 @@ You have the right to lodge a complaint with a data protection supervisory autho
       ]);
     },
     onSuccess: () => { toast.success('Datenschutzerklärung generiert & gespeichert!'); void qc.invalidateQueries({ queryKey: ['admin-settings'] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveFieldsMutation = useMutation({
+    mutationFn: async () => { await saveLegalFields(legalData); },
+    onSuccess: () => { toast.success('Felder gespeichert!'); void qc.invalidateQueries({ queryKey: ['admin-settings'] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -879,48 +930,62 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 <CardDescription>{tb('chatCommandsDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col gap-3">
-                  {[
-                    {
-                      cmd: '!zahl+N',
-                      example: '!zahl+42',
-                      who: 'Mod / Broadcaster',
-                      desc: 'Zieht die Zahl N (1–75). Alle Bingo-Karten werden automatisch aktualisiert.',
-                      color: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
-                    },
-                    {
-                      cmd: '!zahl-N',
-                      example: '!zahl-42',
-                      who: 'Mod / Broadcaster',
-                      desc: 'Entfernt die Zahl N wieder. Alle Karten werden zurückberechnet.',
-                      color: 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800',
-                    },
-                    {
-                      cmd: 'bingo',
-                      example: 'bingo',
-                      who: 'Alle Zuschauer',
-                      desc: 'Meldet Bingo. Der Bot prüft die Karte des Nutzers automatisch.',
-                      color: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
-                    },
-                    {
-                      cmd: '!buycard',
-                      example: '!buycard',
-                      who: 'Alle (Debug)',
-                      desc: '⚙️ Debug-Befehl: Erstellt eine Bingo-Karte ohne Channel-Point-Redeem. Nützlich zum Testen. Jeder Nutzer kann nur eine Karte pro Spiel haben.',
-                      color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800',
-                    },
-                  ].map((c) => (
-                    <div key={c.cmd} className={`rounded-lg border p-3 ${c.color}`}>
-                      <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <code className="font-mono font-bold text-sm bg-background/60 px-2 py-0.5 rounded">{c.cmd}</code>
-                          <span className="text-xs text-muted-foreground">Beispiel: <code className="font-mono">{c.example}</code></span>
+                <div className="flex flex-col gap-2">
+                  {/* Header row */}
+                  <div className="hidden sm:grid sm:grid-cols-[1fr_1fr_180px_120px_auto] gap-2 px-2 text-xs font-semibold text-muted-foreground">
+                    <span>Funktion</span>
+                    <span>Befehlsname</span>
+                    <span>Berechtigung</span>
+                    <span>Aktiv</span>
+                    <span />
+                  </div>
+                  {CMD_SLUGS.map((slug) => {
+                    const cfg = cmdConfigs[slug];
+                    const def = CMD_DEFAULTS[slug];
+                    return (
+                      <div key={slug} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_180px_120px_auto] gap-2 items-center border rounded-lg p-3 sm:p-2">
+                        <div className="text-sm font-medium">{def.label}</div>
+                        <Input
+                          value={cfg.name}
+                          onChange={(e) => setCmdConfigs((prev) => ({ ...prev, [slug]: { ...prev[slug], name: e.target.value } }))}
+                          className="h-8 text-sm font-mono"
+                          placeholder={def.defaultName}
+                        />
+                        <Select
+                          value={cfg.perm}
+                          onValueChange={(v) => setCmdConfigs((prev) => ({ ...prev, [slug]: { ...prev[slug], perm: v as CmdPerm } }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Alle Zuschauer</SelectItem>
+                            <SelectItem value="mod">Mod &amp; Broadcaster</SelectItem>
+                            <SelectItem value="broadcaster">Nur Broadcaster</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={cfg.enabled}
+                            onCheckedChange={(v) => setCmdConfigs((prev) => ({ ...prev, [slug]: { ...prev[slug], enabled: v } }))}
+                          />
+                          <span className="text-xs text-muted-foreground">{cfg.enabled ? 'An' : 'Aus'}</span>
                         </div>
-                        <Badge variant="outline" className="text-xs flex-shrink-0">{c.who}</Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs"
+                          onClick={() => saveCmdMutation.mutate(slug)}
+                          disabled={saveCmdMutation.isPending}
+                        >
+                          {tc('save')}
+                        </Button>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{c.desc}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Für Zahlen-Befehle: Befehlsname ist das Präfix vor der Zahl, z.B. <code className="font-mono">!zahl+</code> → Aufruf: <code className="font-mono">!zahl+42</code>
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -1006,13 +1071,23 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     <Input value={legalData.responsible} onChange={(e) => setLegalData((d) => ({ ...d, responsible: e.target.value }))} placeholder="Max Mustermann, Musterstraße 1, 12345 Musterstadt" />
                   </div>
                 </div>
-                <Button
-                  onClick={() => generateImpressumMutation.mutate()}
-                  disabled={generateImpressumMutation.isPending || !legalData.name || !legalData.email}
-                  className="w-fit"
-                >
-                  {generateImpressumMutation.isPending ? t('generating') : t('generateImpressum')}
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    onClick={() => saveFieldsMutation.mutate()}
+                    disabled={saveFieldsMutation.isPending}
+                    className="w-fit"
+                  >
+                    {saveFieldsMutation.isPending ? t('saving') : t('saveFields')}
+                  </Button>
+                  <Button
+                    onClick={() => generateImpressumMutation.mutate()}
+                    disabled={generateImpressumMutation.isPending}
+                    className="w-fit"
+                  >
+                    {generateImpressumMutation.isPending ? t('generating') : t('generateImpressum')}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -1021,13 +1096,9 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 <CardDescription className="text-xs">Vorschau des generierten Impressums — so erscheint es später auf der Seite.</CardDescription>
               </CardHeader>
               <CardContent>
-                {legalData.name && legalData.email ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30">
-                    <ReactMarkdown>{buildImpressumDE(legalData)}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">Name und E-Mail ausfüllen, um die Vorschau anzuzeigen.</p>
-                )}
+                <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30">
+                  <ReactMarkdown>{buildImpressumDE(legalData)}</ReactMarkdown>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -1036,13 +1107,9 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 <CardDescription className="text-xs">Preview of the generated English imprint.</CardDescription>
               </CardHeader>
               <CardContent>
-                {legalData.name && legalData.email ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30">
-                    <ReactMarkdown>{buildImpressumEN(legalData)}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">Fill in Name and Email to see the preview.</p>
-                )}
+                <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30">
+                  <ReactMarkdown>{buildImpressumEN(legalData)}</ReactMarkdown>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1089,13 +1156,23 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     <Input value={legalData.website} onChange={(e) => setLegalData((d) => ({ ...d, website: e.target.value }))} placeholder="https://example.de" />
                   </div>
                 </div>
-                <Button
-                  onClick={() => generateDatenschutzMutation.mutate()}
-                  disabled={generateDatenschutzMutation.isPending || !legalData.name || !legalData.email}
-                  className="w-fit"
-                >
-                  {generateDatenschutzMutation.isPending ? t('generating') : t('generateDatenschutz')}
-                </Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    onClick={() => saveFieldsMutation.mutate()}
+                    disabled={saveFieldsMutation.isPending}
+                    className="w-fit"
+                  >
+                    {saveFieldsMutation.isPending ? t('saving') : t('saveFields')}
+                  </Button>
+                  <Button
+                    onClick={() => generateDatenschutzMutation.mutate()}
+                    disabled={generateDatenschutzMutation.isPending}
+                    className="w-fit"
+                  >
+                    {generateDatenschutzMutation.isPending ? t('generating') : t('generateDatenschutz')}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -1104,13 +1181,9 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 <CardDescription className="text-xs">Vorschau der generierten Datenschutzerklärung.</CardDescription>
               </CardHeader>
               <CardContent>
-                {legalData.name && legalData.email ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30 max-h-96 overflow-y-auto">
-                    <ReactMarkdown>{buildDatenschutzDE(legalData)}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">Name und E-Mail ausfüllen, um die Vorschau anzuzeigen.</p>
-                )}
+                <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30 max-h-96 overflow-y-auto">
+                  <ReactMarkdown>{buildDatenschutzDE(legalData)}</ReactMarkdown>
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -1119,13 +1192,9 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 <CardDescription className="text-xs">Preview of the generated English privacy policy.</CardDescription>
               </CardHeader>
               <CardContent>
-                {legalData.name && legalData.email ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30 max-h-96 overflow-y-auto">
-                    <ReactMarkdown>{buildDatenschutzEN(legalData)}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">Fill in Name and Email to see the preview.</p>
-                )}
+                <div className="prose prose-sm dark:prose-invert max-w-none border rounded p-4 bg-muted/30 max-h-96 overflow-y-auto">
+                  <ReactMarkdown>{buildDatenschutzEN(legalData)}</ReactMarkdown>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

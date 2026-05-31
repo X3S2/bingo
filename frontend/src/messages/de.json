@@ -145,6 +145,8 @@
     "generateImpressum": "Impressum generieren & speichern (DE + EN)",
     "generateDatenschutz": "Datenschutz generieren & speichern (DE + EN)",
     "generating": "Generiere...",
+    "saveFields": "Felder speichern",
+    "saving": "Speichert...",
     "previewDE": "Vorschau Deutsch",
     "previewEN": "Vorschau English"
   },

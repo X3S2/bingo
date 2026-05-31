@@ -21,8 +21,6 @@ import { Trophy, Wifi, WifiOff } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
-const COLS = ['B', 'I', 'N', 'G', 'O'];
-
 // Calculates how many cells away from bingo (lower = closer to bingo)
 function proximityScore(marked: boolean[][]): number {
   let best = 999;
@@ -340,11 +338,6 @@ export default function ModeratorPage({ params }: ModPage) {
                   <CardContent className="px-2 pb-2">
                     {/* Mini 5x5 bingo card */}
                     <div className="grid grid-cols-5 gap-0.5">
-                      {COLS.map((col) => (
-                        <div key={col} className="text-center text-[9px] font-bold text-muted-foreground py-0.5">
-                          {col}
-                        </div>
-                      ))}
                       {(c.grid ?? []).flat().map((num, idx) => {
                         const row = Math.floor(idx / 5);
                         const col = idx % 5;
@@ -354,7 +347,7 @@ export default function ModeratorPage({ params }: ModPage) {
                           <div
                             key={idx}
                             className={`
-                              aspect-square flex items-center justify-center text-[8px] font-medium rounded-sm
+                              aspect-square flex items-center justify-center text-xs font-semibold rounded-sm
                               ${isCenter ? 'bg-primary/30 text-primary' : isMarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
                             `}
                           >

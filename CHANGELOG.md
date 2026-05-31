@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.5] - 2026-05-31
+
+### Added
+- **Bot command configuration** in admin bot tab: each chat command now has an editable name/prefix, an enable/disable toggle, and a permission level selector (Alle Zuschauer / Mod & Broadcaster / Nur Broadcaster); settings stored as `bot_cmd_<slug>_name/enabled/perm` in AdminSetting
+- **New chat commands**: `!zahlen` (lists all drawn numbers in chat) and `!bingogewinner` (lists all winners); both configurable via admin panel
+- **`/imprint` route**: English version of the imprint page, shows EN by default with 🇩🇪 flag to switch to German
+- **Flag-button language toggle** on `/impressum`, `/datenschutz`, and `/imprint` pages — replaces the text "Switch to English / Auf Deutsch" button with a single flag emoji button
+
+### Changed
+- **Moderator mini-card font size**: bingo cell numbers in the moderator overview increased from `text-[10px]` to `text-xs` for better readability; removed B/I/N/G/O column header row from mini cards
+- **Drawn numbers display** (`NumberBoard`): numbers now shown as larger primary-colored tiles without the B/I/N/G/O column prefix
+- **Viewer bingo card** (manual marking only): cells are now click-to-toggle locally; server auto-marking no longer overwrites viewer's own selections; `readOnly` prop added for mod/streamer views
+- **Bingo card cell font** increased from `text-sm` to `text-lg` for better visibility
+- **Streamer create-game form**: channel name field is now disabled (read-only, auto-populated from the logged-in user's Twitch login)
+- **Admin legal pages** (Impressum / Datenschutz): "Felder speichern" button added for intermediate field saves; generate buttons no longer require all fields to be filled; previews render unconditionally
+
+### Fixed
+- Unused `COLS` array removed from moderator page after removing column header row
+
+---
+
 ## [1.0.4] - 2026-05-31
 
 ### Added

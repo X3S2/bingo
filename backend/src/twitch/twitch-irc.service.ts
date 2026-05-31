@@ -36,6 +36,52 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private lastRefreshedAt: Date | null = null;
   private _connected = false;
 
+  // ─── Command config cache ────────────────────────────────────────────────
+  private cmdCache: Map<string, { name: string; enabled: boolean; perm: 'all' | 'mod' | 'broadcaster' }> = new Map();
+  private cmdCacheAt = 0;
+  private readonly CMD_CACHE_TTL = 30_000; // 30 s
+
+  private static readonly CMD_SLUGS = ['zahl_add', 'zahl_remove', 'bingo', 'buycard', 'zahlen', 'winners'] as const;
+  private static readonly CMD_DEFAULTS: Record<string, { name: string; perm: 'all' | 'mod' | 'broadcaster' }> = {
+    zahl_add:    { name: '!zahl+',         perm: 'mod' },
+    zahl_remove: { name: '!zahl-',         perm: 'mod' },
+    bingo:       { name: 'bingo',          perm: 'all' },
+    buycard:     { name: '!buycard',       perm: 'all' },
+    zahlen:      { name: '!zahlen',        perm: 'all' },
+    winners:     { name: '!bingogewinner', perm: 'all' },
+  };
+
+  private async refreshCmdCache(): Promise<void> {
+    const now = Date.now();
+    if (now - this.cmdCacheAt < this.CMD_CACHE_TTL) return;
+    const keys = TwitchIrcService.CMD_SLUGS.flatMap((s) => [
+      `bot_cmd_${s}_name`, `bot_cmd_${s}_enabled`, `bot_cmd_${s}_perm`,
+    ]);
+    const rows = await this.prisma.adminSetting.findMany({ where: { key: { in: keys } } });
+    const map = new Map(rows.map((r) => [r.key, r.value]));
+    for (const slug of TwitchIrcService.CMD_SLUGS) {
+      const def = TwitchIrcService.CMD_DEFAULTS[slug];
+      this.cmdCache.set(slug, {
+        name:    map.get(`bot_cmd_${slug}_name`)    ?? def.name,
+        enabled: (map.get(`bot_cmd_${slug}_enabled`) ?? 'true') === 'true',
+        perm:    (map.get(`bot_cmd_${slug}_perm`)    as 'all' | 'mod' | 'broadcaster') ?? def.perm,
+      });
+    }
+    this.cmdCacheAt = now;
+  }
+
+  private getCmd(slug: string) {
+    return this.cmdCache.get(slug) ?? { ...TwitchIrcService.CMD_DEFAULTS[slug], enabled: true };
+  }
+
+  private checkPerm(perm: 'all' | 'mod' | 'broadcaster', msg: any): boolean {
+    if (perm === 'all') return true;
+    if (perm === 'mod') return msg.userInfo.isMod || msg.userInfo.isBroadcaster;
+    if (perm === 'broadcaster') return msg.userInfo.isBroadcaster;
+    return false;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
@@ -344,57 +390,114 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     const { gameId } = activeGame;
     const trimmed = text.trim().toLowerCase();
 
-    // Check permissions for number commands
-    const isModOrBroadcaster = msg.userInfo.isMod || msg.userInfo.isBroadcaster;
+    // Refresh command config (cached 30 s)
+    await this.refreshCmdCache();
 
-    // !zahl+N – add number (mods/broadcaster only)
-    const addMatch = trimmed.match(/^!zahl\+(\d+)$/);
-    if (addMatch) {
-      if (!isModOrBroadcaster) return; // Silent ignore for regular viewers
-      const number = parseInt(addMatch[1], 10);
-      try {
-        await this.bingoService.drawNumber(gameId, number);
-        await this.chatClient?.say(channel, `✅ Zahl ${number} wurde gezogen!`);
-      } catch (err: any) {
-        await this.chatClient?.say(channel, `❌ ${err.message}`);
+    // ── !zahl+N – draw number ──────────────────────────────────────────────
+    const czahlAdd = this.getCmd('zahl_add');
+    if (czahlAdd.enabled) {
+      const prefix = czahlAdd.name.toLowerCase();
+      if (trimmed.startsWith(prefix)) {
+        const numStr = trimmed.slice(prefix.length);
+        const number = parseInt(numStr, 10);
+        if (!isNaN(number) && String(number) === numStr) {
+          if (!this.checkPerm(czahlAdd.perm, msg)) return;
+          try {
+            await this.bingoService.drawNumber(gameId, number);
+            await this.chatClient?.say(channel, `✅ Zahl ${number} wurde gezogen!`);
+          } catch (err: any) {
+            await this.chatClient?.say(channel, `❌ ${err.message}`);
+          }
+          return;
+        }
       }
-      return;
     }
 
-    // !zahl-N – remove number (mods/broadcaster only)
-    const removeMatch = trimmed.match(/^!zahl-(\d+)$/);
-    if (removeMatch) {
-      if (!isModOrBroadcaster) return;
-      const number = parseInt(removeMatch[1], 10);
-      try {
-        await this.bingoService.removeNumber(gameId, number);
-        await this.chatClient?.say(channel, `✅ Zahl ${number} wurde entfernt!`);
-      } catch (err: any) {
-        await this.chatClient?.say(channel, `❌ ${err.message}`);
+    // ── !zahl-N – remove number ────────────────────────────────────────────
+    const czahlRemove = this.getCmd('zahl_remove');
+    if (czahlRemove.enabled) {
+      const prefix = czahlRemove.name.toLowerCase();
+      if (trimmed.startsWith(prefix)) {
+        const numStr = trimmed.slice(prefix.length);
+        const number = parseInt(numStr, 10);
+        if (!isNaN(number) && String(number) === numStr) {
+          if (!this.checkPerm(czahlRemove.perm, msg)) return;
+          try {
+            await this.bingoService.removeNumber(gameId, number);
+            await this.chatClient?.say(channel, `✅ Zahl ${number} wurde entfernt!`);
+          } catch (err: any) {
+            await this.chatClient?.say(channel, `❌ ${err.message}`);
+          }
+          return;
+        }
       }
-      return;
     }
 
-    // BINGO – any viewer can claim
-    if (trimmed === 'bingo') {
+    // ── bingo – claim bingo ────────────────────────────────────────────────
+    const cbingo = this.getCmd('bingo');
+    if (cbingo.enabled && trimmed === cbingo.name.toLowerCase()) {
+      if (!this.checkPerm(cbingo.perm, msg)) return;
       const twitchId = msg.userInfo.userId;
       const user = await this.prisma.user.findUnique({ where: { twitchId } });
       if (!user) return;
-
       try {
         const winner = await this.bingoService.claimBingo(gameId, user.id, 'CHAT');
-        await this.chatClient?.say(
-          channel,
-          `🎉 @${username} hat BINGO! (Platz ${winner.position})`,
-        );
+        await this.chatClient?.say(channel, `🎉 @${username} hat BINGO! (Platz ${winner.position})`);
       } catch {
         // Ignore – not a valid bingo
       }
       return;
     }
 
-    // !buycard – debug command: give the sender a bingo card (mods/broadcaster only for now or any user)
-    if (trimmed === '!buycard') {
+    // ── !zahlen – list drawn numbers ───────────────────────────────────────
+    const czahlen = this.getCmd('zahlen');
+    if (czahlen.enabled && trimmed === czahlen.name.toLowerCase()) {
+      if (!this.checkPerm(czahlen.perm, msg)) return;
+      try {
+        const game = await this.prisma.bingoGame.findUnique({
+          where: { id: gameId },
+          include: { drawnNumbers: { orderBy: { number: 'asc' } } },
+        });
+        if (!game) return;
+        const nums = game.drawnNumbers.map((d: { number: number }) => d.number);
+        if (nums.length === 0) {
+          await this.chatClient?.say(channel, `🎱 Noch keine Zahlen gezogen.`);
+        } else {
+          await this.chatClient?.say(channel, `🎱 Gezogene Zahlen (${nums.length}/75): ${nums.join(', ')}`);
+        }
+      } catch (err: any) {
+        this.logger.error(`!zahlen error: ${err.message}`);
+      }
+      return;
+    }
+
+    // ── !bingogewinner – list winners ──────────────────────────────────────
+    const cwinners = this.getCmd('winners');
+    if (cwinners.enabled && trimmed === cwinners.name.toLowerCase()) {
+      if (!this.checkPerm(cwinners.perm, msg)) return;
+      try {
+        const game = await this.prisma.bingoGame.findUnique({
+          where: { id: gameId },
+          include: { winners: { orderBy: { position: 'asc' }, include: { user: { select: { displayName: true } } } } },
+        });
+        if (!game) return;
+        const ws = game.winners as Array<{ position: number; user: { displayName: string } }>;
+        if (ws.length === 0) {
+          await this.chatClient?.say(channel, `🏆 Noch keine Gewinner.`);
+        } else {
+          const list = ws.map((w) => `${w.position}. @${w.user.displayName}`).join(' · ');
+          await this.chatClient?.say(channel, `🏆 Gewinner: ${list}`);
+        }
+      } catch (err: any) {
+        this.logger.error(`!bingogewinner error: ${err.message}`);
+      }
+      return;
+    }
+
+    // ── !buycard – get a bingo card ────────────────────────────────────────
+    const cbuycard = this.getCmd('buycard');
+    if (cbuycard.enabled && trimmed === cbuycard.name.toLowerCase()) {
+      if (!this.checkPerm(cbuycard.perm, msg)) return;
       const twitchId = msg.userInfo.userId;
       const user = await this.prisma.user.findUnique({ where: { twitchId } });
       if (!user) {
@@ -407,6 +510,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       } catch (err: any) {
         await this.chatClient?.say(channel, `❌ @${username} ${err.message}`);
       }
+      return;
     }
   }
 }
