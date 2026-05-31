@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-06-01
+
+### Added
+- **Channel Points System** — Streamer können auf Twitch Channel Point Rewards für StreamBingo automatisch verwalten. Zwei Reward-Typen: SELF (Karte für sich selbst einlösen) und GIFT (Karte an einen anderen Viewer verschenken)
+- **Streamer: Allgemeine Einstellungen** — neues aufklappbares Panel auf der Streamer-Seite zur Konfiguration der Channel Points Rewards (Modus Auto/Manuell, Name, Kosten, Max. Einlösungen pro User)
+- **Rewards Auto-Aktivierung** — im Auto-Modus werden Twitch Rewards automatisch aktiviert wenn ein Spiel startet und deaktiviert wenn es endet
+- **Einladungslinks** — Admins können Einmal-Einladungslinks generieren, die neuen Usern automatisch die Rolle STREAMER oder MODERATOR geben
+- **Admin: Einladungen-Tab** — neuer Tab auf der Admin-Seite zum Erstellen, Anzeigen und Widerrufen von Einladungslinks
+- **Invite-Seite** (`/invite/[token]`) — Landingpage für Einladungslinks mit Twitch-Login-Button; Token wird beim OAuth-Callback automatisch konsumiert
+- **Moderator-Auto-Erkennung** — beim Twitch-Login wird automatisch geprüft ob der User Moderator eines Channels mit laufendem Spiel ist; falls ja, wird die Rolle automatisch auf MODERATOR gesetzt
+- **Twitch OAuth-Tokens gespeichert** — Access- und Refresh-Token werden für API-Calls (Channel Points, Moderator-Erkennung) gespeichert
+- **`GET /twitch/rewards/settings`** — Reward-Einstellungen des Streamers laden (STREAMER+)
+- **`POST /twitch/rewards/settings`** — Reward-Einstellungen speichern (STREAMER+)
+- **`POST /twitch/rewards/setup`** — Rewards auf Twitch erstellen/verifizieren (STREAMER+)
+- **`GET /admin/invites`** — alle Invite-Tokens auflisten (ADMIN)
+- **`POST /admin/invites`** — neuen Invite-Token erstellen (ADMIN)
+- **`DELETE /admin/invites/:id`** — Invite-Token widerrufen (ADMIN)
+- **`GET /admin/validate-invite/:token`** — Token-Status prüfen (VIEWER+)
+
+### Changed
+- **Moderator: Karten-Layout** — Spieler-Name wird jetzt inline neben dem Avatar angezeigt (spart vertikalen Platz; shadcn CardHeader durch `<div>` ersetzt)
+- **Twitch OAuth-Scopes** — `user:read:moderated_channels` hinzugefügt für Moderator-Auto-Erkennung
+
+### Technical
+- Prisma Schema: `twitchAccessToken` und `twitchRefreshToken` auf `User`-Modell
+- Prisma Schema: `InviteToken`-Modell neu hinzugefügt
+- Prisma Schema: `@@unique([gameId, type])` auf `Redeem`-Modell für Upsert-Unterstützung
+
+---
+
 ## [1.0.6] - 2026-05-31
 
 ### Added

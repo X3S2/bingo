@@ -61,6 +61,18 @@ interface AuditEntry {
   admin?: { displayName: string };
 }
 
+interface InviteToken {
+  id: string;
+  token: string;
+  role: string;
+  note?: string;
+  createdBy: string;
+  createdAt: string;
+  expiresAt?: string;
+  usedAt?: string;
+  usedBy?: string;
+}
+
 export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
@@ -109,6 +121,49 @@ export default function AdminPage() {
       return r.json();
     },
     enabled: !!user,
+  });
+
+  const { data: invitesData } = useQuery<InviteToken[]>({
+    queryKey: ['admin-invites'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/admin/invites`, { credentials: 'include' });
+      return r.ok ? r.json() : [];
+    },
+    enabled: !!user,
+  });
+
+  const [inviteNote, setInviteNote] = useState('');
+  const [inviteRole, setInviteRole] = useState<string>('STREAMER');
+
+  const createInviteMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`${API}/admin/invites`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: inviteNote || undefined, role: inviteRole }),
+      });
+      if (!r.ok) throw new Error('Fehler beim Erstellen');
+      return r.json();
+    },
+    onSuccess: () => {
+      toast.success(t('createInvite') + ' erstellt');
+      setInviteNote('');
+      void qc.invalidateQueries({ queryKey: ['admin-invites'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const revokeInviteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`${API}/admin/invites/${id}`, { method: 'DELETE', credentials: 'include' });
+      if (!r.ok) throw new Error('Fehler');
+    },
+    onSuccess: () => {
+      toast.success(t('inviteRevoke') + ' erfolgreich');
+      void qc.invalidateQueries({ queryKey: ['admin-invites'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const { data: botStatus, refetch: refetchBotStatus } = useQuery({
@@ -557,6 +612,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
             <TabsTrigger value="games">{t('games')}</TabsTrigger>
             <TabsTrigger value="bot">🤖 Bot</TabsTrigger>
             <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
+            <TabsTrigger value="invites">🔗 {t('invites')}</TabsTrigger>
             <TabsTrigger value="impressum">📄 {t('impressumTab')}</TabsTrigger>
             <TabsTrigger value="datenschutz">🔒 {t('datenschutzTab')}</TabsTrigger>
             <TabsTrigger value="audit">{t('auditLog')}</TabsTrigger>
@@ -1230,6 +1286,106 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 ))}
               </div>
             </ScrollArea>
+          </TabsContent>
+
+          {/* Invites */}
+          <TabsContent value="invites" className="mt-4">
+            <div className="flex flex-col gap-4">
+              {/* Create invite form */}
+              <Card>
+                <CardHeader><CardTitle className="text-base">{t('createInvite')}</CardTitle></CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <Label>{t('inviteNote')}</Label>
+                    <Input
+                      value={inviteNote}
+                      onChange={(e) => setInviteNote(e.target.value)}
+                      placeholder="z.B. Für MeinKumpel_TV"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label>{t('inviteRole')}</Label>
+                    <Select value={inviteRole} onValueChange={setInviteRole}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="STREAMER">STREAMER</SelectItem>
+                        <SelectItem value="MODERATOR">MODERATOR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button
+                    onClick={() => createInviteMutation.mutate()}
+                    disabled={createInviteMutation.isPending}
+                    className="self-start"
+                  >
+                    {t('inviteCreate')}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Invite list */}
+              {(invitesData ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('noInvites')}</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {(invitesData ?? []).map((inv) => {
+                    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${inv.token}`;
+                    return (
+                      <Card key={inv.id}>
+                        <CardContent className="py-3 px-4 flex flex-col gap-2 text-sm">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant={inv.usedAt ? 'secondary' : 'default'} className="flex-shrink-0">
+                              {inv.usedAt ? t('inviteUsed') : t('inviteUnused')}
+                            </Badge>
+                            <Badge variant="outline" className="flex-shrink-0">{inv.role}</Badge>
+                            {inv.note && <span className="text-muted-foreground">{inv.note}</span>}
+                            <span className="ml-auto text-xs text-muted-foreground">
+                              {t('inviteCreatedAt')}: {new Date(inv.createdAt).toLocaleString('de-DE')}
+                            </span>
+                          </div>
+                          {!inv.usedAt && (
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs bg-muted rounded px-2 py-1 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                                {link}
+                              </code>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(link).then(() =>
+                                    toast.success(t('inviteLinkCopied'))
+                                  );
+                                }}
+                              >
+                                Kopieren
+                              </Button>
+                            </div>
+                          )}
+                          {inv.usedAt && (
+                            <p className="text-xs text-muted-foreground">
+                              {t('inviteUsedAt')}: {new Date(inv.usedAt).toLocaleString('de-DE')}
+                            </p>
+                          )}
+                          {!inv.usedAt && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="self-start"
+                              onClick={() => revokeInviteMutation.mutate(inv.id)}
+                              disabled={revokeInviteMutation.isPending}
+                            >
+                              {t('inviteRevoke')}
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>

@@ -88,7 +88,21 @@
     "redeemSelf": "Eigene Karte (Self-Redeem)",
     "redeemGift": "Karte verschenken (Gift-Redeem)",
     "redeemTitle": "Redeem-Bezeichnung",
-    "redeemCost": "Kosten (Channel Points)"
+    "redeemCost": "Kosten (Channel Points)",
+    "generalSettings": "Allgemeine Einstellungen",
+    "cpModeAuto": "Automatisch (Channel Points werden automatisch verwaltet)",
+    "cpModeManual": "Manuell (Channel Points manuell konfigurieren)",
+    "cpManualHint": "Bitte daran denken, den Channel Point Reward manuell in den Twitch-Einstellungen zu aktivieren und den Redeem-Titel einzutragen.",
+    "cpSelfReward": "Eigene Karte (Self-Redeem)",
+    "cpGiftReward": "Karte verschenken (Gift-Redeem)",
+    "cpRewardName": "Reward-Bezeichnung",
+    "cpRewardCost": "Kosten (CP)",
+    "cpMaxPerUser": "Max. pro Nutzer / Stream",
+    "cpMaxHint": "-1 = unbegrenzt",
+    "cpSetupButton": "Reward auf Twitch erstellen / aktualisieren",
+    "cpSetupSuccess": "Channel Point Rewards erfolgreich eingerichtet!",
+    "cpSettingsSaved": "Einstellungen gespeichert.",
+    "saveSettings": "Einstellungen speichern"
   },
   "admin": {
     "title": "Admin-Portal",
@@ -148,7 +162,22 @@
     "saveFields": "Felder speichern",
     "saving": "Speichert...",
     "previewDE": "Vorschau Deutsch",
-    "previewEN": "Vorschau English"
+    "previewEN": "Vorschau English",
+    "invites": "Einladungen",
+    "createInvite": "Neuen Einladungslink erstellen",
+    "inviteNote": "Notiz (optional)",
+    "inviteRole": "Rolle",
+    "inviteCreate": "Link erstellen",
+    "inviteLink": "Einladungslink",
+    "inviteLinkCopied": "Link in Zwischenablage kopiert",
+    "inviteStatus": "Status",
+    "inviteUsed": "Verwendet",
+    "inviteUnused": "Offen",
+    "inviteRevoke": "Widerrufen",
+    "inviteCreatedAt": "Erstellt",
+    "inviteUsedAt": "Verwendet am",
+    "inviteCreatedBy": "Erstellt von",
+    "noInvites": "Noch keine Einladungen erstellt."
   },
   "bot": {
     "status": "Bot-Status",
@@ -277,5 +306,14 @@
     "roleViewerDesc": "Erhalte deine persönliche 5×5 Bingo-Karte und markiere Zahlen live.",
     "roleModerator": "Moderatoren",
     "roleModeratorDesc": "Überwache alle Karten und verwalte gezogene Zahlen per Chat-Befehl."
+  },
+  "invite": {
+    "title": "Einladung",
+    "subtitle": "Du wurdest eingeladen, StreamBingo als Streamer zu nutzen.",
+    "loginButton": "Mit Twitch anmelden",
+    "invalidToken": "Dieser Einladungslink ist ungültig.",
+    "alreadyUsed": "Dieser Einladungslink wurde bereits verwendet.",
+    "expired": "Dieser Einladungslink ist abgelaufen.",
+    "checking": "Link wird überprüft..."
   }
 }

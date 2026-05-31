@@ -26,12 +26,15 @@ export class AuthController {
 
   /**
    * Initiate Twitch OAuth – redirect user to Twitch
+   * Optional ?invite=TOKEN query param embeds invite token into state
    */
   @Get('twitch')
-  async initiateLogin(@Res() res: Response) {
-    const state = crypto.randomBytes(16).toString('hex');
-    // Store state with 10-minute expiry
-    oauthStates.set(state, Date.now() + 10 * 60 * 1000);
+  async initiateLogin(@Res() res: Response, @Query('invite') invite?: string) {
+    const rand = crypto.randomBytes(16).toString('hex');
+    // Embed optional invite token in state: "{rand}:{invite}"
+    const state = invite ? `${rand}:${invite}` : rand;
+    // Store the rand part as the state key with 10-minute expiry
+    oauthStates.set(rand, Date.now() + 10 * 60 * 1000);
     const authUrl = await this.authService.buildAuthUrl(state);
     return res.redirect(authUrl);
   }
@@ -52,18 +55,25 @@ export class AuthController {
       return res.redirect(`${appUrl}/auth/error?reason=access_denied`);
     }
 
+    // Parse state: may be "{rand}:{invite}" or just "{rand}"
+    const [rand, inviteToken] = state.split(':');
+
     // Validate state (CSRF protection)
-    const expiry = oauthStates.get(state);
+    const expiry = oauthStates.get(rand);
     if (!expiry || Date.now() > expiry) {
-      oauthStates.delete(state);
+      oauthStates.delete(rand);
       return res.redirect(`${appUrl}/auth/error?reason=invalid_state`);
     }
-    oauthStates.delete(state);
+    oauthStates.delete(rand);
 
     try {
       const tokenData = await this.authService.exchangeCode(code);
       const twitchUser = await this.authService.getTwitchUser(tokenData.access_token);
-      const { accessToken } = await this.authService.loginWithTwitch(twitchUser);
+      const { accessToken } = await this.authService.loginWithTwitch(
+        twitchUser,
+        { accessToken: tokenData.access_token, refreshToken: tokenData.refresh_token },
+        inviteToken,
+      );
 
       // Set secure HttpOnly cookie
       res.cookie('access_token', accessToken, {

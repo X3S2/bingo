@@ -11,6 +11,7 @@ import { CardGeneratorService } from './card-generator.service';
 import { WinConditionService } from './win-condition.service';
 import { GameGateway } from '../gateway/game.gateway';
 import { TwitchIrcService } from '../twitch/twitch-irc.service';
+import { TwitchRewardService } from '../twitch/twitch-reward.service';
 import { GameStatus, UserRole } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -23,6 +24,8 @@ export class BingoService {
     private gateway: GameGateway,
     @Inject(forwardRef(() => TwitchIrcService))
     private twitchIrc: TwitchIrcService,
+    @Inject(forwardRef(() => TwitchRewardService))
+    private twitchReward: TwitchRewardService,
   ) {}
 
   // ── Game Management ───────────────────────────────────────
@@ -68,6 +71,10 @@ export class BingoService {
     });
 
     this.gateway.emitToGame(gameId, 'game:status', { status: GameStatus.RUNNING });
+
+    // Auto-activate Channel Points rewards (fire-and-forget)
+    this.twitchReward.toggleGameRewards(game.streamerId, gameId, true).catch(() => {});
+
     return updated;
   }
 
@@ -84,6 +91,10 @@ export class BingoService {
     });
 
     this.gateway.emitToGame(gameId, 'game:status', { status: GameStatus.STOPPED });
+
+    // Auto-deactivate Channel Points rewards (fire-and-forget)
+    this.twitchReward.toggleGameRewards(game.streamerId, gameId, false).catch(() => {});
+
     return updated;
   }
 

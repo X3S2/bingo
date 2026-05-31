@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -31,6 +32,11 @@ class SetSettingDto {
 class MaintenanceDto {
   @IsBoolean() enabled: boolean;
   @IsString() @IsOptional() message?: string;
+}
+
+class CreateInviteDto {
+  @IsString() @IsOptional() note?: string;
+  @IsEnum(UserRole) @IsOptional() role?: UserRole;
 }
 
 @Controller('admin')
@@ -122,5 +128,29 @@ export class AdminController {
   @Get('audit-log')
   getAuditLog(@Query('page') page = '1', @Query('limit') limit = '50') {
     return this.adminService.getAuditLog(+page, +limit);
+  }
+
+  // ── Invite Tokens ──────────────────────────────────────────
+
+  @Get('invites')
+  listInvites() {
+    return this.adminService.listInviteTokens();
+  }
+
+  @Post('invites')
+  createInvite(@Body() dto: CreateInviteDto, @Req() req: any) {
+    return this.adminService.createInviteToken(req.user.id, dto.note, dto.role);
+  }
+
+  @Delete('invites/:id')
+  @HttpCode(200)
+  revokeInvite(@Param('id') id: string) {
+    return this.adminService.revokeInviteToken(id);
+  }
+
+  @Get('validate-invite/:token')
+  @Roles(UserRole.VIEWER, UserRole.MODERATOR, UserRole.STREAMER, UserRole.ADMIN)
+  validateInvite(@Param('token') token: string) {
+    return this.adminService.validateInviteToken(token);
   }
 }

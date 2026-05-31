@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Param, UseGuards, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, HttpCode } from '@nestjs/common';
 import { TwitchIrcService } from './twitch-irc.service';
+import { TwitchRewardService, ChannelPointsSettings } from './twitch-reward.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { UserRole } from '@prisma/client';
@@ -12,7 +13,10 @@ class BotJoinDto {
 @Controller('twitch')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class TwitchController {
-  constructor(private readonly twitchIrc: TwitchIrcService) {}
+  constructor(
+    private readonly twitchIrc: TwitchIrcService,
+    private readonly twitchReward: TwitchRewardService,
+  ) {}
 
   /** Returns which channels the bot has currently joined — accessible to MOD+ */
   @Get('bot-channels')
@@ -42,5 +46,49 @@ export class TwitchController {
   @Roles(UserRole.MODERATOR, UserRole.STREAMER, UserRole.ADMIN)
   async getBotCommands() {
     return this.twitchIrc.getPublicCmdConfig();
+  }
+
+  // ─── Channel Points Rewards ─────────────────────────────────────────────────
+
+  /** Get current Channel Points settings for the logged-in streamer */
+  @Get('rewards/settings')
+  @Roles(UserRole.STREAMER, UserRole.ADMIN)
+  async getRewardSettings(@Req() req: any) {
+    return this.twitchReward.getSettings(req.user.id);
+  }
+
+  /** Save Channel Points settings */
+  @Post('rewards/settings')
+  @HttpCode(200)
+  @Roles(UserRole.STREAMER, UserRole.ADMIN)
+  async saveRewardSettings(@Req() req: any, @Body() body: Partial<ChannelPointsSettings>) {
+    await this.twitchReward.saveSettings(req.user.id, body);
+    return { success: true };
+  }
+
+  /** Create or verify Channel Points rewards on Twitch */
+  @Post('rewards/setup')
+  @HttpCode(200)
+  @Roles(UserRole.STREAMER, UserRole.ADMIN)
+  async setupRewards(@Req() req: any) {
+    const result = await this.twitchReward.setupRewards(req.user.id);
+    return result;
+  }
+
+  /** Check if a reward name already exists for the broadcaster */
+  @Get('rewards/check-name')
+  @Roles(UserRole.STREAMER, UserRole.ADMIN)
+  async checkRewardName(@Req() req: any, @Query('name') name: string) {
+    const user: any = req.user;
+    if (!user.twitchAccessToken) {
+      return { exists: false, noToken: true };
+    }
+    try {
+      const rewards = await this.twitchReward.getChannelRewards(user.twitchId, user.twitchAccessToken);
+      const exists = rewards.some((r: any) => r.title === name);
+      return { exists };
+    } catch {
+      return { exists: false, error: true };
+    }
   }
 }

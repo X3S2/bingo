@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Users, Hash, Wifi } from 'lucide-react';
+import { Copy, ExternalLink, Users, Hash, Wifi, ChevronDown, ChevronUp, Gift, Zap } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -25,6 +25,32 @@ interface Game {
   createdAt: string;
   _count?: { cards: number; winners: number; drawnNumbers: number };
 }
+
+interface CpSettings {
+  mode: 'auto' | 'manual';
+  selfEnabled: boolean;
+  selfName: string;
+  selfCost: number;
+  selfMaxPerUser: number;
+  selfRewardId?: string;
+  giftEnabled: boolean;
+  giftName: string;
+  giftCost: number;
+  giftMaxPerUser: number;
+  giftRewardId?: string;
+}
+
+const DEFAULT_CP: CpSettings = {
+  mode: 'manual',
+  selfEnabled: true,
+  selfName: 'StreamBingoKarte',
+  selfCost: 5000,
+  selfMaxPerUser: 1,
+  giftEnabled: false,
+  giftName: 'StreamBingoKarte verschenken',
+  giftCost: 5000,
+  giftMaxPerUser: -1,
+};
 
 export default function StreamerPage() {
   const { user, isLoading: authLoading } = useAuth();
@@ -41,6 +67,9 @@ export default function StreamerPage() {
     autoStopEod: true,
     autoStopAt: '',
   });
+
+  const [cpSettings, setCpSettings] = useState<CpSettings>(DEFAULT_CP);
+  const [cpOpen, setCpOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user && !['STREAMER', 'ADMIN'].includes(user.role)) router.replace('/dashboard');
@@ -59,6 +88,52 @@ export default function StreamerPage() {
       return r.json();
     },
     enabled: !!user,
+  });
+
+  useQuery<CpSettings>({
+    queryKey: ['cp-settings'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/twitch/rewards/settings`, { credentials: 'include' });
+      if (!r.ok) return DEFAULT_CP;
+      return r.json();
+    },
+    enabled: !!user && ['STREAMER', 'ADMIN'].includes(user?.role ?? ''),
+    onSuccess: (data) => setCpSettings(data),
+  } as any);
+
+  const saveCpMutation = useMutation({
+    mutationFn: async (settings: CpSettings) => {
+      const r = await fetch(`${API}/twitch/rewards/settings`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'Fehler'); }
+      return r.json();
+    },
+    onSuccess: () => { toast.success(t('cpSettingsSaved')); void qc.invalidateQueries({ queryKey: ['cp-settings'] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const setupRewardsMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`${API}/twitch/rewards/setup`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.message || 'Fehler'); }
+      return r.json();
+    },
+    onSuccess: (data: { warnings?: string[] }) => {
+      if (data.warnings && data.warnings.length > 0) {
+        data.warnings.forEach((w) => toast.warning(w));
+      } else {
+        toast.success(t('cpSetupSuccess'));
+      }
+      void qc.invalidateQueries({ queryKey: ['cp-settings'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const createMutation = useMutation({
@@ -176,6 +251,154 @@ export default function StreamerPage() {
           <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Dashboard</a>
           <h1 className="text-2xl font-bold">🎦 {t('title')}</h1>
         </div>
+
+        {/* Allgemeine Einstellungen – Channel Points */}
+        <Card>
+          <CardHeader
+            className="py-3 px-4 cursor-pointer select-none"
+            onClick={() => setCpOpen((v) => !v)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                {t('generalSettings')}
+              </CardTitle>
+              {cpOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CardHeader>
+          {cpOpen && (
+            <CardContent className="flex flex-col gap-5">
+              {/* Mode toggle */}
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="cp-mode"
+                  checked={cpSettings.mode === 'auto'}
+                  onCheckedChange={(v) => setCpSettings((s) => ({ ...s, mode: v ? 'auto' : 'manual' }))}
+                />
+                <Label htmlFor="cp-mode" className="cursor-pointer">
+                  {cpSettings.mode === 'auto' ? t('cpModeAuto') : t('cpModeManual')}
+                </Label>
+              </div>
+
+              {cpSettings.mode === 'manual' ? (
+                <p className="text-sm text-muted-foreground bg-muted rounded-md p-3">{t('cpManualHint')}</p>
+              ) : (
+                <>
+                  {/* SELF reward settings */}
+                  <div className="flex flex-col gap-3 rounded-lg border p-3">
+                    <p className="text-sm font-semibold">{t('cpSelfReward')}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="flex flex-col gap-1 sm:col-span-2">
+                        <Label htmlFor="cp-self-name">{t('cpRewardName')}</Label>
+                        <Input
+                          id="cp-self-name"
+                          value={cpSettings.selfName}
+                          onChange={(e) => setCpSettings((s) => ({ ...s, selfName: e.target.value }))}
+                          maxLength={45}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="cp-self-cost">{t('cpRewardCost')}</Label>
+                        <Input
+                          id="cp-self-cost"
+                          type="number"
+                          min={1}
+                          value={cpSettings.selfCost}
+                          onChange={(e) => setCpSettings((s) => ({ ...s, selfCost: parseInt(e.target.value, 10) || 1 }))}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="cp-self-max">{t('cpMaxPerUser')}</Label>
+                        <Input
+                          id="cp-self-max"
+                          type="number"
+                          min={-1}
+                          value={cpSettings.selfMaxPerUser}
+                          onChange={(e) => setCpSettings((s) => ({ ...s, selfMaxPerUser: parseInt(e.target.value, 10) || -1 }))}
+                        />
+                        <p className="text-xs text-muted-foreground">{t('cpMaxHint')}</p>
+                      </div>
+                    </div>
+                    {cpSettings.selfRewardId && (
+                      <p className="text-xs text-muted-foreground">Twitch ID: {cpSettings.selfRewardId}</p>
+                    )}
+                  </div>
+
+                  {/* GIFT reward settings */}
+                  <div className="flex flex-col gap-3 rounded-lg border p-3">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        id="cp-gift-enabled"
+                        checked={cpSettings.giftEnabled}
+                        onCheckedChange={(v) => setCpSettings((s) => ({ ...s, giftEnabled: v }))}
+                      />
+                      <Label htmlFor="cp-gift-enabled" className="cursor-pointer flex items-center gap-1.5">
+                        <Gift className="w-3.5 h-3.5" />
+                        {t('cpGiftReward')}
+                      </Label>
+                    </div>
+                    {cpSettings.giftEnabled && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="flex flex-col gap-1 sm:col-span-2">
+                          <Label htmlFor="cp-gift-name">{t('cpRewardName')}</Label>
+                          <Input
+                            id="cp-gift-name"
+                            value={cpSettings.giftName}
+                            onChange={(e) => setCpSettings((s) => ({ ...s, giftName: e.target.value }))}
+                            maxLength={45}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label htmlFor="cp-gift-cost">{t('cpRewardCost')}</Label>
+                          <Input
+                            id="cp-gift-cost"
+                            type="number"
+                            min={1}
+                            value={cpSettings.giftCost}
+                            onChange={(e) => setCpSettings((s) => ({ ...s, giftCost: parseInt(e.target.value, 10) || 1 }))}
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label htmlFor="cp-gift-max">{t('cpMaxPerUser')}</Label>
+                          <Input
+                            id="cp-gift-max"
+                            type="number"
+                            min={-1}
+                            value={cpSettings.giftMaxPerUser}
+                            onChange={(e) => setCpSettings((s) => ({ ...s, giftMaxPerUser: parseInt(e.target.value, 10) || -1 }))}
+                          />
+                          <p className="text-xs text-muted-foreground">{t('cpMaxHint')}</p>
+                        </div>
+                        {cpSettings.giftRewardId && (
+                          <p className="text-xs text-muted-foreground sm:col-span-3">Twitch ID: {cpSettings.giftRewardId}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Setup button */}
+                  <Button
+                    variant="outline"
+                    onClick={() => setupRewardsMutation.mutate()}
+                    disabled={setupRewardsMutation.isPending}
+                  >
+                    <Zap className="w-3.5 h-3.5 mr-1.5" />
+                    {t('cpSetupButton')}
+                  </Button>
+                </>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => saveCpMutation.mutate(cpSettings)}
+                  disabled={saveCpMutation.isPending}
+                >
+                  {t('saveSettings')}
+                </Button>
+              </div>
+            </CardContent>
+          )}
+        </Card>
 
         {/* Create game form */}
         <Card>

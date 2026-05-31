@@ -4,6 +4,7 @@ import { GameGateway } from '../gateway/game.gateway';
 import { BingoService } from '../bingo/bingo.service';
 import { TwitchIrcService } from '../twitch/twitch-irc.service';
 import { AuditAction, UserRole } from '@prisma/client';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AdminService {
@@ -193,5 +194,36 @@ export class AdminService {
     await this.prisma.auditLog.create({
       data: { adminId, action, targetType, targetId, metadata },
     });
+  }
+
+  // ── Invite Tokens ──────────────────────────────────────────
+
+  async createInviteToken(adminId: string, note?: string, role: UserRole = UserRole.STREAMER) {
+    const token = randomBytes(24).toString('hex');
+    const invite = await this.prisma.inviteToken.create({
+      data: { token, role, note: note ?? null, createdBy: adminId },
+    });
+    return invite;
+  }
+
+  async listInviteTokens() {
+    return this.prisma.inviteToken.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async revokeInviteToken(id: string) {
+    const token = await this.prisma.inviteToken.findUnique({ where: { id } });
+    if (!token) throw new NotFoundException('Invite token not found');
+    await this.prisma.inviteToken.delete({ where: { id } });
+    return { success: true };
+  }
+
+  async validateInviteToken(token: string) {
+    const invite = await this.prisma.inviteToken.findUnique({ where: { token } });
+    if (!invite) return { valid: false, reason: 'not_found' };
+    if (invite.usedAt) return { valid: false, reason: 'already_used' };
+    if (invite.expiresAt && invite.expiresAt < new Date()) return { valid: false, reason: 'expired' };
+    return { valid: true, role: invite.role };
   }
 }

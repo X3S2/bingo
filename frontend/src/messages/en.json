@@ -88,7 +88,21 @@
     "redeemSelf": "Own Card (Self-Redeem)",
     "redeemGift": "Gift a Card (Gift-Redeem)",
     "redeemTitle": "Redeem Title",
-    "redeemCost": "Cost (Channel Points)"
+    "redeemCost": "Cost (Channel Points)",
+    "generalSettings": "General Settings",
+    "cpModeAuto": "Automatic (Channel Points managed automatically)",
+    "cpModeManual": "Manual (configure Channel Points yourself)",
+    "cpManualHint": "Remember to manually activate the Channel Point reward in your Twitch settings and enter the reward title.",
+    "cpSelfReward": "Own Card (Self-Redeem)",
+    "cpGiftReward": "Gift a Card (Gift-Redeem)",
+    "cpRewardName": "Reward name",
+    "cpRewardCost": "Cost (CP)",
+    "cpMaxPerUser": "Max per user / stream",
+    "cpMaxHint": "-1 = unlimited",
+    "cpSetupButton": "Create / update reward on Twitch",
+    "cpSetupSuccess": "Channel Point rewards set up successfully!",
+    "cpSettingsSaved": "Settings saved.",
+    "saveSettings": "Save settings"
   },
   "moderator": {
     "title": "Moderator Dashboard",
@@ -167,7 +181,22 @@
     "saveFields": "Save fields",
     "saving": "Saving...",
     "previewDE": "Preview German",
-    "previewEN": "Preview English"
+    "previewEN": "Preview English",
+    "invites": "Invitations",
+    "createInvite": "Create new invitation link",
+    "inviteNote": "Note (optional)",
+    "inviteRole": "Role",
+    "inviteCreate": "Create link",
+    "inviteLink": "Invitation link",
+    "inviteLinkCopied": "Link copied to clipboard",
+    "inviteStatus": "Status",
+    "inviteUsed": "Used",
+    "inviteUnused": "Open",
+    "inviteRevoke": "Revoke",
+    "inviteCreatedAt": "Created",
+    "inviteUsedAt": "Used at",
+    "inviteCreatedBy": "Created by",
+    "noInvites": "No invitations created yet."
   },
   "bot": {
     "status": "Bot Status",
@@ -277,5 +306,14 @@
     "roleViewerDesc": "Get your personal 5×5 bingo card and mark numbers live.",
     "roleModerator": "Moderators",
     "roleModeratorDesc": "Monitor all cards and manage drawn numbers via chat command."
+  },
+  "invite": {
+    "title": "Invitation",
+    "subtitle": "You have been invited to use StreamBingo as a streamer.",
+    "loginButton": "Sign in with Twitch",
+    "invalidToken": "This invitation link is invalid.",
+    "alreadyUsed": "This invitation link has already been used.",
+    "expired": "This invitation link has expired.",
+    "checking": "Checking link..."
   }
 }

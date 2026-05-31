@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { UserRole } from '@prisma/client';
+import { GameStatus, UserRole } from '@prisma/client';
 
 export interface TwitchUserData {
   twitchId: string;
@@ -29,7 +29,11 @@ export class AuthService {
    * Called after successful Twitch OAuth callback.
    * Creates or updates the user, returns a JWT.
    */
-  async loginWithTwitch(userData: TwitchUserData): Promise<{ accessToken: string; user: any }> {
+  async loginWithTwitch(
+    userData: TwitchUserData,
+    tokens?: { accessToken: string; refreshToken: string },
+    inviteToken?: string,
+  ): Promise<{ accessToken: string; user: any }> {
     let user = await this.prisma.user.findUnique({
       where: { twitchId: userData.twitchId },
     });
@@ -37,7 +41,15 @@ export class AuthService {
     if (!user) {
       // Check if this is the very first user (becomes admin)
       const userCount = await this.prisma.user.count();
-      const role = userCount === 0 ? UserRole.ADMIN : UserRole.VIEWER;
+      let role = userCount === 0 ? UserRole.ADMIN : UserRole.VIEWER;
+
+      // Check invite token for initial role assignment
+      if (inviteToken && role === UserRole.VIEWER) {
+        const invite = await this.prisma.inviteToken.findUnique({ where: { token: inviteToken } });
+        if (invite && !invite.usedAt && (!invite.expiresAt || invite.expiresAt > new Date())) {
+          role = invite.role;
+        }
+      }
 
       user = await this.prisma.user.create({
         data: {
@@ -46,17 +58,57 @@ export class AuthService {
           profileImageUrl: userData.profileImageUrl,
           email: userData.email,
           role,
+          twitchAccessToken: tokens?.accessToken,
+          twitchRefreshToken: tokens?.refreshToken,
         },
       });
+
+      // Consume invite token
+      if (inviteToken && role !== UserRole.ADMIN) {
+        await this.prisma.inviteToken.updateMany({
+          where: { token: inviteToken, usedAt: null },
+          data: { usedAt: new Date(), usedBy: user.id },
+        }).catch(() => {});
+      }
     } else {
-      // Update profile image
+      // Update profile image and tokens
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: {
           displayName: userData.displayName,
           profileImageUrl: userData.profileImageUrl,
+          ...(tokens && {
+            twitchAccessToken: tokens.accessToken,
+            twitchRefreshToken: tokens.refreshToken,
+          }),
         },
       });
+
+      // Apply invite token role upgrade (VIEWER → STREAMER or higher)
+      if (inviteToken && user.role === UserRole.VIEWER) {
+        const invite = await this.prisma.inviteToken.findUnique({ where: { token: inviteToken } });
+        if (invite && !invite.usedAt && (!invite.expiresAt || invite.expiresAt > new Date())) {
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: { role: invite.role },
+          });
+          await this.prisma.inviteToken.update({
+            where: { token: inviteToken },
+            data: { usedAt: new Date(), usedBy: user.id },
+          }).catch(() => {});
+        }
+      }
+
+      // Auto-detect moderator role for VIEWERs
+      if (user.role === UserRole.VIEWER && tokens?.accessToken) {
+        const elevated = await this.tryElevateModerator(user.twitchId, tokens.accessToken);
+        if (elevated) {
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: { role: UserRole.MODERATOR },
+          });
+        }
+      }
     }
 
     if (user.isBanned) {
@@ -71,6 +123,44 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
     return { accessToken, user };
+  }
+
+  /**
+   * Check if user moderates any channel that currently has a running game.
+   * Returns true if the user should be elevated to MODERATOR.
+   */
+  private async tryElevateModerator(twitchId: string, twitchAccessToken: string): Promise<boolean> {
+    try {
+      const clientId = await this.getClientId();
+      const res = await fetch(
+        `https://api.twitch.tv/helix/moderation/channels?user_id=${encodeURIComponent(twitchId)}&first=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${twitchAccessToken}`,
+            'Client-Id': clientId,
+          },
+        },
+      );
+      if (!res.ok) return false;
+
+      const data: any = await res.json();
+      const channelLogins: string[] = (data.data ?? []).map((c: any) =>
+        (c.broadcaster_login as string).toLowerCase(),
+      );
+      if (channelLogins.length === 0) return false;
+
+      // Check if any running game uses one of those channels
+      const runningGame = await this.prisma.bingoGame.findFirst({
+        where: {
+          status: GameStatus.RUNNING,
+          channelName: { in: channelLogins },
+        },
+      });
+
+      return runningGame !== null;
+    } catch {
+      return false;
+    }
   }
 
   async validateUser(payload: JwtPayload) {
@@ -100,6 +190,7 @@ export class AuthService {
     const redirectUri = this.config.get<string>('TWITCH_REDIRECT_URI');
     const scopes = [
       'user:read:email',
+      'user:read:moderated_channels',
       'channel:read:redemptions',
       'channel:manage:redemptions',
       'moderator:read:chatters',
@@ -174,3 +265,4 @@ export class AuthService {
     };
   }
 }
+

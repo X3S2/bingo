@@ -413,7 +413,7 @@ export default function ModeratorPage({ params }: ModPage) {
                   key={c.id}
                   className={`overflow-hidden transition-colors ${isWinner ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-950' : ''}`}
                 >
-                  <CardHeader className="py-2 px-3 flex-row items-center gap-2">
+                  <div className="py-2 px-3 flex flex-row items-center gap-2">
                     <Avatar className="h-6 w-6 flex-shrink-0">
                       <AvatarImage src={c.user.profileImageUrl} alt={c.user.displayName} />
                       <AvatarFallback>{c.user.displayName[0]}</AvatarFallback>
@@ -422,7 +422,7 @@ export default function ModeratorPage({ params }: ModPage) {
                     {isWinner && (
                       <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />
                     )}
-                  </CardHeader>
+                  </div>
                   <CardContent className="px-2 pb-2">
                     {/* Mini 5x5 bingo card */}
                     <div className="grid grid-cols-5 gap-0.5">
