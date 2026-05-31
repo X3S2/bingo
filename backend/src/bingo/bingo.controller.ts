@@ -15,7 +15,7 @@ import { BingoService } from './bingo.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { UserRole } from '@prisma/client';
-import { IsString, IsInt, IsOptional, Min, Max, MinLength, IsBoolean } from 'class-validator';
+import { IsString, IsInt, IsOptional, Min, Max, MinLength, IsBoolean, IsArray } from 'class-validator';
 
 class CreateGameDto {
   @IsString() @MinLength(1) title: string;
@@ -28,6 +28,10 @@ class CreateGameDto {
 
 class DrawNumberDto {
   @IsInt() @Min(1) @Max(75) number: number;
+}
+
+class SaveMarkedDto {
+  @IsArray() marked: boolean[][];
 }
 
 @Controller('games')
@@ -92,6 +96,12 @@ export class BingoController {
   @Get(':id/my-card')
   getMyCard(@Param('id') id: string, @Req() req: any) {
     return this.bingoService.getUserCard(id, req.user.id);
+  }
+
+  @Patch(':id/my-card/marked')
+  @HttpCode(200)
+  saveMarked(@Param('id') id: string, @Body() dto: SaveMarkedDto, @Req() req: any) {
+    return this.bingoService.saveUserMarked(id, req.user.id, dto.marked);
   }
 
   @Post(':id/numbers')

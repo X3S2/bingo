@@ -4,7 +4,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useSocket } from '@/providers/socket-provider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { use } from 'react';
 import { useTranslations } from 'next-intl';
@@ -33,6 +33,27 @@ export default function GamePage({ params }: GamePage) {
   const t = useTranslations('bingo');
   const [socketConnected, setSocketConnected] = useState(() => socket?.connected ?? false);
   const [lastDrawnNumber, setLastDrawnNumber] = useState<number | null>(null);
+
+  // Debounced save of viewer's manual marks to server (500ms delay)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveMarksMutation = useMutation({
+    mutationFn: async (marked: boolean[][]) => {
+      const r = await fetch(`${API}/games/${id}/my-card/marked`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marked }),
+      });
+      if (!r.ok) throw new Error('Failed to save marks');
+      return r.json();
+    },
+  });
+  const handleMarkChange = useCallback((marked: boolean[][]) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveMarksMutation.mutate(marked);
+    }, 500);
+  }, [saveMarksMutation]);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace('/login');
@@ -261,6 +282,7 @@ export default function GamePage({ params }: GamePage) {
             onClaim={() => claimMutation.mutate()}
             gameRunning={game.status === 'RUNNING'}
             hasWon={hasWon}
+            onMarkChange={handleMarkChange}
           />
         ) : ['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">

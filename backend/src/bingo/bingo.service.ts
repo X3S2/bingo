@@ -183,6 +183,27 @@ export class BingoService {
     });
   }
 
+  async saveUserMarked(gameId: string, userId: string, marked: boolean[][]) {
+    // Validate shape
+    if (!Array.isArray(marked) || marked.length !== 5 || marked.some((r) => !Array.isArray(r) || r.length !== 5)) {
+      throw new Error('Invalid marked grid');
+    }
+    // Ensure free cell (center) stays marked
+    const card = await this.prisma.bingoCard.findUnique({
+      where: { gameId_userId: { gameId, userId } },
+      select: { id: true, grid: true },
+    });
+    if (!card) return null;
+    const grid = card.grid as (number | null)[][];
+    const safemarked = marked.map((row, r) =>
+      row.map((cell, c) => (grid[r][c] === null ? true : Boolean(cell))),
+    );
+    return this.prisma.bingoCard.update({
+      where: { id: card.id },
+      data: { marked: safemarked },
+    });
+  }
+
   async getAllCards(gameId: string) {
     return this.prisma.bingoCard.findMany({
       where: { gameId },

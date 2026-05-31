@@ -1075,6 +1075,24 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 </div>
               </CardContent>
             </Card>
+
+            {/* Version Info */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">ℹ️ {t('versionInfo')}</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default" className="font-mono text-sm">v1.1.0</Badge>
+                  <span className="text-muted-foreground">2026-06-01</span>
+                </div>
+                <ul className="list-disc list-inside text-muted-foreground space-y-1 text-xs">
+                  <li>Channel Points Rewards System (Auto-Aktivierung bei Spielstart)</li>
+                  <li>Einladungslinks für neue Streamer/Moderatoren</li>
+                  <li>Moderator-Auto-Erkennung via Twitch OAuth</li>
+                  <li>Karten-Markierungen werden serverseitig gespeichert</li>
+                  <li>Moderator-Dashboard: Name inline neben Avatar</li>
+                </ul>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Impressum Tab */}

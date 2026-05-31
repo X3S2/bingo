@@ -12,28 +12,31 @@ interface BingoCardProps {
   hasWon: boolean;
   /** When true (moderator/streamer view), marks are read-only from server */
   readOnly?: boolean;
+  /** Called with updated marked state when viewer toggles a cell */
+  onMarkChange?: (marked: boolean[][]) => void;
 }
 
 const COLUMNS = ['B', 'I', 'N', 'G', 'O'];
 
-export function BingoCard({ grid, marked, onClaim, gameRunning, hasWon, readOnly = false }: BingoCardProps) {
+export function BingoCard({ grid, marked, onClaim, gameRunning, hasWon, readOnly = false, onMarkChange }: BingoCardProps) {
   const t = useTranslations('bingo');
 
-  // Viewers manage their own local marks; free cell is always marked
+  // Initialize from server state (includes drawn-number marks + free cell)
   const [localMarked, setLocalMarked] = useState<boolean[][]>(() =>
-    marked.map((row, r) => row.map((_, c) => grid[r][c] === null ? true : false))
+    marked.map((row) => [...row])
   );
 
-  // When the server sends a fresh marked state (e.g. after refetch), sync the free cell
-  // but don't override user's manual selections
+  // When the server sends updated marks (e.g. after a number is drawn or page refetch),
+  // merge: server marks win over local (drawn numbers), free cell always true
   useEffect(() => {
     if (readOnly) {
       setLocalMarked(marked.map((row) => [...row]));
+      return;
     }
-    // For viewers: only sync the free center cell
+    // For viewers: merge server marks (OR) with local so drawn-number marks are always shown
     setLocalMarked((prev) =>
       prev.map((row, r) =>
-        row.map((cell, c) => (grid[r][c] === null ? true : cell))
+        row.map((cell, c) => (grid[r][c] === null ? true : cell || marked[r][c]))
       )
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -43,11 +46,13 @@ export function BingoCard({ grid, marked, onClaim, gameRunning, hasWon, readOnly
     if (readOnly) return;
     const isFree = grid[rowIdx][colIdx] === null;
     if (isFree) return; // free cell can't be toggled
-    setLocalMarked((prev) =>
-      prev.map((row, r) =>
+    setLocalMarked((prev) => {
+      const next = prev.map((row, r) =>
         row.map((cell, c) => (r === rowIdx && c === colIdx ? !cell : cell))
-      )
-    );
+      );
+      onMarkChange?.(next);
+      return next;
+    });
   };
 
   const displayMarked = readOnly ? marked : localMarked;
