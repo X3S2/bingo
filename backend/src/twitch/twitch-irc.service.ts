@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { BingoService } from '../bingo/bingo.service';
@@ -85,6 +85,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
+    @Inject(forwardRef(() => BingoService))
     private bingoService: BingoService,
   ) {}
 
