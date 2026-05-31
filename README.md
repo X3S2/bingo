@@ -126,8 +126,10 @@ See [docs/deployment-synology.md](docs/deployment-synology.md) for the full Syno
 1. Go to [dev.twitch.tv/console](https://dev.twitch.tv/console) → **Register Your Application**
 2. Set **OAuth Redirect URLs** to exactly: `https://yourdomain.com/api/auth/callback/twitch`  
    ⚠️ No trailing slash. For local dev: `http://localhost:4000/api/auth/callback/twitch`
-3. Copy **Client ID** and **Client Secret** — you'll enter them in the Setup Wizard (not `.env`)
-4. Bot credentials: generate an Access Token + Refresh Token via [twitchtokengenerator.com](https://twitchtokengenerator.com)
+3. Copy **Client ID** and **Client Secret** — you'll enter them in the Setup Wizard (not `.env`)  
+   ℹ️ These app credentials do **not expire** and never need to be refreshed.
+4. Bot credentials: generate an Access Token + Refresh Token via [twitchtokengenerator.com](https://twitchtokengenerator.com)  
+   ⚠️ These **user access tokens** do expire. StreamBingo uses `RefreshingAuthProvider` (@twurple/auth) — expired tokens are renewed automatically and stored in the database. A **Refresh Token is required** for this to work.
 
 For Channel Point Redeems:
 - The streamer must partner or affiliate with Twitch

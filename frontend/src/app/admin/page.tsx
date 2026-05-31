@@ -443,9 +443,18 @@ export default function AdminPage() {
                     )}
                     {botStatus.tokenValid && botStatus.tokenExpiresIn != null && (
                       <div className="col-span-2 text-muted-foreground">
-                        Token gültig noch: <span className="font-medium text-foreground">
-                          {Math.floor(botStatus.tokenExpiresIn / 3600)}h {Math.floor((botStatus.tokenExpiresIn % 3600) / 60)}min
-                        </span>
+                        Token gültig noch:{' '}
+                        {botStatus.tokenExpiresIn <= 0 ? (
+                          <span className="font-medium text-yellow-600 dark:text-yellow-400">Läuft bald ab / wird erneuert</span>
+                        ) : botStatus.tokenExpiresIn < 3600 ? (
+                          <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                            {Math.floor(botStatus.tokenExpiresIn / 60)}min
+                          </span>
+                        ) : (
+                          <span className="font-medium text-foreground">
+                            {Math.floor(botStatus.tokenExpiresIn / 3600)}h {Math.floor((botStatus.tokenExpiresIn % 3600) / 60)}min
+                          </span>
+                        )}
                       </div>
                     )}
                     {botStatus.lastRefreshedAt && (
@@ -455,6 +464,14 @@ export default function AdminPage() {
                         </span>
                       </div>
                     )}
+                    <div className="col-span-2 text-muted-foreground">
+                      Gejoinnte Channels:{' '}
+                      {botStatus.joinedChannels?.length > 0
+                        ? botStatus.joinedChannels.map((ch: string) => (
+                            <span key={ch} className="font-mono font-medium text-foreground mr-2">#{ch}</span>
+                          ))
+                        : <span className="text-muted-foreground italic">Keine</span>}
+                    </div>
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-sm">Lädt...</p>

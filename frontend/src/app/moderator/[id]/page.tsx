@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy } from 'lucide-react';
+import { Trophy, Wifi, WifiOff } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -104,6 +104,17 @@ export default function ModeratorPage({ params }: ModPage) {
       return r.json();
     },
     enabled: !!user,
+  });
+
+  const { data: botJoinStatus } = useQuery<{ botJoined: boolean }>({
+    queryKey: ['bot-joined', game?.channelName],
+    queryFn: async () => {
+      const r = await fetch(`${API}/twitch/bot-joined/${encodeURIComponent(game!.channelName)}`, { credentials: 'include' });
+      if (!r.ok) return { botJoined: false };
+      return r.json();
+    },
+    enabled: !!user && !!game?.channelName,
+    refetchInterval: 30_000,
   });
 
   const drawMutation = useMutation({
@@ -226,6 +237,21 @@ export default function ModeratorPage({ params }: ModPage) {
               </Badge>
               <span className="text-sm text-muted-foreground">{game.title}</span>
             </>
+          )}
+          {game && (
+            <div className="ml-auto flex items-center gap-1.5 text-xs">
+              {botJoinStatus?.botJoined ? (
+                <>
+                  <Wifi className="w-3.5 h-3.5 text-green-500" />
+                  <span className="text-green-600 dark:text-green-400 font-medium">Bot verbunden</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3.5 h-3.5 text-red-400" />
+                  <span className="text-muted-foreground">Bot nicht verbunden</span>
+                </>
+              )}
+            </div>
           )}
         </div>
 

@@ -104,10 +104,10 @@ Vollständige Anleitung: [docs/deployment-synology.md](docs/deployment-synology.
 1. Auf [dev.twitch.tv/console](https://dev.twitch.tv/console) → **Anwendung registrieren**
 2. **OAuth-Redirect-URL** exakt eintragen: `https://deinedomain.de/api/auth/callback/twitch`  
    ⚠️ Kein abschließender Schrägstrich. Für lokale Entwicklung: `http://localhost:4000/api/auth/callback/twitch`
-3. **Client ID** und **Client Secret** kopieren — werden im Setup-Assistenten eingegeben (nicht in `.env`)
-4. Bot-Zugangsdaten: Access Token + Refresh Token über [twitchtokengenerator.com](https://twitchtokengenerator.com) generieren
-
-> **Wichtig zu Refresh Tokens**: StreamBingo verwendet `RefreshingAuthProvider` (@twurple/auth). Abgelaufene Bot-Tokens werden automatisch erneuert und in der Datenbank gespeichert — kein manuelles Erneuern nötig.
+3. **Client ID** und **Client Secret** kopieren — werden im Setup-Assistenten eingegeben (nicht in `.env`)  
+   ℹ️ Diese App-Zugangsdaten laufen **nicht ab** und müssen nicht erneuert werden.
+4. Bot-Zugangsdaten: Access Token + Refresh Token über [twitchtokengenerator.com](https://twitchtokengenerator.com) generieren  
+   ⚠️ Diese **User Access Tokens** laufen ab. StreamBingo verwendet `RefreshingAuthProvider` (@twurple/auth) — abgelaufene Tokens werden automatisch erneuert und in der Datenbank gespeichert. Daher muss **unbedingt ein Refresh Token** mit generiert und eingetragen werden.
 
 ---
 

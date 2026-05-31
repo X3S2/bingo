@@ -18,6 +18,7 @@ export interface BotStatus {
   tokenValid: boolean;
   tokenExpiresIn: number | null; // seconds
   lastRefreshedAt: string | null;
+  joinedChannels: string[];
 }
 
 @Injectable()
@@ -69,7 +70,11 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     this.botToken = botTokenSetting.value;
     this.botRefreshToken = botRefreshSetting?.value || null;
     this.botLogin = botLoginSetting.value;
-    await this.connect(botLoginSetting.value);
+    try {
+      await this.connect(botLoginSetting.value);
+    } catch (err: any) {
+      this.logger.error(`Twitch IRC: Failed to connect bot on startup: ${err?.message ?? err}`);
+    }
   }
 
   async connect(botLogin: string) {
@@ -81,32 +86,36 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.authProvider.onRefresh(async (_userId, newTokenData) => {
-      this.botToken = newTokenData.accessToken;
-      this.lastRefreshedAt = new Date();
-      await this.prisma.adminSetting.upsert({
-        where: { key: 'bot_access_token' },
-        create: { key: 'bot_access_token', value: newTokenData.accessToken },
-        update: { value: newTokenData.accessToken },
-      });
-      if (newTokenData.refreshToken) {
-        this.botRefreshToken = newTokenData.refreshToken;
+      try {
+        this.botToken = newTokenData.accessToken;
+        this.lastRefreshedAt = new Date();
         await this.prisma.adminSetting.upsert({
-          where: { key: 'bot_refresh_token' },
-          create: { key: 'bot_refresh_token', value: newTokenData.refreshToken },
-          update: { value: newTokenData.refreshToken },
+          where: { key: 'bot_access_token' },
+          create: { key: 'bot_access_token', value: newTokenData.accessToken },
+          update: { value: newTokenData.accessToken },
         });
+        if (newTokenData.refreshToken) {
+          this.botRefreshToken = newTokenData.refreshToken;
+          await this.prisma.adminSetting.upsert({
+            where: { key: 'bot_refresh_token' },
+            create: { key: 'bot_refresh_token', value: newTokenData.refreshToken },
+            update: { value: newTokenData.refreshToken },
+          });
+        }
+        // Audit log
+        await this.prisma.auditLog.create({
+          data: {
+            adminId: 'system',
+            action: AuditAction.BOT_TOKEN_REFRESHED,
+            targetType: 'BotToken',
+            targetId: this.botLogin ?? 'bot',
+            metadata: { auto: true, at: new Date().toISOString() },
+          },
+        });
+        this.logger.log('Twitch bot token refreshed and saved to DB');
+      } catch (err: any) {
+        this.logger.error(`onRefresh handler error: ${err?.message ?? err}`);
       }
-      // Audit log
-      await this.prisma.auditLog.create({
-        data: {
-          adminId: 'system',
-          action: AuditAction.BOT_TOKEN_REFRESHED,
-          targetType: 'BotToken',
-          targetId: this.botLogin ?? 'bot',
-          metadata: { auto: true, at: new Date().toISOString() },
-        },
-      });
-      this.logger.log('Twitch bot token refreshed and saved to DB');
     });
 
     // obtainmentTimestamp=0 forces twurple to refresh immediately on first use
@@ -145,7 +154,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
 
     // Rejoin active game channels
     for (const [channelName] of this.activeChannels) {
-      await this.joinChannel(channelName);
+      void this.joinChannel(channelName);
     }
   }
 
@@ -172,7 +181,12 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       tokenValid: tokenInfo.valid,
       tokenExpiresIn: tokenInfo.expiresIn,
       lastRefreshedAt: this.lastRefreshedAt?.toISOString() ?? null,
+      joinedChannels: Array.from(this.activeChannels.keys()),
     };
+  }
+
+  getJoinedChannels(): string[] {
+    return Array.from(this.activeChannels.keys());
   }
 
   /** Force a token refresh by setting obtainmentTimestamp to 0 and re-requesting */
