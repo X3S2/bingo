@@ -4,24 +4,14 @@ import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLocaleToggle } from '@/providers/locale-provider';
 
 export function PageToolbar({ backHref }: { backHref?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { locale, toggleLocale } = useLocaleToggle();
 
-  // locale state – read from cookie
-  const [locale, setLocale] = useState('de');
-  useEffect(() => {
-    setMounted(true);
-    const m = document.cookie.match(/(?:^|; )locale=([^;]*)/);
-    setLocale(m ? m[1] : 'de');
-  }, []);
-
-  const toggleLocale = (lang: string) => {
-    document.cookie = `locale=${lang}; path=/; max-age=31536000`;
-    setLocale(lang);
-    window.location.reload();
-  };
+  useEffect(() => { setMounted(true); }, []);
 
   const toggleTheme = () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
 
@@ -39,7 +29,7 @@ export function PageToolbar({ backHref }: { backHref?: string }) {
           <button
             key={lang}
             type="button"
-            onClick={() => toggleLocale(lang)}
+            onClick={() => { if (lang !== locale) toggleLocale(); }}
             className={`px-2 py-1 rounded uppercase font-semibold transition-colors ${
               locale === lang
                 ? 'bg-primary text-primary-foreground'

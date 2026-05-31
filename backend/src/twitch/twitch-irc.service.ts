@@ -51,15 +51,17 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async initializeFromSettings() {
-    const [botTokenSetting, botRefreshSetting, botLoginSetting, clientSecretSetting] =
+    const [botTokenSetting, botRefreshSetting, botLoginSetting, clientIdSetting, clientSecretSetting] =
       await Promise.all([
         this.prisma.adminSetting.findUnique({ where: { key: 'bot_access_token' } }),
         this.prisma.adminSetting.findUnique({ where: { key: 'bot_refresh_token' } }),
         this.prisma.adminSetting.findUnique({ where: { key: 'bot_login' } }),
+        this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_id' } }),
         this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_secret' } }),
       ]);
 
-    this.clientId = this.config.get<string>('TWITCH_CLIENT_ID') || null;
+    // DB setting takes precedence over env var
+    this.clientId = clientIdSetting?.value || this.config.get<string>('TWITCH_CLIENT_ID') || null;
     this.clientSecret =
       clientSecretSetting?.value || this.config.get<string>('TWITCH_CLIENT_SECRET') || null;
 
@@ -246,12 +248,32 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Reconnect the IRC bot (e.g. after a disconnect) */
+  /** Reconnect the IRC bot (re-reads all credentials from DB first) */
   async reconnect(): Promise<{ success: boolean; message: string }> {
-    if (!this.botLogin) {
-      return { success: false, message: 'Bot nicht konfiguriert.' };
-    }
     try {
+      // Re-read credentials from DB before connecting
+      const [botTokenSetting, botRefreshSetting, botLoginSetting, clientIdSetting, clientSecretSetting] =
+        await Promise.all([
+          this.prisma.adminSetting.findUnique({ where: { key: 'bot_access_token' } }),
+          this.prisma.adminSetting.findUnique({ where: { key: 'bot_refresh_token' } }),
+          this.prisma.adminSetting.findUnique({ where: { key: 'bot_login' } }),
+          this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_id' } }),
+          this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_secret' } }),
+        ]);
+
+      const clientId = clientIdSetting?.value || this.config.get<string>('TWITCH_CLIENT_ID') || null;
+      const clientSecret = clientSecretSetting?.value || this.config.get<string>('TWITCH_CLIENT_SECRET') || null;
+
+      if (!botTokenSetting?.value || !botLoginSetting?.value || !clientId || !clientSecret) {
+        return { success: false, message: 'Bot-Credentials unvollständig. Bitte alle Felder in den Bot-Einstellungen ausfüllen.' };
+      }
+
+      this.clientId = clientId;
+      this.clientSecret = clientSecret;
+      this.botToken = botTokenSetting.value;
+      this.botRefreshToken = botRefreshSetting?.value || null;
+      this.botLogin = botLoginSetting.value;
+
       if (this.chatClient) {
         try { await this.chatClient.quit(); } catch { /* ignore */ }
         this.chatClient = null;

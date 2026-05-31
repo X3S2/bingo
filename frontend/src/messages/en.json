@@ -186,7 +186,12 @@
     "chatCommandsDesc": "All available IRC commands in Twitch chat",
     "joined": "Bot connected",
     "notJoined": "Bot not connected",
-    "joinedStatus": "Bot in chat"
+    "joinedStatus": "Bot in chat",
+    "credentials": "Bot Configuration",
+    "credentialsDesc": "Twitch credentials for the IRC bot. After saving, the bot will automatically reconnect.",
+    "hideSecrets": "Hide tokens",
+    "showSecrets": "Show tokens",
+    "saveAndReconnect": "Save & Reconnect"
   },
   "setup": {
     "title": "Set up StreamBingo",

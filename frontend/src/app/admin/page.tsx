@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { RefreshCw, Wifi, WifiOff, ShieldCheck, ShieldX } from 'lucide-react';
+import { RefreshCw, Wifi, WifiOff, ShieldCheck, ShieldX, Eye, EyeOff } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -131,6 +131,10 @@ export default function AdminPage() {
 
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [botCreds, setBotCreds] = useState({
+    clientId: '', clientSecret: '', botLogin: '', accessToken: '', refreshToken: '',
+  });
+  const [showBotSecrets, setShowBotSecrets] = useState(false);
 
   interface LegalData {
     name: string; firma: string; strasse: string; plzOrt: string; land: string;
@@ -150,6 +154,13 @@ export default function AdminPage() {
         plzOrt: g('legal_plz_ort'), land: g('legal_land') || 'Deutschland',
         email: g('legal_email'), telefon: g('legal_telefon'),
         website: g('legal_website'), ustId: g('legal_ust_id'), responsible: g('legal_responsible'),
+      });
+      setBotCreds({
+        clientId: g('twitch_client_id'),
+        clientSecret: g('twitch_client_secret'),
+        botLogin: g('bot_login'),
+        accessToken: g('bot_access_token'),
+        refreshToken: g('bot_refresh_token'),
       });
     }
   }, [settings]);
@@ -250,6 +261,34 @@ export default function AdminPage() {
     onSuccess: (data) => {
       toast.success(data.message ?? 'Reconnect gestartet');
       setTimeout(() => void refetchBotStatus(), 2000);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveBotCredsMutation = useMutation({
+    mutationFn: async () => {
+      const entries: [string, string][] = [
+        ['twitch_client_id', botCreds.clientId],
+        ['twitch_client_secret', botCreds.clientSecret],
+        ['bot_login', botCreds.botLogin],
+        ['bot_access_token', botCreds.accessToken],
+        ['bot_refresh_token', botCreds.refreshToken],
+      ].filter(([, v]) => v !== '') as [string, string][];
+      await Promise.all(entries.map(([key, value]) =>
+        fetch(`${API}/admin/settings/${key}`, {
+          method: 'PATCH', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+        })
+      ));
+      // Reconnect after saving
+      const r = await fetch(`${API}/admin/bot-reconnect`, { method: 'POST', credentials: 'include' });
+      return r.json();
+    },
+    onSuccess: (data) => {
+      toast.success(data.message ?? 'Zugangsdaten gespeichert & Bot neu verbunden');
+      setTimeout(() => void refetchBotStatus(), 2000);
+      void qc.invalidateQueries({ queryKey: ['admin-settings'] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -697,6 +736,81 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     {botReconnectMutation.isPending ? tb('reconnecting') : tb('reconnect')}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Bot Credentials */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center justify-between">
+                  🔑 {tb('credentials')}
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setShowBotSecrets((v) => !v)}>
+                    {showBotSecrets ? <><EyeOff className="w-3 h-3 mr-1" />{tb('hideSecrets')}</> : <><Eye className="w-3 h-3 mr-1" />{tb('showSecrets')}</>}
+                  </Button>
+                </CardTitle>
+                <CardDescription>{tb('credentialsDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Twitch Client ID *</Label>
+                    <Input
+                      value={botCreds.clientId}
+                      onChange={(e) => setBotCreds((c) => ({ ...c, clientId: e.target.value }))}
+                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      type={showBotSecrets ? 'text' : 'password'}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Twitch Client Secret *</Label>
+                    <Input
+                      value={botCreds.clientSecret}
+                      onChange={(e) => setBotCreds((c) => ({ ...c, clientSecret: e.target.value }))}
+                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      type={showBotSecrets ? 'text' : 'password'}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Bot Twitch-Login *</Label>
+                    <Input
+                      value={botCreds.botLogin}
+                      onChange={(e) => setBotCreds((c) => ({ ...c, botLogin: e.target.value }))}
+                      placeholder="mein_bot_account"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 sm:col-span-1" />
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <Label className="text-xs">Bot Access Token *</Label>
+                    <Input
+                      value={botCreds.accessToken}
+                      onChange={(e) => setBotCreds((c) => ({ ...c, accessToken: e.target.value }))}
+                      placeholder="oauth:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      type={showBotSecrets ? 'text' : 'password'}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 sm:col-span-2">
+                    <Label className="text-xs">Bot Refresh Token</Label>
+                    <Input
+                      value={botCreds.refreshToken}
+                      onChange={(e) => setBotCreds((c) => ({ ...c, refreshToken: e.target.value }))}
+                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      type={showBotSecrets ? 'text' : 'password'}
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={() => saveBotCredsMutation.mutate()}
+                  disabled={saveBotCredsMutation.isPending || !botCreds.clientId || !botCreds.clientSecret || !botCreds.botLogin || !botCreds.accessToken}
+                  className="w-fit"
+                >
+                  <Wifi className="w-3 h-3 mr-2" />
+                  {saveBotCredsMutation.isPending ? tb('reconnecting') : tb('saveAndReconnect')}
+                </Button>
               </CardContent>
             </Card>
 

@@ -171,7 +171,12 @@
     "chatCommandsDesc": "Alle verfügbaren IRC-Befehle im Twitch-Chat",
     "joined": "Bot verbunden",
     "notJoined": "Bot nicht verbunden",
-    "joinedStatus": "Bot im Chat"
+    "joinedStatus": "Bot im Chat",
+    "credentials": "Bot-Konfiguration",
+    "credentialsDesc": "Twitch-Zugangsdaten für den IRC-Bot. Nach dem Speichern wird der Bot automatisch neu verbunden.",
+    "hideSecrets": "Tokens verbergen",
+    "showSecrets": "Tokens anzeigen",
+    "saveAndReconnect": "Speichern & Neu verbinden"
   },
   "moderator": {
     "title": "Moderator-Dashboard",

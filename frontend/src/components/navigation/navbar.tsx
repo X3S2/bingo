@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/providers/auth-provider';
+import { useLocaleToggle } from '@/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -23,22 +24,10 @@ export function Navbar() {
   const { user, isLoading, refetch } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const { locale, toggleLocale } = useLocaleToggle();
 
-  const [locale, setLocale] = useState('de');
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const m = document.cookie.match(/locale=([^;]+)/);
-    setLocale(m?.[1] ?? 'de');
-    setMounted(true);
-  }, []);
-
-  const toggleLocale = () => {
-    const next = locale === 'de' ? 'en' : 'de';
-    document.cookie = `locale=${next}; path=/; max-age=31536000`;
-    setLocale(next);
-    window.location.reload();
-  };
+  useEffect(() => { setMounted(true); }, []);
 
   const handleLogout = async () => {
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
