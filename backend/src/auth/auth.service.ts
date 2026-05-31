@@ -41,7 +41,7 @@ export class AuthService {
     if (!user) {
       // Check if this is the very first user (becomes admin)
       const userCount = await this.prisma.user.count();
-      let role = userCount === 0 ? UserRole.ADMIN : UserRole.VIEWER;
+      let role: UserRole = userCount === 0 ? UserRole.ADMIN : UserRole.VIEWER;
 
       // Check invite token for initial role assignment
       if (inviteToken && role === UserRole.VIEWER) {
