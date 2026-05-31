@@ -29,6 +29,15 @@ export class BingoService {
     maxWinners = 1,
     opts?: { autoStopEnabled?: boolean; autoStopEod?: boolean; autoStopAt?: string },
   ) {
+    // Enforce: only one active (CREATED or RUNNING) game per channel at a time
+    const existing = await this.prisma.bingoGame.findFirst({
+      where: { channelName, status: { in: [GameStatus.CREATED, GameStatus.RUNNING] } },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        `Auf Channel "${channelName}" läuft bereits ein Spiel (Status: ${existing.status}). Bitte beende es zuerst.`,
+      );
+    }
     return this.prisma.bingoGame.create({
       data: {
         streamerId,
@@ -42,9 +51,9 @@ export class BingoService {
     });
   }
 
-  async startGame(gameId: string, streamerId: string) {
+  async startGame(gameId: string, actorId: string, actorRole?: string) {
     const game = await this.getGameOrThrow(gameId);
-    if (game.streamerId !== streamerId) throw new ForbiddenException();
+    if (game.streamerId !== actorId && actorRole !== 'ADMIN') throw new ForbiddenException();
     if (game.status !== GameStatus.CREATED)
       throw new BadRequestException('Game already started or stopped');
 
@@ -82,6 +91,14 @@ export class BingoService {
     return this.prisma.bingoGame.findFirst({
       where: { channelName, status: GameStatus.RUNNING },
       select: { id: true, title: true, channelName: true, status: true, startedAt: true },
+    });
+  }
+
+  async getRunningGame() {
+    return this.prisma.bingoGame.findFirst({
+      where: { status: GameStatus.RUNNING },
+      select: { id: true, title: true, channelName: true, status: true, startedAt: true },
+      orderBy: { startedAt: 'desc' },
     });
   }
 

@@ -14,6 +14,7 @@ import { NumberBoard } from '@/components/bingo/number-board';
 import { WinnerBoard } from '@/components/bingo/winner-board';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Wifi, WifiOff } from 'lucide-react';
 
@@ -106,6 +107,25 @@ export default function GamePage({ params }: GamePage) {
     onError: (e: Error) => toast.error(e.message || t('alreadyClaimed')),
   });
 
+  const startMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`${API}/games/${id}/start`, {
+        method: 'PATCH',
+        credentials: 'include',
+      });
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.message || 'Fehler beim Starten');
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      toast.success('Spiel gestartet!');
+      void qc.invalidateQueries({ queryKey: ['game', id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   // Real-time events
   useEffect(() => {
     if (!socket || !id) return;
@@ -121,7 +141,7 @@ export default function GamePage({ params }: GamePage) {
 
     socket.on('number:drawn', (data: { number: number }) => {
       setLastDrawnNumber(data.number);
-      toast.info(`ðŸŽ± Nummer ${data.number} gezogen!`, { duration: 4000 });
+      toast.info(`🎱 Nummer ${data.number} gezogen!`, { duration: 4000 });
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['card', id] });
     });
@@ -190,9 +210,12 @@ export default function GamePage({ params }: GamePage) {
         {/* Game Header */}
         <div className="flex items-center gap-3 flex-wrap justify-between">
           <div className="flex items-center gap-3 flex-wrap">
+            <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              ← Dashboard
+            </a>
             <h1 className="text-xl font-bold">{game.title || 'Bingo'}</h1>
-            <Badge variant={game.status === 'RUNNING' ? 'default' : 'secondary'}>
-              {game.status === 'RUNNING' ? t('gameRunning') : t('gameStopped')}
+            <Badge variant={game.status === 'RUNNING' ? 'default' : game.status === 'CREATED' ? 'outline' : 'secondary'}>
+              {game.status === 'RUNNING' ? t('gameRunning') : game.status === 'CREATED' ? 'Bereit' : t('gameStopped')}
             </Badge>
             {lastDrawnNumber && game.status === 'RUNNING' && (
               <Badge variant="outline" className="text-lg font-bold px-3">
@@ -200,12 +223,24 @@ export default function GamePage({ params }: GamePage) {
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            {socketConnected ? (
-              <><Wifi className="w-3 h-3 text-green-500" /> Live</>
-            ) : (
-              <><WifiOff className="w-3 h-3 text-red-500" /> Getrennt</>
+          <div className="flex items-center gap-2">
+            {/* Start button for Streamer/Admin when game is in CREATED state */}
+            {['STREAMER', 'ADMIN'].includes(user?.role ?? '') && game.status === 'CREATED' && (
+              <Button
+                size="sm"
+                onClick={() => startMutation.mutate()}
+                disabled={startMutation.isPending}
+              >
+                {startMutation.isPending ? 'Startet...' : '▶ Spiel starten'}
+              </Button>
             )}
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {socketConnected ? (
+                <><Wifi className="w-3 h-3 text-green-500" /> Live</>
+              ) : (
+                <><WifiOff className="w-3 h-3 text-red-500" /> Getrennt</>
+              )}
+            </div>
           </div>
         </div>
 
@@ -218,7 +253,7 @@ export default function GamePage({ params }: GamePage) {
           </Alert>
         )}
 
-        {/* Card or join prompt */}
+        {/* Card or join prompt – only for VIEWERs */}
         {cardData ? (
           <BingoCard
             grid={cardData.grid}
@@ -227,16 +262,22 @@ export default function GamePage({ params }: GamePage) {
             gameRunning={game.status === 'RUNNING'}
             hasWon={hasWon}
           />
+        ) : ['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              Als {user?.role} benötigst du keine eigene Karte.
+              Nutze das <a href={`/moderator/${id}`} className="underline underline-offset-2">Moderator-Dashboard</a> für die Spielverwaltung.
+            </p>
+          </div>
         ) : game.status === 'RUNNING' ? (
           <div className="flex flex-col items-center gap-4 py-10 text-center">
             <p className="text-muted-foreground">{t('noCard')}</p>
-            <button
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-10 px-6 hover:bg-primary/90 transition-colors"
+            <Button
               onClick={() => joinMutation.mutate()}
               disabled={joinMutation.isPending}
             >
-              {joinMutation.isPending ? 'Bitte wartenâ€¦' : t('joinGame')}
-            </button>
+              {joinMutation.isPending ? 'Bitte warten…' : t('joinGame')}
+            </Button>
           </div>
         ) : (
           <p className="text-muted-foreground text-center py-8">{t('noCard')}</p>

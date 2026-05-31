@@ -56,6 +56,12 @@ export default function ModeratorIndexPage() {
           </>
         ) : (
           <>
+            <a
+              href="/dashboard"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+            >
+              ← Dashboard
+            </a>
             <h1 className="text-2xl font-bold">Moderator-Dashboard</h1>
             <p className="text-muted-foreground">
               Kein aktives Spiel gefunden. Bitte navigiere direkt zum Spiel.

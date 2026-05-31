@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
   Req,
+  HttpCode,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -99,6 +100,17 @@ export class AdminController {
       dto.message || 'Maintenance in progress',
       req.user.id,
     );
+  }
+
+  @Get('bot-status')
+  getBotStatus() {
+    return this.adminService.getBotStatus();
+  }
+
+  @Post('bot-refresh')
+  @HttpCode(200)
+  refreshBotToken(@Req() req: any) {
+    return this.adminService.refreshBotToken(req.user.id);
   }
 
   @Get('audit-log')

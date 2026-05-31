@@ -212,6 +212,12 @@ export default function ModeratorPage({ params }: ModPage) {
       <main className="container mx-auto px-4 py-6 flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center gap-3 flex-wrap">
+          <a
+            href="/dashboard"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Dashboard
+          </a>
           <h1 className="text-xl font-bold">{t('title')}</h1>
           {game && (
             <>
@@ -326,7 +332,7 @@ export default function ModeratorPage({ params }: ModPage) {
                               ${isCenter ? 'bg-primary/30 text-primary' : isMarked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
                             `}
                           >
-                            {isCenter ? 'â˜…' : num ?? ''}
+                            {isCenter ? '★' : num ?? ''}
                           </div>
                         );
                       })}

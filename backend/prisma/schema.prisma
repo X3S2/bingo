@@ -41,6 +41,7 @@ enum AuditAction {
   MAINTENANCE_TOGGLED
   ADMIN_CREATED
   STREAMER_KICKED
+  BOT_TOKEN_REFRESHED
 }
 
 // ============================================================

@@ -5,10 +5,19 @@ import { BingoService } from '../bingo/bingo.service';
 import { RefreshingAuthProvider } from '@twurple/auth';
 import { ChatClient } from '@twurple/chat';
 import { ApiClient } from '@twurple/api';
+import { AuditAction } from '@prisma/client';
 
 interface ActiveChannel {
   channelName: string;
   gameId: string;
+}
+
+export interface BotStatus {
+  connected: boolean;
+  botLogin: string | null;
+  tokenValid: boolean;
+  tokenExpiresIn: number | null; // seconds
+  lastRefreshedAt: string | null;
 }
 
 @Injectable()
@@ -16,11 +25,14 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TwitchIrcService.name);
   private chatClient: ChatClient | null = null;
   private apiClient: ApiClient | null = null;
-  private activeChannels = new Map<string, ActiveChannel>(); // channelName → channel info
+  private authProvider: RefreshingAuthProvider | null = null;
+  private activeChannels = new Map<string, ActiveChannel>();
   private botToken: string | null = null;
   private botRefreshToken: string | null = null;
   private clientId: string | null = null;
   private clientSecret: string | null = null;
+  private botLogin: string | null = null;
+  private lastRefreshedAt: Date | null = null;
 
   constructor(
     private config: ConfigService,
@@ -37,7 +49,6 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async initializeFromSettings() {
-    // Load bot credentials from AdminSettings (set via Setup Wizard)
     const [botTokenSetting, botRefreshSetting, botLoginSetting, clientSecretSetting] =
       await Promise.all([
         this.prisma.adminSetting.findUnique({ where: { key: 'bot_access_token' } }),
@@ -57,19 +68,21 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
 
     this.botToken = botTokenSetting.value;
     this.botRefreshToken = botRefreshSetting?.value || null;
+    this.botLogin = botLoginSetting.value;
     await this.connect(botLoginSetting.value);
   }
 
   async connect(botLogin: string) {
     if (!this.botToken || !this.clientId || !this.clientSecret) return;
 
-    const authProvider = new RefreshingAuthProvider({
+    this.authProvider = new RefreshingAuthProvider({
       clientId: this.clientId,
       clientSecret: this.clientSecret,
     });
 
-    authProvider.onRefresh(async (_userId, newTokenData) => {
+    this.authProvider.onRefresh(async (_userId, newTokenData) => {
       this.botToken = newTokenData.accessToken;
+      this.lastRefreshedAt = new Date();
       await this.prisma.adminSetting.upsert({
         where: { key: 'bot_access_token' },
         create: { key: 'bot_access_token', value: newTokenData.accessToken },
@@ -83,24 +96,36 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
           update: { value: newTokenData.refreshToken },
         });
       }
+      // Audit log
+      await this.prisma.auditLog.create({
+        data: {
+          adminId: 'system',
+          action: AuditAction.BOT_TOKEN_REFRESHED,
+          targetType: 'BotToken',
+          targetId: this.botLogin ?? 'bot',
+          metadata: { auto: true, at: new Date().toISOString() },
+        },
+      });
       this.logger.log('Twitch bot token refreshed and saved to DB');
     });
 
-    await authProvider.addUserForToken(
+    // obtainmentTimestamp=0 forces twurple to refresh immediately on first use
+    // if the token might be expired — safe because RefreshingAuthProvider handles it
+    await this.authProvider.addUserForToken(
       {
         accessToken: this.botToken,
         refreshToken: this.botRefreshToken,
-        expiresIn: null,
+        expiresIn: 0,
         obtainmentTimestamp: 0,
         scope: ['chat:read', 'chat:edit'],
       },
       ['chat'],
     );
 
-    this.apiClient = new ApiClient({ authProvider });
+    this.apiClient = new ApiClient({ authProvider: this.authProvider });
 
     this.chatClient = new ChatClient({
-      authProvider,
+      authProvider: this.authProvider,
       channels: [],
     });
 
@@ -121,6 +146,68 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     // Rejoin active game channels
     for (const [channelName] of this.activeChannels) {
       await this.joinChannel(channelName);
+    }
+  }
+
+  /** Validate the current bot access token via Twitch's validate endpoint */
+  async validateToken(): Promise<{ valid: boolean; expiresIn: number | null; login: string | null }> {
+    if (!this.botToken) return { valid: false, expiresIn: null, login: null };
+    try {
+      const res = await fetch('https://id.twitch.tv/oauth2/validate', {
+        headers: { Authorization: `OAuth ${this.botToken}` },
+      });
+      if (!res.ok) return { valid: false, expiresIn: null, login: null };
+      const data: { expires_in: number; login: string } = await res.json();
+      return { valid: true, expiresIn: data.expires_in, login: data.login };
+    } catch {
+      return { valid: false, expiresIn: null, login: null };
+    }
+  }
+
+  async getBotStatus(): Promise<BotStatus> {
+    const tokenInfo = await this.validateToken();
+    return {
+      connected: this.chatClient?.isConnected ?? false,
+      botLogin: this.botLogin,
+      tokenValid: tokenInfo.valid,
+      tokenExpiresIn: tokenInfo.expiresIn,
+      lastRefreshedAt: this.lastRefreshedAt?.toISOString() ?? null,
+    };
+  }
+
+  /** Force a token refresh by setting obtainmentTimestamp to 0 and re-requesting */
+  async forceRefreshToken(adminId: string): Promise<{ success: boolean; message: string }> {
+    if (!this.authProvider || !this.botLogin) {
+      return { success: false, message: 'Bot nicht initialisiert oder kein Auth-Provider vorhanden.' };
+    }
+    try {
+      // RefreshingAuthProvider exposes refreshAccessTokenForUser(userId)
+      // but user must first be added. We trigger via the API client (any call forces refresh check).
+      // Alternatively force by resetting token data:
+      await this.authProvider.addUserForToken(
+        {
+          accessToken: this.botToken!,
+          refreshToken: this.botRefreshToken,
+          expiresIn: 0,
+          obtainmentTimestamp: 0,
+          scope: ['chat:read', 'chat:edit'],
+        },
+        ['chat'],
+      );
+      // Make a lightweight API call to trigger the actual refresh
+      await this.apiClient?.asUser(this.botLogin, (ctx) => ctx.users.getAuthenticatedUser(this.botLogin!));
+      await this.prisma.auditLog.create({
+        data: {
+          adminId,
+          action: AuditAction.BOT_TOKEN_REFRESHED,
+          targetType: 'BotToken',
+          targetId: this.botLogin,
+          metadata: { manual: true, at: new Date().toISOString() },
+        },
+      });
+      return { success: true, message: 'Token-Refresh angefordert. Neues Token wird nach dem nächsten API-Aufruf gespeichert.' };
+    } catch (e: any) {
+      return { success: false, message: `Refresh fehlgeschlagen: ${e.message}` };
     }
   }
 
@@ -203,6 +290,23 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
         );
       } catch {
         // Ignore – not a valid bingo
+      }
+      return;
+    }
+
+    // !buycard – debug command: give the sender a bingo card (mods/broadcaster only for now or any user)
+    if (trimmed === '!buycard') {
+      const twitchId = msg.userInfo.userId;
+      const user = await this.prisma.user.findUnique({ where: { twitchId } });
+      if (!user) {
+        await this.chatClient?.say(channel, `@${username} Du bist noch nicht registriert. Bitte melde dich zuerst auf der Website an.`);
+        return;
+      }
+      try {
+        await this.bingoService.createCardForUser(gameId, user.id);
+        await this.chatClient?.say(channel, `✅ @${username} Deine Bingo-Karte wurde erstellt! Öffne das Spiel auf der Website.`);
+      } catch (err: any) {
+        await this.chatClient?.say(channel, `❌ @${username} ${err.message}`);
       }
     }
   }

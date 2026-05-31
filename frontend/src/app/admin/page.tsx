@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { RefreshCw, Wifi, WifiOff, ShieldCheck, ShieldX } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -104,6 +105,16 @@ export default function AdminPage() {
       return r.json();
     },
     enabled: !!user,
+  });
+
+  const { data: botStatus, refetch: refetchBotStatus } = useQuery({
+    queryKey: ['admin-bot-status'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/admin/bot-status`, { credentials: 'include' });
+      return r.json();
+    },
+    enabled: !!user,
+    refetchInterval: 60_000,
   });
 
   const { data: settings } = useQuery({
@@ -196,6 +207,22 @@ export default function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const botRefreshMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`${API}/admin/bot-refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!r.ok) throw new Error('Refresh fehlgeschlagen');
+      return r.json();
+    },
+    onSuccess: (data) => {
+      toast.success(data.message ?? 'Token-Refresh angefordert');
+      void refetchBotStatus();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const saveSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       const r = await fetch(`${API}/admin/settings/${key}`, {
@@ -240,6 +267,7 @@ export default function AdminPage() {
             <TabsTrigger value="stats">{t('stats')}</TabsTrigger>
             <TabsTrigger value="users">{t('users')}</TabsTrigger>
             <TabsTrigger value="games">{t('games')}</TabsTrigger>
+            <TabsTrigger value="bot">🤖 Bot</TabsTrigger>
             <TabsTrigger value="settings">{t('settings')}</TabsTrigger>
             <TabsTrigger value="audit">{t('auditLog')}</TabsTrigger>
           </TabsList>
@@ -374,9 +402,132 @@ export default function AdminPage() {
             </div>
           </TabsContent>
 
+          {/* Bot */}
+          <TabsContent value="bot" className="mt-4 flex flex-col gap-4">
+            {/* Bot Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  🤖 Bot-Status
+                  <Button size="sm" variant="ghost" onClick={() => void refetchBotStatus()} className="ml-auto h-7 px-2">
+                    <RefreshCw className="w-3 h-3" />
+                  </Button>
+                </CardTitle>
+                <CardDescription>Verbindungsstatus des Twitch IRC Bots</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {botStatus ? (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      {botStatus.connected
+                        ? <Wifi className="w-4 h-4 text-green-500" />
+                        : <WifiOff className="w-4 h-4 text-red-500" />}
+                      <span className="font-medium">IRC:</span>
+                      <Badge variant={botStatus.connected ? 'default' : 'destructive'} className="text-xs">
+                        {botStatus.connected ? 'Verbunden' : 'Getrennt'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {botStatus.tokenValid
+                        ? <ShieldCheck className="w-4 h-4 text-green-500" />
+                        : <ShieldX className="w-4 h-4 text-red-500" />}
+                      <span className="font-medium">Token:</span>
+                      <Badge variant={botStatus.tokenValid ? 'default' : 'destructive'} className="text-xs">
+                        {botStatus.tokenValid ? 'Gültig' : 'Ungültig'}
+                      </Badge>
+                    </div>
+                    {botStatus.botLogin && (
+                      <div className="col-span-2 text-muted-foreground">
+                        Bot-Login: <span className="font-mono font-medium text-foreground">@{botStatus.botLogin}</span>
+                      </div>
+                    )}
+                    {botStatus.tokenValid && botStatus.tokenExpiresIn != null && (
+                      <div className="col-span-2 text-muted-foreground">
+                        Token gültig noch: <span className="font-medium text-foreground">
+                          {Math.floor(botStatus.tokenExpiresIn / 3600)}h {Math.floor((botStatus.tokenExpiresIn % 3600) / 60)}min
+                        </span>
+                      </div>
+                    )}
+                    {botStatus.lastRefreshedAt && (
+                      <div className="col-span-2 text-muted-foreground">
+                        Letzter Refresh: <span className="font-medium text-foreground">
+                          {new Date(botStatus.lastRefreshedAt).toLocaleString('de-DE')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">Lädt...</p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                  onClick={() => botRefreshMutation.mutate()}
+                  disabled={botRefreshMutation.isPending}
+                >
+                  <RefreshCw className="w-3 h-3 mr-2" />
+                  {botRefreshMutation.isPending ? 'Wird aktualisiert...' : 'Token manuell refreshen'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Chat Commands */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">💬 Chat-Befehle</CardTitle>
+                <CardDescription>Alle verfügbaren IRC-Befehle im Twitch-Chat</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-3">
+                  {[
+                    {
+                      cmd: '!zahl+N',
+                      example: '!zahl+42',
+                      who: 'Mod / Broadcaster',
+                      desc: 'Zieht die Zahl N (1–75). Alle Bingo-Karten werden automatisch aktualisiert.',
+                      color: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
+                    },
+                    {
+                      cmd: '!zahl-N',
+                      example: '!zahl-42',
+                      who: 'Mod / Broadcaster',
+                      desc: 'Entfernt die Zahl N wieder. Alle Karten werden zurückberechnet.',
+                      color: 'bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800',
+                    },
+                    {
+                      cmd: 'bingo',
+                      example: 'bingo',
+                      who: 'Alle Zuschauer',
+                      desc: 'Meldet Bingo. Der Bot prüft die Karte des Nutzers automatisch.',
+                      color: 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800',
+                    },
+                    {
+                      cmd: '!buycard',
+                      example: '!buycard',
+                      who: 'Alle (Debug)',
+                      desc: '⚙️ Debug-Befehl: Erstellt eine Bingo-Karte ohne Channel-Point-Redeem. Nützlich zum Testen. Jeder Nutzer kann nur eine Karte pro Spiel haben.',
+                      color: 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800',
+                    },
+                  ].map((c) => (
+                    <div key={c.cmd} className={`rounded-lg border p-3 ${c.color}`}>
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <code className="font-mono font-bold text-sm bg-background/60 px-2 py-0.5 rounded">{c.cmd}</code>
+                          <span className="text-xs text-muted-foreground">Beispiel: <code className="font-mono">{c.example}</code></span>
+                        </div>
+                        <Badge variant="outline" className="text-xs flex-shrink-0">{c.who}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{c.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Settings */}
-          <TabsContent value="settings" className="mt-4 flex flex-col gap-4">
-            {/* Maintenance */}
+          <TabsContent value="settings" className="mt-4 flex flex-col gap-4">            {/* Maintenance */}
             <Card>
               <CardHeader><CardTitle className="text-base">{t('maintenance')}</CardTitle></CardHeader>
               <CardContent className="flex flex-col gap-3">

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GameGateway } from '../gateway/game.gateway';
 import { BingoService } from '../bingo/bingo.service';
+import { TwitchIrcService } from '../twitch/twitch-irc.service';
 import { AuditAction, UserRole } from '@prisma/client';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class AdminService {
     private prisma: PrismaService,
     private gateway: GameGateway,
     private bingoService: BingoService,
+    private twitchIrc: TwitchIrcService,
   ) {}
 
   // ── Users ──────────────────────────────────────────────────
@@ -149,6 +151,16 @@ export class AdminService {
     ]);
 
     return { totalUsers, totalGames, activeGames, totalWinners };
+  }
+
+  // ── Bot ───────────────────────────────────────────────────
+
+  async getBotStatus() {
+    return this.twitchIrc.getBotStatus();
+  }
+
+  async refreshBotToken(adminId: string) {
+    return this.twitchIrc.forceRefreshToken(adminId);
   }
 
   // ── Audit Log ──────────────────────────────────────────────

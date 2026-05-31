@@ -48,7 +48,7 @@ export class BingoController {
   @Patch(':id/start')
   @Roles(UserRole.STREAMER)
   startGame(@Param('id') id: string, @Req() req: any) {
-    return this.bingoService.startGame(id, req.user.id);
+    return this.bingoService.startGame(id, req.user.id, req.user.role);
   }
 
   @Patch(':id/stop')
@@ -60,6 +60,11 @@ export class BingoController {
   @Get('active')
   getActiveGame(@Query('channel') channel: string) {
     return this.bingoService.getActiveGameByChannel(channel);
+  }
+
+  @Get('running')
+  getRunningGame() {
+    return this.bingoService.getRunningGame();
   }
 
   @Get('my-games')
