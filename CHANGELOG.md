@@ -11,8 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.2] - 2026-05-29
+## [1.0.3] - 2026-05-31
 
+### Added
+- **i18n – complete audit**: all remaining hardcoded German strings replaced with `useTranslations` hooks across all pages (`streamer`, `admin`, `game/[id]`, `game`, `moderator`, `moderator/[id]`)
+- **i18n – new namespaces**: `bot` namespace (full DE + EN) for bot status labels; extended `bingo`, `streamer`, `moderator`, `admin`, `legal` namespaces with missing keys in both `de.json` and `en.json`
+- **Impressum / Datenschutz – bilingual toggle**: both legal pages converted to client components; show DE by default, toggle button switches to EN content; admin can now enter separate EN texts (`impressum_en`, `datenschutz_en`) in the Settings tab
+- **Admin Settings tab**: added two new textarea fields — *Impressum (EN)* and *Datenschutzerklärung (EN)* — stored as `impressum_en` / `datenschutz_en` in `AdminSetting`
+- **Bot tab i18n**: all labels in admin bot tab (`IRC:`, `Token:`, `Verbunden`, `Gültig`, channel list, refresh button) now driven by `bot` namespace translations
+- **Game status badges translated**: `CREATED` → "Bereit" / "Ready", `RUNNING` → "Spiel läuft" / "Game running", `STOPPED` → "Spiel beendet" / "Game stopped" across streamer dashboard and admin games tab
+
+### Changed
+- **Auto-Stop defaults**: new game form now defaults `autoStopEnabled` and `autoStopEod` to **`true`** (was `false`)
+- **Moderator dashboard header**: bot-joined badge labels now use `t('botJoined')` / `t('botNotJoined')` from moderator namespace
+
+### Fixed
+- **Emoji mojibake** in `game/[id]/page.tsx`: trophy icon `ðŸ†` corrected to `🏆` in winner toast
+- **503 Service Temporarily Unavailable**: transient error caused by Turbopack hot-reload during source file changes; resolved by container restart
 ### Added
 - **PageToolbar** component (DE/EN language toggle + dark/light mode) on all public pages (home, login, help, setup)
 - **Setup wizard**: explicit Redirect URI hint — users must register `http://<host>/api/auth/callback/twitch` exactly in the Twitch dev console
