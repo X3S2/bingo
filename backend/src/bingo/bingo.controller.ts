@@ -116,4 +116,10 @@ export class BingoController {
   createCard(@Param('id') id: string, @Body('userId') userId: string) {
     return this.bingoService.createCardForUser(id, userId);
   }
+
+  @Delete(':id/winners/:userId')
+  @Roles(UserRole.MODERATOR)
+  removeWinner(@Param('id') id: string, @Param('userId') userId: string) {
+    return this.bingoService.removeWinner(id, userId);
+  }
 }

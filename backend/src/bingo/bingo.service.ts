@@ -3,11 +3,14 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CardGeneratorService } from './card-generator.service';
 import { WinConditionService } from './win-condition.service';
 import { GameGateway } from '../gateway/game.gateway';
+import { TwitchIrcService } from '../twitch/twitch-irc.service';
 import { GameStatus, UserRole } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -18,6 +21,8 @@ export class BingoService {
     private cardGen: CardGeneratorService,
     private winCondition: WinConditionService,
     private gateway: GameGateway,
+    @Inject(forwardRef(() => TwitchIrcService))
+    private twitchIrc: TwitchIrcService,
   ) {}
 
   // ── Game Management ───────────────────────────────────────
@@ -254,12 +259,41 @@ export class BingoService {
 
     this.gateway.emitToGame(gameId, 'winner:added', winner);
 
+    // Announce bingo win in Twitch chat
+    try {
+      await this.twitchIrc.sayInGame(gameId, `🎉 @${winner.user.displayName} hat BINGO! (Platz ${winner.position})`);
+    } catch { /* non-critical */ }
+
     // Auto-stop if max winners reached
     if (winnerCount + 1 >= game.maxWinners) {
       await this.stopGame(gameId, game.streamerId, UserRole.STREAMER);
     }
 
     return winner;
+  }
+
+  async removeWinner(gameId: string, userId: string) {
+    const existing = await this.prisma.winner.findUnique({
+      where: { gameId_userId: { gameId, userId } },
+    });
+    if (!existing) throw new NotFoundException('Gewinner nicht gefunden.');
+
+    await this.prisma.winner.delete({ where: { gameId_userId: { gameId, userId } } });
+
+    // Re-number remaining winners
+    const remaining = await this.prisma.winner.findMany({
+      where: { gameId },
+      orderBy: { position: 'asc' },
+    });
+    for (let i = 0; i < remaining.length; i++) {
+      await this.prisma.winner.update({
+        where: { id: remaining[i].id },
+        data: { position: i + 1 },
+      });
+    }
+
+    this.gateway.emitToGame(gameId, 'winner:removed', { userId });
+    return { success: true };
   }
 
   async getWinners(gameId: string) {

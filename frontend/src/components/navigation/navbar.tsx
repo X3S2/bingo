@@ -42,7 +42,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="container flex h-14 items-center justify-between mx-auto px-4">
-        <Link href={user ? '/dashboard' : '/'} className="font-bold text-xl bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+        <Link href={user ? '/dashboard' : '/'} className="font-bold text-[28px] md:text-[40px] bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent leading-none py-1">
           StreamBingo
         </Link>
 

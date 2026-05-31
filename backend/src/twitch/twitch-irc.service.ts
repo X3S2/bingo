@@ -365,6 +365,36 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     void this.leaveChannel(channelName);
   }
 
+  /** Send a message in the channel associated with the given gameId */
+  async sayInGame(gameId: string, text: string): Promise<void> {
+    if (!this.chatClient || !this._connected) return;
+    for (const [channelName, entry] of this.activeChannels) {
+      if (entry.gameId === gameId) {
+        try { await this.chatClient.say(channelName, text); } catch { /* ignore */ }
+        return;
+      }
+    }
+  }
+
+  /** Returns the current command config for all slugs (forces cache refresh) */
+  async getPublicCmdConfig() {
+    this.cmdCacheAt = 0; // force refresh
+    await this.refreshCmdCache();
+    const result: Record<string, { name: string; enabled: boolean; perm: string; label: string }> = {};
+    const labels: Record<string, string> = {
+      zahl_add:    'Zahl ziehen',
+      zahl_remove: 'Zahl entfernen',
+      bingo:       'Bingo melden',
+      buycard:     'Karte erhalten',
+      zahlen:      'Zahlen anzeigen',
+      winners:     'Gewinner anzeigen',
+    };
+    for (const slug of TwitchIrcService.CMD_SLUGS) {
+      const cfg = this.getCmd(slug);
+      result[slug] = { ...cfg, label: labels[slug] };
+    }
+    return result;
+  }
   async manualJoinChannel(channelName: string): Promise<{ success: boolean; message: string }> {
     if (!this.chatClient || !this._connected) {
       return { success: false, message: 'Bot nicht verbunden. Bitte zuerst IRC neu verbinden.' };

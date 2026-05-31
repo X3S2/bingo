@@ -193,7 +193,11 @@
     "search": "Spieler suchen...",
     "numberRemoved": "Zahl entfernt",
     "botJoined": "Bot verbunden",
-    "botNotJoined": "Bot nicht verbunden"
+    "botNotJoined": "Bot nicht verbunden",
+    "winners": "Gewinner",
+    "removeWinner": "Gewinner entfernen",
+    "winnerRemoved": "Gewinner entfernt",
+    "chatCommands": "Chat-Befehle"
   },
   "setup": {
     "title": "StreamBingo einrichten",

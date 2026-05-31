@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.6] - 2026-05-31
+
+### Added
+- **Moderator: Chat-Befehle Übersicht** — neues aufklappbares Panel im Moderator-Dashboard zeigt alle konfigurierten IRC-Befehle (Name, Funktion, Berechtigung, Status); Daten kommen vom neuen `GET /twitch/bot-commands` Endpunkt
+- **Moderator: Gewinner entfernen** — jeder Gewinner-Eintrag im Moderator-Dashboard hat jetzt ein ✕-Button zum Entfernen; Platznummern werden automatisch neu vergeben; emitiert `winner:removed` via WebSocket
+- **Chat-Ankündigung bei Bingo-Claim** — wenn ein Viewer per Button Bingo meldet, postet der Bot automatisch eine Ankündigung im Twitch-Chat (z. B. „🎉 @Username hat BINGO! (Platz 1)")
+- **`GET /twitch/bot-commands`** — neuer Endpunkt (MODERATOR+) gibt aktuelle Bot-Befehlskonfiguration zurück
+
+### Changed
+- **StreamBingo-Logo-Schriftgröße**: 28px auf Mobilgeräten, 40px auf Desktop
+- **Dashboard Status-Anzeige**: Socket-Verbindungsstatus wird jetzt mit dem tatsächlichen `socket.connected`-Wert initialisiert, um kurzes „Getrennt"-Flackern beim Laden zu vermeiden
+
+---
+
 ## [1.0.5] - 2026-05-31
 
 ### Added

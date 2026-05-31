@@ -36,4 +36,11 @@ export class TwitchController {
   async joinChannel(@Body() dto: BotJoinDto) {
     return this.twitchIrc.manualJoinChannel(dto.channelName);
   }
+
+  /** Returns current bot command names/config for display (MOD+) */
+  @Get('bot-commands')
+  @Roles(UserRole.MODERATOR, UserRole.STREAMER, UserRole.ADMIN)
+  async getBotCommands() {
+    return this.twitchIrc.getPublicCmdConfig();
+  }
 }

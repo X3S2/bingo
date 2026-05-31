@@ -103,7 +103,11 @@
     "search": "Search player...",
     "numberRemoved": "Number removed",
     "botJoined": "Bot connected",
-    "botNotJoined": "Bot not connected"
+    "botNotJoined": "Bot not connected",
+    "winners": "Winners",
+    "removeWinner": "Remove winner",
+    "winnerRemoved": "Winner removed",
+    "chatCommands": "Chat Commands"
   },
   "admin": {
     "title": "Admin Portal",

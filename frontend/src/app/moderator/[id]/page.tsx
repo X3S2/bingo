@@ -10,14 +10,13 @@ import { use } from 'react';
 import { useTranslations } from 'next-intl';
 import { Navbar } from '@/components/navigation/navbar';
 import { NumberBoard } from '@/components/bingo/number-board';
-import { WinnerBoard } from '@/components/bingo/winner-board';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Wifi, WifiOff } from 'lucide-react';
+import { Trophy, Wifi, WifiOff, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -65,6 +64,7 @@ export default function ModeratorPage({ params }: ModPage) {
   const [numberInput, setNumberInput] = useState('');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'proximity' | 'name'>('proximity');
+  const [showCmds, setShowCmds] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user && !['MODERATOR', 'STREAMER', 'ADMIN'].includes(user.role)) {
@@ -102,6 +102,17 @@ export default function ModeratorPage({ params }: ModPage) {
       return r.json();
     },
     enabled: !!user,
+  });
+
+  const { data: botCmds } = useQuery<Record<string, { name: string; enabled: boolean; perm: string; label: string }>>({  
+    queryKey: ['bot-commands'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/twitch/bot-commands`, { credentials: 'include' });
+      if (!r.ok) return {};
+      return r.json();
+    },
+    enabled: !!user,
+    staleTime: 60_000,
   });
 
   const { data: botJoinStatus } = useQuery<{ botJoined: boolean }>({
@@ -158,6 +169,25 @@ export default function ModeratorPage({ params }: ModPage) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const removeWinnerMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const r = await fetch(`${API}/games/${id}/winners/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.message || 'Fehler beim Entfernen des Gewinners');
+      }
+    },
+    onSuccess: () => {
+      toast.success(t('winnerRemoved'));
+      void qc.invalidateQueries({ queryKey: ['winners', id] });
+      void qc.invalidateQueries({ queryKey: ['cards', id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   useEffect(() => {
     if (!socket || !id) return;
     socket.emit('join:game', { gameId: id });
@@ -171,10 +201,12 @@ export default function ModeratorPage({ params }: ModPage) {
       void qc.invalidateQueries({ queryKey: ['cards', id] });
     });
     socket.on('winner:added', () => void qc.invalidateQueries({ queryKey: ['winners', id] }));
+    socket.on('winner:removed', () => void qc.invalidateQueries({ queryKey: ['winners', id] }));
     return () => {
       socket.off('number:drawn');
       socket.off('number:removed');
       socket.off('winner:added');
+      socket.off('winner:removed');
     };
   }, [socket, id, qc]);
 
@@ -281,7 +313,67 @@ export default function ModeratorPage({ params }: ModPage) {
         </Card>
 
         <NumberBoard numbers={drawnNumbers} />
-        <WinnerBoard winners={winners ?? []} />
+
+        {/* Winners with remove button */}
+        {(winners ?? []).length > 0 && (
+          <div className="w-full">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">{t('winners')}</h3>
+            <div className="flex flex-col gap-2">
+              {(winners ?? []).map((w: { position: number; claimedVia: string; userId: string; user: { id: string; displayName: string; profileImageUrl?: string } }) => (
+                <div key={w.position} className="flex items-center gap-3 rounded-lg border bg-card p-2">
+                  <span className="text-xl">{['🥇','🥈','🥉'][w.position - 1] || `#${w.position}`}</span>
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={w.user.profileImageUrl} alt={w.user.displayName} />
+                    <AvatarFallback>{w.user.displayName[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-sm flex-1">{w.user.displayName}</span>
+                  <Badge variant="outline" className="text-xs">{w.claimedVia}</Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                    onClick={() => removeWinnerMutation.mutate(w.user.id)}
+                    disabled={removeWinnerMutation.isPending}
+                    title={t('removeWinner')}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chat commands collapsible */}
+        <Card>
+          <CardHeader
+            className="py-2 px-4 cursor-pointer select-none"
+            onClick={() => setShowCmds((v) => !v)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">{t('chatCommands')}</CardTitle>
+              {showCmds ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CardHeader>
+          {showCmds && (
+            <CardContent className="pt-0">
+              {botCmds ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {Object.entries(botCmds).map(([slug, cfg]) => (
+                    <div key={slug} className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${!cfg.enabled ? 'opacity-40' : ''}`}>
+                      <code className="font-mono font-semibold text-primary">{cfg.name}</code>
+                      <span className="text-muted-foreground flex-1">{cfg.label}</span>
+                      <Badge variant="outline" className="text-xs">{cfg.perm}</Badge>
+                      {!cfg.enabled && <Badge variant="secondary" className="text-xs">off</Badge>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Wird geladen...</p>
+              )}
+            </CardContent>
+          )}
+        </Card>
 
         {/* Card grid */}
         <div>

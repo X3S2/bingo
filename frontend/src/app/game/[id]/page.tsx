@@ -31,7 +31,7 @@ export default function GamePage({ params }: GamePage) {
   const router = useRouter();
   const qc = useQueryClient();
   const t = useTranslations('bingo');
-  const [socketConnected, setSocketConnected] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(() => socket?.connected ?? false);
   const [lastDrawnNumber, setLastDrawnNumber] = useState<number | null>(null);
 
   useEffect(() => {
