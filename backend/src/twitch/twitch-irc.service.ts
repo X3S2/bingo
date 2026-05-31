@@ -472,8 +472,8 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       const user = await this.prisma.user.findUnique({ where: { twitchId } });
       if (!user) return;
       try {
-        const winner = await this.bingoService.claimBingo(gameId, user.id, 'CHAT');
-        await this.chatClient?.say(channel, `🎉 @${username} hat BINGO! (Platz ${winner.position})`);
+        await this.bingoService.claimBingo(gameId, user.id, 'CHAT');
+        // Chat announcement is handled by BingoService.claimBingo via sayInGame
       } catch {
         // Ignore – not a valid bingo
       }
