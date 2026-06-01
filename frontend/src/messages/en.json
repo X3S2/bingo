@@ -74,7 +74,8 @@
     "selectGame": "Which game do you want to play?",
     "activeGames": "Active Games",
     "nonViewerNote": "As a {role} you don't need your own card. Use the Moderator Dashboard to manage the game.",
-    "numberDrawnToast": "🎱 Number {number} drawn!"
+    "numberDrawnToast": "🎱 Number {number} drawn!",
+    "moderate": "Moderate"
   },
   "streamer": {
     "title": "Streamer Management",
@@ -140,7 +141,16 @@
     "helpStep4Text": "Click \"Create New Bingo\". Start the game with the play button. Viewers can now redeem Channel Points to get a card and join.",
     "helpStep5Title": "5. Moderate & draw numbers",
     "helpStep5Text": "Open the Moderator Dashboard for the game. There you can draw numbers, manage winners, and view chat commands. The bot must be in your channel (Bot Join button).",
-    "helpFooter": "Need more help? Check the README.md or CHANGELOG.md of your project."
+    "helpFooter": "Need more help? Please contact User \"X3S2\" on Discord."
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {name}",
+    "moderatorDashboard": "🛡️ Moderator Dashboard",
+    "moderatorDashboardDesc": "Monitor cards, manage numbers",
+    "streamerManagement": "🎦 Streamer Management",
+    "streamerManagementDesc": "Create and configure games",
+    "adminPortal": "⚙️ Admin Portal",
+    "adminPortalDesc": "Users, settings, bot status"
   },
   "moderator": {
     "title": "Moderator Dashboard",

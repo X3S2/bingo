@@ -74,7 +74,8 @@
     "selectGame": "Welches Spiel möchtest du spielen?",
     "activeGames": "Aktive Spiele",
     "nonViewerNote": "Als {role} benötigst du keine eigene Karte. Nutze das Moderator-Dashboard für die Spielverwaltung.",
-    "numberDrawnToast": "🎱 Nummer {number} gezogen!"
+    "numberDrawnToast": "🎱 Nummer {number} gezogen!",
+    "moderate": "Moderieren"
   },
   "streamer": {
     "title": "Streamer-Verwaltung",
@@ -140,7 +141,16 @@
     "helpStep4Text": "Klicke auf \"Neues Bingo erstellen\". Starte das Spiel mit dem Play-Button. Deine Viewer können nun über Channel Points eine Karte erhalten und mitspielen.",
     "helpStep5Title": "5. Moderieren & Zahlen ziehen",
     "helpStep5Text": "Öffne das Moderator-Dashboard für das Spiel. Dort kannst du Zahlen ziehen, Gewinner verwalten und Chat-Befehle einsehen. Der Bot muss in deinem Channel sein (Bot-Join-Button).",
-    "helpFooter": "Brauchst du weitere Hilfe? Schau in die README.md oder das CHANGELOG.md deines Projekts."
+    "helpFooter": "Brauchst du weitere Hilfe? Wende dich bitte im Discord an User \"X3S2\"."
+  },
+  "dashboard": {
+    "welcome": "Willkommen zurück, {name}",
+    "moderatorDashboard": "🛡️ Moderator-Dashboard",
+    "moderatorDashboardDesc": "Karten überwachen, Zahlen verwalten",
+    "streamerManagement": "🎦 Streamer-Verwaltung",
+    "streamerManagementDesc": "Spiele erstellen und konfigurieren",
+    "adminPortal": "⚙️ Admin-Portal",
+    "adminPortalDesc": "Nutzer, Einstellungen, Bot-Status"
   },
   "admin": {
     "title": "Admin-Portal",

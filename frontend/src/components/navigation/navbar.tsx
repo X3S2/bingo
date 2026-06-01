@@ -22,7 +22,7 @@ export function Navbar() {
   const t = useTranslations('nav');
   const tAuth = useTranslations('auth');
   const { user, isLoading, refetch } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const { locale, toggleLocale } = useLocaleToggle();
 
@@ -63,10 +63,10 @@ export function Navbar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             aria-label="Toggle theme"
           >
-            {mounted ? (theme === 'dark' ? '☀️' : '🌙') : '🌙'}
+            {mounted ? (resolvedTheme === 'dark' ? '☀️' : '🌙') : '🌙'}
           </Button>
 
           {!isLoading && (

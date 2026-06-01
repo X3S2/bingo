@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const t = useTranslations('nav');
   const tb = useTranslations('bingo');
+  const td = useTranslations('dashboard');
 
   useEffect(() => {
     if (!isLoading && !user) router.replace('/login');
@@ -94,9 +95,9 @@ export default function DashboardPage() {
   }
 
   const roleLinks = [
-    { role: ['MODERATOR', 'STREAMER', 'ADMIN'], href: '/moderator', label: '🛡️ Moderator-Dashboard', desc: 'Karten überwachen, Zahlen verwalten', gradient: 'from-blue-500/10 to-cyan-500/10 hover:from-blue-500/20 hover:to-cyan-500/20' },
-    { role: ['STREAMER', 'ADMIN'], href: '/streamer', label: '🎬 Streamer-Verwaltung', desc: 'Spiele erstellen und konfigurieren', gradient: 'from-pink-500/10 to-rose-500/10 hover:from-pink-500/20 hover:to-rose-500/20' },
-    { role: ['ADMIN'], href: '/admin', label: '⚙️ Admin-Portal', desc: 'Nutzer, Einstellungen, Bot-Status', gradient: 'from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20' },
+    { role: ['MODERATOR', 'STREAMER', 'ADMIN'], href: '/moderator', label: td('moderatorDashboard'), desc: td('moderatorDashboardDesc'), gradient: 'from-blue-500/10 to-cyan-500/10 hover:from-blue-500/20 hover:to-cyan-500/20' },
+    { role: ['STREAMER', 'ADMIN'], href: '/streamer', label: td('streamerManagement'), desc: td('streamerManagementDesc'), gradient: 'from-pink-500/10 to-rose-500/10 hover:from-pink-500/20 hover:to-rose-500/20' },
+    { role: ['ADMIN'], href: '/admin', label: td('adminPortal'), desc: td('adminPortalDesc'), gradient: 'from-amber-500/10 to-orange-500/10 hover:from-amber-500/20 hover:to-orange-500/20' },
   ].filter((l) => l.role.includes(user.role));
 
   return (
@@ -106,7 +107,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t('dashboard')}</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Willkommen zurück, {user.displayName}</p>
+            <p className="text-muted-foreground text-sm mt-0.5">{td('welcome', { name: user.displayName })}</p>
           </div>
           <Badge variant={user.role === 'ADMIN' ? 'destructive' : 'secondary'} className="ml-auto">{user.role}</Badge>
         </div>

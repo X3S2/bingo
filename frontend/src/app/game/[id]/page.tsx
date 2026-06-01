@@ -266,6 +266,11 @@ export default function GamePage({ params }: GamePage) {
                 ← Dashboard
               </a>
             )}
+            {['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') && game.status === 'RUNNING' && (
+              <a href={`/moderator/${id}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                🛡️ {t('moderate')}
+              </a>
+            )}
             {(allRunningGames ?? []).length > 1 && (
               <Select value={id} onValueChange={(v) => router.push(`/game/${v}`)}>
                 <SelectTrigger className="h-8 text-sm w-auto min-w-[8rem] max-w-[16rem]">

@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.7] - 2026-06-01
+
+### Added
+- **"Moderieren"-Button auf der Spiel-Seite** — Mods, Streamer und Admins können während eines laufenden Spiels direkt per Link zum Moderator-Dashboard wechseln (`/moderator/:id`)
+- **i18n: `dashboard`-Namespace** — Neue Übersetzungsschlüssel für Dashboard-Titel, Willkommen-Text und alle Rollen-Buttons (DE+EN)
+- **i18n: `bingo.moderate`** — Neuer Schlüssel für den "Moderieren"-Link auf der Spiel-Seite (DE+EN)
+
+### Fixed
+- **Sprachwechsel funktioniert jetzt auf allen Seiten** — `LocaleProvider` ruft jetzt `router.refresh()` auf, damit auch server-seitig gerenderte Seiten (z.B. `/`, Datenschutz, Impressum) die neue Sprache sofort laden
+- **Dark Mode Toggle** — Navbar nutzt jetzt `resolvedTheme` statt `theme`, damit der Button auch bei System-Theme korrekt anzeigt, ob hell oder dunkel aktiv ist
+- **Dashboard-Buttons nicht übersetzt** — "Moderator-Dashboard", "Streamer-Verwaltung", "Admin-Portal" sowie der Willkommen-Text waren hardcodiert Deutsch — jetzt vollständig übersetzbar
+
+### Changed
+- **Hilfe-Footer (Streamer)** — Text geändert von "Schau in README/CHANGELOG" auf "Wende dich bitte im Discord an User X3S2" (DE+EN)
+
+---
+
 ## [1.1.6] - 2026-06-01
 
 ### Added

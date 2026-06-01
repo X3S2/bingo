@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import type { AbstractIntlMessages } from 'next-intl';
 
@@ -29,6 +30,7 @@ export function LocaleProvider({
 }) {
   const [locale, setLocale] = useState(initialLocale);
   const [messages, setMessages] = useState<AbstractIntlMessages>(initialMessages);
+  const router = useRouter();
 
   const toggleLocale = useCallback(() => {
     const next = locale === 'de' ? 'en' : 'de';
@@ -42,8 +44,9 @@ export function LocaleProvider({
       document.documentElement.lang = next;
       setLocale(next);
       setMessages(mod.default as AbstractIntlMessages);
+      router.refresh();
     })();
-  }, [locale]);
+  }, [locale, router]);
 
   return (
     <LocaleContext.Provider value={{ locale, toggleLocale }}>
