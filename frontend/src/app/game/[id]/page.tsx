@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Wifi, WifiOff } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -107,9 +108,20 @@ export default function GamePage({ params }: GamePage) {
     enabled: !!user && !cardData,
   });
 
+  const { data: allRunningGames } = useQuery<{ id: string; title: string; channelName: string }[]>({
+    queryKey: ['all-running-games'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/games/all-running`, { credentials: 'include' });
+      if (!r.ok) return [];
+      return r.json();
+    },
+    enabled: !!user,
+    staleTime: 30_000,
+  });
+
   const joinMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch(`${API}/games/${id}/cards`, {
+      const r = await fetch(`${API}/games/${id}/join`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -254,7 +266,19 @@ export default function GamePage({ params }: GamePage) {
                 ← Dashboard
               </a>
             )}
-            <h1 className="text-xl font-bold">{game.title || 'Bingo'}</h1>
+            {(allRunningGames ?? []).length > 1 && (
+              <Select value={id} onValueChange={(v) => router.push(`/game/${v}`)}>
+                <SelectTrigger className="h-8 text-sm w-auto min-w-[8rem] max-w-[16rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(allRunningGames ?? []).map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.title || g.channelName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {(allRunningGames ?? []).length <= 1 && <h1 className="text-xl font-bold">{game.title || 'Bingo'}</h1>}
             <Badge variant={game.status === 'RUNNING' ? 'default' : game.status === 'CREATED' ? 'outline' : 'secondary'}>
               {game.status === 'RUNNING' ? t('gameRunning') : game.status === 'CREATED' ? t('gameCreated') : t('gameStopped')}
             </Badge>
@@ -296,19 +320,29 @@ export default function GamePage({ params }: GamePage) {
 
         {/* Card or join prompt – only for VIEWERs */}
         {cardData ? (
-          <BingoCard
-            grid={cardData.grid}
-            marked={cardData.marked}
-            onClaim={() => claimMutation.mutate()}
-            gameRunning={game.status === 'RUNNING'}
-            hasWon={hasWon}
-            onMarkChange={handleMarkChange}
-          />
-        ) : ['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('nonViewerNote', { role: user?.role ?? '' })}
-              {' '}<a href={`/moderator/${id}`} className="underline underline-offset-2">{t('drawnNumbers')}</a>
+          <>
+            <BingoCard
+              grid={cardData.grid}
+              marked={cardData.marked}
+              onClaim={() => claimMutation.mutate()}
+              gameRunning={game.status === 'RUNNING'}
+              hasWon={hasWon}
+              onMarkChange={handleMarkChange}
+            />
+            {['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') && (
+              <p className="text-xs text-center text-muted-foreground">
+                <a href={`/moderator/${id}`} className="underline underline-offset-2">{t('drawnNumbers')}</a>
+              </p>
+            )}
+          </>
+        ) : game.status === 'RUNNING' && ['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <p className="text-sm text-muted-foreground text-center">{t('joinAsPlayer')}</p>
+            <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending}>
+              {joinMutation.isPending ? t('joining') : t('joinGame')}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              <a href={`/moderator/${id}`} className="underline underline-offset-2">{t('drawnNumbers')}</a>
             </p>
           </div>
         ) : game.status === 'RUNNING' ? (

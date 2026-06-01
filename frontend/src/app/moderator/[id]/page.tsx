@@ -67,16 +67,13 @@ export default function ModeratorPage({ params }: ModPage) {
   const [sortBy, setSortBy] = useState<'proximity' | 'name'>('proximity');
   const [showCmds, setShowCmds] = useState(false);
 
-  // Query all available games for the mod switcher
+  // Query all available games for the mod switcher — all roles see ALL running games
   const { data: availableGames } = useQuery<{ id: string; title: string; channelName: string }[]>({
-    queryKey: ['available-mod-games', user?.role],
+    queryKey: ['available-mod-games'],
     queryFn: async () => {
-      const endpoint = user?.role === 'MODERATOR' ? 'mod-games' : 'my-games';
-      const r = await fetch(`${API}/games/${endpoint}`, { credentials: 'include' });
+      const r = await fetch(`${API}/games/all-running`, { credentials: 'include' });
       if (!r.ok) return [];
-      const games = await r.json();
-      // For STREAMER/ADMIN, filter to only running
-      return user?.role === 'MODERATOR' ? games : games.filter((g: { status: string }) => g.status === 'RUNNING');
+      return r.json();
     },
     enabled: !!user,
     staleTime: 30_000,

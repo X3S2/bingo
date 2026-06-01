@@ -114,6 +114,12 @@ export class BingoController {
     return this.bingoService.getUserCard(id, req.user.id);
   }
 
+  /** Any authenticated user can join a game as a player (creates own card) */
+  @Post(':id/join')
+  joinGame(@Param('id') id: string, @Req() req: any) {
+    return this.bingoService.createCardForUser(id, req.user.id);
+  }
+
   @Patch(':id/my-card/marked')
   @HttpCode(200)
   saveMarked(@Param('id') id: string, @Body() dto: SaveMarkedDto, @Req() req: any) {

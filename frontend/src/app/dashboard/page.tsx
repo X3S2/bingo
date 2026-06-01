@@ -30,7 +30,7 @@ export default function DashboardPage() {
       if (!r.ok) return [];
       return r.json();
     },
-    enabled: !!user && user.role === 'VIEWER',
+    enabled: !!user,
   });
 
   // Auto-redirect viewer to their game
@@ -119,6 +119,25 @@ export default function DashboardPage() {
             </Link>
           ))}
         </div>
+
+        {/* Active games section — join as player */}
+        {(runningGames ?? []).length > 0 && (
+          <div className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold">{tb('activeGames')}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(runningGames ?? []).map((g) => (
+                <Link
+                  key={g.id}
+                  href={`/game/${g.id}`}
+                  className="rounded-xl border bg-gradient-to-br from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 p-4 flex flex-col gap-1 text-left transition-all hover:shadow-md hover:border-primary/30"
+                >
+                  <span className="font-semibold text-sm">🎮 {g.title}</span>
+                  <span className="text-xs text-muted-foreground">{g.channelName}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

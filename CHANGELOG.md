@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.5] - 2026-06-01
+
+### Added
+- **Spiel-Switcher auf der Spiel-Seite** — Alle eingeloggten Nutzer (Viewer, Mod, Streamer, Admin) können auf der Spiel-Seite (`/game/:id`) über ein Dropdown direkt zwischen allen laufenden Spielen wechseln. Das Dropdown erscheint nur, wenn mehr als ein Spiel gleichzeitig läuft
+- **Non-Viewer als Mitspieler** — Moderatoren, Streamer und Admins können jetzt direkt auf der Spiel-Seite mitspielen. Statt eines "nur Viewer"-Hinweises erscheint ein "Jetzt mitspielen"-Button, der eine Bingo-Karte für sie erstellt
+- **Dashboard: Aktive Spiele für Mods/Streamer/Admins** — Das Dashboard zeigt für alle Non-Viewer-Rollen eine "Aktive Spiele"-Sektion mit allen aktuell laufenden Spielen als direkten Link zur Spiel-Seite
+- **Backend: `POST /games/:id/join`** — Neuer Endpunkt, mit dem jeder eingeloggte Nutzer eine Bingo-Karte für sich selbst erstellt (keine Rollenrestriktion, idempotent)
+
+### Fixed
+- **Moderator-Panel: Alle Spiele sichtbar** — Streamer und Admins sahen im Moderator-Panel (`/moderator` und `/moderator/:id`) nur ihre eigenen Spiele. Jetzt verwenden alle Rollen `GET /games/all-running`, sodass ein Nutzer der bei Spiel A Streamer ist und bei Spiel B Moderator, beide Spiele im Switcher sieht
+
+---
+
 ## [1.1.4] - 2026-05-31
 
 ### Added

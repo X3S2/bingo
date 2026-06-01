@@ -35,42 +35,26 @@ export default function ModeratorIndexPage() {
     }
   }, [user, authLoading, router]);
 
-  // Streamer/Admin: get their own games
-  const { data: myGames, isLoading: myGamesLoading } = useQuery<RunningGame[]>({
-    queryKey: ['my-games'],
+  // All mod-capable roles see ALL running games
+  const { data: allGames, isLoading: gamesLoading } = useQuery<RunningGame[]>({
+    queryKey: ['all-running-games'],
     queryFn: async () => {
-      const r = await fetch(`${API}/games/my-games`, { credentials: 'include' });
+      const r = await fetch(`${API}/games/all-running`, { credentials: 'include' });
       if (!r.ok) return [];
       return r.json();
     },
-    enabled: !!user && ['STREAMER', 'ADMIN'].includes(user?.role ?? ''),
+    enabled: !!user,
   });
-
-  // Moderator: get all running games
-  const { data: modGames, isLoading: modGamesLoading } = useQuery<RunningGame[]>({
-    queryKey: ['mod-games'],
-    queryFn: async () => {
-      const r = await fetch(`${API}/games/mod-games`, { credentials: 'include' });
-      if (!r.ok) return [];
-      return r.json();
-    },
-    enabled: !!user && user?.role === 'MODERATOR',
-  });
-
-  // Resolve which games to show: streamer sees own running games, mod sees all running
-  const allGames: RunningGame[] = user?.role === 'MODERATOR'
-    ? (modGames ?? [])
-    : (myGames ?? []).filter((g) => g.status === 'RUNNING');
 
   // Auto-redirect when exactly one game
   useEffect(() => {
-    if (authLoading || myGamesLoading || modGamesLoading) return;
-    if (allGames.length === 1) {
-      router.replace(`/moderator/${allGames[0].id}`);
+    if (authLoading || gamesLoading) return;
+    if ((allGames ?? []).length === 1) {
+      router.replace(`/moderator/${allGames![0].id}`);
     }
-  }, [allGames, authLoading, myGamesLoading, modGamesLoading, router]);
+  }, [allGames, authLoading, gamesLoading, router]);
 
-  const isLoading = authLoading || myGamesLoading || modGamesLoading;
+  const isLoading = authLoading || gamesLoading;
 
   return (
     <div className="flex flex-col min-h-screen">
