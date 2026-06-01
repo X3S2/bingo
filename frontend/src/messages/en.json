@@ -10,7 +10,8 @@
     "yes": "Yes",
     "no": "No",
     "success": "Success",
-    "submit": "Submit"
+    "submit": "Submit",
+    "recommended": "Recommended"
   },
   "nav": {
     "home": "Home",
@@ -320,7 +321,15 @@
     "cmdOn": "On",
     "cmdOff": "Off",
     "cmdZahlHintPre": "For number commands: the command name is the prefix before the number, e.g.",
-    "cmdZahlHintPost": "→ use:"
+    "cmdZahlHintPost": "→ use:",
+    "botAuthBtn": "Authorize Bot Account",
+    "botAuthHint": "Opens the Twitch login for the bot account. Token and username are saved automatically after login — no manual copy/paste required.",
+    "botAuthSuccess": "Bot account authorized successfully. Reconnecting bot...",
+    "botAuthError": "Bot authorization failed. Please try again.",
+    "broadcasterMode": "Broadcaster Mode",
+    "broadcasterModeDesc": "Messages are sent via your own Twitch account instead of the bot account. No separate bot account needed — your account cannot be blocked by spam filters.",
+    "broadcasterModeActive": "Broadcaster Mode active",
+    "broadcasterModeHint": "When enabled, the app uses your logged-in Twitch account to send chat messages. The bot account is still used to receive commands (if configured)."
   },
   "setup": {
     "title": "Set up StreamBingo",

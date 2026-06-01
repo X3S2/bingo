@@ -201,6 +201,7 @@ export default function AdminPage() {
     clientId: '', clientSecret: '', botLogin: '', accessToken: '', refreshToken: '',
   });
   const [showBotSecrets, setShowBotSecrets] = useState(false);
+  const [broadcasterMode, setBroadcasterModeLocal] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -252,6 +253,7 @@ export default function AdminPage() {
         accessToken: g('bot_access_token'),
         refreshToken: g('bot_refresh_token'),
       });
+      setBroadcasterModeLocal(g('bot_broadcaster_mode') === 'true');
       // Load command configs
       setCmdConfigs(
         Object.fromEntries(
@@ -398,6 +400,47 @@ export default function AdminPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const broadcasterModeMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const r = await fetch(`${API}/admin/bot-broadcaster-mode`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!r.ok) throw new Error('Fehler beim Speichern');
+      return r.json();
+    },
+    onSuccess: (_, enabled) => {
+      setBroadcasterModeLocal(enabled);
+      toast.success(enabled ? tb('broadcasterModeActive') : tc('save'));
+      void refetchBotStatus();
+      void qc.invalidateQueries({ queryKey: ['admin-settings'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Detect ?botauth=ok / ?botauth=error after bot OAuth redirect
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const botauth = params.get('botauth');
+    if (!botauth) return;
+    // Clean query string from URL without reload
+    const clean = window.location.pathname + (params.size > 1
+      ? '?' + Array.from(params.entries()).filter(([k]) => k !== 'botauth').map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')
+      : '');
+    window.history.replaceState({}, '', clean);
+    if (botauth === 'ok') {
+      toast.success(tb('botAuthSuccess'));
+      botReconnectMutation.mutate();
+      void refetchBotStatus();
+      void qc.invalidateQueries({ queryKey: ['admin-settings'] });
+    } else {
+      toast.error(tb('botAuthError'));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
@@ -927,18 +970,25 @@ You have the right to lodge a complaint with a data protection supervisory autho
                   <div className="flex items-center gap-2">
                     <div className="h-px flex-1 bg-border" />
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2">
-                      2 · Bot-Account Token —{' '}
-                      <a
-                        href="https://twitchtokengenerator.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline normal-case font-normal"
-                      >
-                        twitchtokengenerator.com
-                      </a>
+                      2 · Bot-Account Token
                     </span>
                     <div className="h-px flex-1 bg-border" />
                   </div>
+
+                  {/* Recommended: In-app OAuth button */}
+                  <div className="rounded-md border border-green-300 bg-green-50 dark:bg-green-950/40 dark:border-green-700 px-3 py-3 flex flex-col gap-2">
+                    <div className="text-xs font-semibold text-green-800 dark:text-green-300">✅ {tb('botAuthBtn')} — {tc('recommended')}</div>
+                    <p className="text-xs text-green-700 dark:text-green-400">{tb('botAuthHint')}</p>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="w-fit"
+                      onClick={() => window.open(`${API}/auth/bot-twitch`, '_blank', 'noopener,noreferrer')}
+                    >
+                      🔗 {tb('botAuthBtn')}
+                    </Button>
+                  </div>
+
                   <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex flex-col gap-1">
                     <strong>{tb('tokenWarningTitle')}</strong>
                     <ol className="list-decimal list-inside space-y-0.5 mt-0.5">
@@ -994,6 +1044,34 @@ You have the right to lodge a complaint with a data protection supervisory autho
                   <Wifi className="w-3 h-3 mr-2" />
                   {saveBotCredsMutation.isPending ? tb('reconnecting') : tb('saveAndReconnect')}
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Broadcaster Mode */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">📡 {tb('broadcasterMode')}</CardTitle>
+                <CardDescription>{tb('broadcasterModeDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="flex items-start gap-3">
+                  <Switch
+                    id="broadcaster-mode"
+                    checked={broadcasterMode}
+                    disabled={broadcasterModeMutation.isPending}
+                    onCheckedChange={(v) => broadcasterModeMutation.mutate(v)}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor="broadcaster-mode" className="text-sm font-medium leading-none cursor-pointer">
+                      {broadcasterMode ? (
+                        <span className="text-green-600 dark:text-green-400">✅ {tb('broadcasterModeActive')}</span>
+                      ) : (
+                        tb('broadcasterMode')
+                      )}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{tb('broadcasterModeHint')}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

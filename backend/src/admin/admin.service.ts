@@ -168,6 +168,11 @@ export class AdminService {
     return this.twitchIrc.reconnect();
   }
 
+  async setBroadcasterMode(enabled: boolean) {
+    await this.twitchIrc.setBroadcasterMode(enabled);
+    return { broadcasterMode: enabled };
+  }
+
   // ── Audit Log ──────────────────────────────────────────────
 
   async getAuditLog(page = 1, limit = 50) {

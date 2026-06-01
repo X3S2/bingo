@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-06-01
+
+### Added
+- **Bot-Account autorisieren (In-App OAuth)** — Neuer grüner Button im Admin-Panel → Bot-Einstellungen. Öffnet den Twitch-Login mit der App-eigenen Client-ID und den Scopes `chat:read` + `chat:edit`. Token und Benutzername werden automatisch gespeichert; der Bot reconnectet danach automatisch. Löst das Problem mit `twitchtokengenerator.com` (falscher Client-ID-Mismatch bei Token-Refresh).
+- **Broadcaster-Modus (optional)** — Neuer Toggle im Admin-Panel. Wenn aktiviert, werden Chat-Nachrichten (Ergebnisse, Zahlen-Bestätigungen usw.) über den eigenen Twitch-Account des Streamers gesendet statt über den separaten Bot-Account. Der Bot empfängt weiterhin Befehle. Vorteil: eigener Account ist immun gegen Anti-Spam-Filter (StreamElements, Nightbot etc.) und Slow-Mode gilt nicht für den Broadcaster selbst.
+- **`/api/auth/bot-twitch`** — Neuer geschützter Endpoint (ADMIN only) startet den Bot-OAuth-Flow.
+- **`POST /api/admin/bot-broadcaster-mode`** — Endpoint zum sofortigen Aktivieren/Deaktivieren des Broadcaster-Modus ohne Bot-Neustart.
+
+### Fixed
+- **Bot-Autorisierungs-URL** — `auth/bot-twitch` Route mit `force_verify=true` zwingt Twitch zur Anzeige der Account-Auswahl, damit der Admin als Bot-Account einloggen kann auch wenn er bereits mit einem anderen Account eingeloggt ist.
+
+---
+
+## [1.2.2] - 2026-06-01
+
+### Fixed
+- **`validateToken` nutzt authProvider-Token** — Token-Validierung rief Twitchs `/validate`-Endpoint mit dem ursprünglich gespeicherten `this.botToken` auf, der kurz vor Ablauf stand. Fix: erst `authProvider.getAccessTokenForUser(botUserId)` aufrufen um den aktuellsten (ggf. schon erneuerten) Token zu erhalten, dann damit validieren.
+
+---
+
 ## [1.2.1] - 2026-06-01
 
 ### Fixed

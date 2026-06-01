@@ -183,6 +183,67 @@ export class AuthService {
   }
 
   /**
+   * Build a Twitch OAuth URL for bot account authorization.
+   * Uses only chat:read + chat:edit scopes; force_verify=true so the admin
+   * can log in as the bot account even if already signed in elsewhere.
+   */
+  async buildBotAuthUrl(state: string): Promise<string> {
+    const clientId = await this.getClientId();
+    const redirectUri = this.config.get<string>('TWITCH_REDIRECT_URI');
+    const scopes = ['chat:read', 'chat:edit'].join(' ');
+    const params = new URLSearchParams({
+      client_id: clientId!,
+      redirect_uri: redirectUri!,
+      response_type: 'code',
+      scope: scopes,
+      state,
+      force_verify: 'true', // Always show login prompt so the bot account can be selected
+    });
+    return `https://id.twitch.tv/oauth2/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Return the lowercase login name for the given access token.
+   */
+  async getBotLogin(accessToken: string): Promise<string> {
+    const clientId = await this.getClientId();
+    const response = await fetch('https://api.twitch.tv/helix/users', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Client-Id': clientId!,
+      },
+    });
+    if (!response.ok) throw new Error('Could not fetch bot user info from Twitch');
+    const data: any = await response.json();
+    const login = data.data?.[0]?.login as string | undefined;
+    if (!login) throw new Error('Twitch returned no user data');
+    return login;
+  }
+
+  /**
+   * Persist bot credentials to AdminSetting so the IRC service can use them.
+   */
+  async storeBotCredentials(login: string, accessToken: string, refreshToken: string): Promise<void> {
+    await Promise.all([
+      this.prisma.adminSetting.upsert({
+        where: { key: 'bot_login' },
+        create: { key: 'bot_login', value: login },
+        update: { value: login },
+      }),
+      this.prisma.adminSetting.upsert({
+        where: { key: 'bot_access_token' },
+        create: { key: 'bot_access_token', value: accessToken },
+        update: { value: accessToken },
+      }),
+      this.prisma.adminSetting.upsert({
+        where: { key: 'bot_refresh_token' },
+        create: { key: 'bot_refresh_token', value: refreshToken },
+        update: { value: refreshToken },
+      }),
+    ]);
+  }
+
+  /**
    * Build the Twitch OAuth authorization URL with PKCE state
    */
   async buildAuthUrl(state: string): Promise<string> {

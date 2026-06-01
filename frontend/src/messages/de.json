@@ -10,7 +10,8 @@
     "yes": "Ja",
     "no": "Nein",
     "success": "Erfolg",
-    "submit": "Absenden"
+    "submit": "Absenden",
+    "recommended": "Empfohlen"
   },
   "nav": {
     "home": "Start",
@@ -287,7 +288,15 @@
     "cmdOn": "An",
     "cmdOff": "Aus",
     "cmdZahlHintPre": "Für Zahlen-Befehle: Befehlsname ist das Präfix vor der Zahl, z.B.",
-    "cmdZahlHintPost": "→ Aufruf:"
+    "cmdZahlHintPost": "→ Aufruf:",
+    "botAuthBtn": "Bot-Account autorisieren",
+    "botAuthHint": "Öffnet den Twitch-Login für den Bot-Account. Token und Benutzername werden nach der Anmeldung automatisch gespeichert — kein manuelles Kopieren nötig.",
+    "botAuthSuccess": "Bot-Account erfolgreich autorisiert. Bot wird neu verbunden...",
+    "botAuthError": "Bot-Autorisierung fehlgeschlagen. Bitte erneut versuchen.",
+    "broadcasterMode": "Broadcaster-Modus",
+    "broadcasterModeDesc": "Nachrichten werden über deinen eigenen Twitch-Account gesendet statt über den Bot-Account. Kein separater Bot-Account nötig — dein Account kann nicht durch Spam-Filter blockiert werden.",
+    "broadcasterModeActive": "Broadcaster-Modus aktiv",
+    "broadcasterModeHint": "Wenn aktiviert, nutzt die App deinen eingeloggten Twitch-Account zum Senden von Chat-Nachrichten. Der Bot-Account wird weiterhin zum Empfangen von Befehlen verwendet (falls konfiguriert)."
   },
   "moderator": {
     "title": "Moderator-Dashboard",

@@ -20,6 +20,7 @@ export interface BotStatus {
   tokenExpiresAt: string | null; // ISO timestamp — authoritative for countdown
   lastRefreshedAt: string | null;
   joinedChannels: string[];
+  broadcasterMode: boolean;      // whether outgoing messages use streamer's own account
 }
 
 @Injectable()
@@ -38,6 +39,15 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private lastRefreshedAt: Date | null = null;
   private tokenExpiresAt: Date | null = null;
   private _connected = false;
+
+  // ─── Broadcaster mode ────────────────────────────────────────────────────
+  /** When true, outgoing chat messages are sent via the streamer's own token */
+  private broadcasterMode = false;
+  private broadcasterClients = new Map<string, {
+    client: ChatClient;
+    authProvider: RefreshingAuthProvider;
+    dbUserId: string;
+  }>();
 
   // ─── Command config cache ────────────────────────────────────────────────
   private cmdCache: Map<string, { name: string; enabled: boolean; perm: 'all' | 'mod' | 'broadcaster' }> = new Map();
@@ -98,22 +108,28 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.chatClient?.quit();
+    for (const [channelName] of this.broadcasterClients) {
+      await this.teardownBroadcasterClient(channelName);
+    }
   }
 
   private async initializeFromSettings() {
-    const [botTokenSetting, botRefreshSetting, botLoginSetting, clientIdSetting, clientSecretSetting] =
+    const [botTokenSetting, botRefreshSetting, botLoginSetting, clientIdSetting, clientSecretSetting, broadcasterModeSetting] =
       await Promise.all([
         this.prisma.adminSetting.findUnique({ where: { key: 'bot_access_token' } }),
         this.prisma.adminSetting.findUnique({ where: { key: 'bot_refresh_token' } }),
         this.prisma.adminSetting.findUnique({ where: { key: 'bot_login' } }),
         this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_id' } }),
         this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_secret' } }),
+        this.prisma.adminSetting.findUnique({ where: { key: 'bot_broadcaster_mode' } }),
       ]);
 
     // DB setting takes precedence over env var
     this.clientId = clientIdSetting?.value || this.config.get<string>('TWITCH_CLIENT_ID') || null;
     this.clientSecret =
       clientSecretSetting?.value || this.config.get<string>('TWITCH_CLIENT_SECRET') || null;
+
+    this.broadcasterMode = broadcasterModeSetting?.value === 'true';
 
     if (!botTokenSetting?.value || !botLoginSetting?.value || !this.clientId || !this.clientSecret) {
       this.logger.warn('Twitch IRC: Bot credentials not configured. Skipping IRC initialization.');
@@ -289,11 +305,131 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       tokenExpiresAt: this.tokenExpiresAt?.toISOString() ?? null,
       lastRefreshedAt: this.lastRefreshedAt?.toISOString() ?? null,
       joinedChannels: Array.from(this.activeChannels.keys()),
+      broadcasterMode: this.broadcasterMode,
     };
   }
 
   getJoinedChannels(): string[] {
     return Array.from(this.activeChannels.keys());
+  }
+
+  // ─── Broadcaster mode helpers ─────────────────────────────────────────────
+
+  /**
+   * Send a message to a channel, routing through the broadcaster client
+   * if broadcaster mode is enabled and a client exists for that channel.
+   */
+  private async say(channel: string, text: string): Promise<void> {
+    if (this.broadcasterMode) {
+      const channelKey = channel.replace(/^#/, '').toLowerCase();
+      const bc = this.broadcasterClients.get(channelKey);
+      if (bc) {
+        try { await bc.client.say(channel, text); } catch { /* ignore */ }
+        return;
+      }
+    }
+    try { await this.chatClient?.say(channel, text); } catch { /* ignore */ }
+  }
+
+  /**
+   * Enable or disable broadcaster mode.
+   * When enabled, outgoing chat messages for a game are sent via the game
+   * streamer's own stored Twitch token instead of the bot account.
+   */
+  async setBroadcasterMode(enabled: boolean): Promise<void> {
+    this.broadcasterMode = enabled;
+    await this.prisma.adminSetting.upsert({
+      where: { key: 'bot_broadcaster_mode' },
+      create: { key: 'bot_broadcaster_mode', value: String(enabled) },
+      update: { value: String(enabled) },
+    });
+
+    if (enabled) {
+      // Set up broadcaster clients for all currently active channels
+      for (const [channelName, entry] of this.activeChannels) {
+        await this.setupBroadcasterClient(channelName, entry.gameId);
+      }
+    } else {
+      // Tear down all broadcaster clients
+      for (const [channelName] of this.broadcasterClients) {
+        await this.teardownBroadcasterClient(channelName);
+      }
+    }
+    this.logger.log(`Broadcaster mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Create a ChatClient using the game streamer's stored OAuth token.
+   * The streamer's token was obtained via the app's own OAuth (same client_id),
+   * so it IS compatible with our client credentials for refresh.
+   */
+  private async setupBroadcasterClient(channelName: string, gameId: string): Promise<void> {
+    if (!this.clientId || !this.clientSecret) return;
+    if (this.broadcasterClients.has(channelName)) return; // already set up
+
+    try {
+      const game = await this.prisma.bingoGame.findUnique({
+        where: { id: gameId },
+        include: {
+          streamer: {
+            select: { id: true, twitchAccessToken: true, twitchRefreshToken: true, displayName: true },
+          },
+        },
+      });
+
+      if (!game?.streamer?.twitchAccessToken) {
+        this.logger.warn(`Broadcaster mode: no token for streamer of channel ${channelName} — falling back to bot`);
+        return;
+      }
+
+      const authProvider = new RefreshingAuthProvider({
+        clientId: this.clientId,
+        clientSecret: this.clientSecret,
+      });
+
+      const { id: streamerId } = game.streamer;
+
+      authProvider.onRefresh(async (_userId, newTokenData) => {
+        try {
+          await this.prisma.user.update({
+            where: { id: streamerId },
+            data: {
+              twitchAccessToken: newTokenData.accessToken,
+              ...(newTokenData.refreshToken && { twitchRefreshToken: newTokenData.refreshToken }),
+            },
+          });
+        } catch (e: any) {
+          this.logger.error(`Broadcaster onRefresh error for ${channelName}: ${e.message}`);
+        }
+      });
+
+      await authProvider.addUserForToken(
+        {
+          accessToken: game.streamer.twitchAccessToken,
+          refreshToken: game.streamer.twitchRefreshToken,
+          expiresIn: null,
+          obtainmentTimestamp: Date.now(),
+          scope: ['chat:read', 'chat:edit'],
+        },
+        ['chat'],
+      );
+
+      const client = new ChatClient({ authProvider, channels: [channelName] });
+      await client.connect();
+
+      this.broadcasterClients.set(channelName, { client, authProvider, dbUserId: streamerId });
+      this.logger.log(`Broadcaster client connected for #${channelName} (${game.streamer.displayName})`);
+    } catch (e: any) {
+      this.logger.error(`Could not set up broadcaster client for ${channelName}: ${e.message}`);
+    }
+  }
+
+  private async teardownBroadcasterClient(channelName: string): Promise<void> {
+    const bc = this.broadcasterClients.get(channelName);
+    if (!bc) return;
+    try { await bc.client.quit(); } catch { /* ignore */ }
+    this.broadcasterClients.delete(channelName);
+    this.logger.log(`Broadcaster client disconnected for #${channelName}`);
   }
 
   /** Force a token refresh using twurple's built-in refresh mechanism */
@@ -356,6 +492,12 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       for (const channelName of this.activeChannels.keys()) {
         void this.joinChannel(channelName);
       }
+      // Re-setup broadcaster clients if mode is active
+      if (this.broadcasterMode) {
+        for (const [channelName, entry] of this.activeChannels) {
+          void this.setupBroadcasterClient(channelName, entry.gameId);
+        }
+      }
       return { success: true, message: 'IRC-Verbindung wird neu aufgebaut.' };
     } catch (e: any) {
       return { success: false, message: `Reconnect fehlgeschlagen: ${e.message}` };
@@ -382,18 +524,21 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   registerActiveGame(channelName: string, gameId: string) {
     this.activeChannels.set(channelName, { channelName, gameId });
     void this.joinChannel(channelName);
+    if (this.broadcasterMode) {
+      void this.setupBroadcasterClient(channelName, gameId);
+    }
   }
 
   unregisterActiveGame(channelName: string) {
     void this.leaveChannel(channelName);
+    void this.teardownBroadcasterClient(channelName);
   }
 
   /** Send a message in the channel associated with the given gameId */
   async sayInGame(gameId: string, text: string): Promise<void> {
-    if (!this.chatClient || !this._connected) return;
     for (const [channelName, entry] of this.activeChannels) {
       if (entry.gameId === gameId) {
-        try { await this.chatClient.say(channelName, text); } catch { /* ignore */ }
+        await this.say(channelName, text);
         return;
       }
     }
@@ -457,9 +602,9 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
           if (!this.checkPerm(czahlAdd.perm, msg)) return;
           try {
             await this.bingoService.drawNumber(gameId, number);
-            await this.chatClient?.say(channel, `✅ Zahl ${number} wurde gezogen!`);
+            await this.say(channel, `✅ Zahl ${number} wurde gezogen!`);
           } catch (err: any) {
-            await this.chatClient?.say(channel, `❌ ${err.message}`);
+            await this.say(channel, `❌ ${err.message}`);
           }
           return;
         }
@@ -477,9 +622,9 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
           if (!this.checkPerm(czahlRemove.perm, msg)) return;
           try {
             await this.bingoService.removeNumber(gameId, number);
-            await this.chatClient?.say(channel, `✅ Zahl ${number} wurde entfernt!`);
+            await this.say(channel, `✅ Zahl ${number} wurde entfernt!`);
           } catch (err: any) {
-            await this.chatClient?.say(channel, `❌ ${err.message}`);
+            await this.say(channel, `❌ ${err.message}`);
           }
           return;
         }
@@ -514,9 +659,9 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
         if (!game) return;
         const nums = game.drawnNumbers.map((d: { number: number }) => d.number);
         if (nums.length === 0) {
-          await this.chatClient?.say(channel, `🎱 Noch keine Zahlen gezogen.`);
+          await this.say(channel, `🎱 Noch keine Zahlen gezogen.`);
         } else {
-          await this.chatClient?.say(channel, `🎱 Gezogene Zahlen (${nums.length}/75): ${nums.join(', ')}`);
+          await this.say(channel, `🎱 Gezogene Zahlen (${nums.length}/75): ${nums.join(', ')}`);
         }
       } catch (err: any) {
         this.logger.error(`!zahlen error: ${err.message}`);
@@ -536,10 +681,10 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
         if (!game) return;
         const ws = game.winners as Array<{ position: number; user: { displayName: string } }>;
         if (ws.length === 0) {
-          await this.chatClient?.say(channel, `🏆 Noch keine Gewinner.`);
+          await this.say(channel, `🏆 Noch keine Gewinner.`);
         } else {
           const list = ws.map((w) => `${w.position}. @${w.user.displayName}`).join(' · ');
-          await this.chatClient?.say(channel, `🏆 Gewinner: ${list}`);
+          await this.say(channel, `🏆 Gewinner: ${list}`);
         }
       } catch (err: any) {
         this.logger.error(`!bingogewinner error: ${err.message}`);
@@ -554,14 +699,14 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       const twitchId = msg.userInfo.userId;
       const user = await this.prisma.user.findUnique({ where: { twitchId } });
       if (!user) {
-        await this.chatClient?.say(channel, `@${username} Du bist noch nicht registriert. Bitte melde dich zuerst auf der Website an.`);
+        await this.say(channel, `@${username} Du bist noch nicht registriert. Bitte melde dich zuerst auf der Website an.`);
         return;
       }
       try {
         await this.bingoService.createCardForUser(gameId, user.id);
-        await this.chatClient?.say(channel, `✅ @${username} Deine Bingo-Karte wurde erstellt! Öffne das Spiel auf der Website.`);
+        await this.say(channel, `✅ @${username} Deine Bingo-Karte wurde erstellt! Öffne das Spiel auf der Website.`);
       } catch (err: any) {
-        await this.chatClient?.say(channel, `❌ @${username} ${err.message}`);
+        await this.say(channel, `❌ @${username} ${err.message}`);
       }
       return;
     }

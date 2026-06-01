@@ -125,6 +125,12 @@ export class AdminController {
     return this.adminService.reconnectBot();
   }
 
+  @Post('bot-broadcaster-mode')
+  @HttpCode(200)
+  setBroadcasterMode(@Body() dto: { enabled: boolean }) {
+    return this.adminService.setBroadcasterMode(dto.enabled);
+  }
+
   @Get('audit-log')
   getAuditLog(@Query('page') page = '1', @Query('limit') limit = '50') {
     return this.adminService.getAuditLog(+page, +limit);
