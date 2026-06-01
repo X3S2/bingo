@@ -1,40 +1,43 @@
-﻿# StreamBingo
+# StreamBingo
 
-**v1.3.1** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
+**v1.3.2** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
 
-> ðŸ‡¬ðŸ‡§ [English version â†’ README.md](README.md)
+> 🇬🇧 [English version → README.md](README.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](CHANGELOG.md)
 
 ---
 
 ## Features
 
-- **Streamer** â€“ Bingo-Spiele erstellen und verwalten, Channel-Point-Redeems konfigurieren, Gewinnerzahl festlegen
-- **Zuschauer** â€“ Mit Twitch anmelden, persÃ¶nliche 5Ã—5-Bingo-Karte erhalten, Zahlen markieren, Bingo melden
-- **Moderatoren** â€“ Alle Karten live einsehen, Zahlen verwalten, nach Bingo-NÃ¤he sortieren
-- **Admin-Portal** â€“ Nutzer/Rollen verwalten, Impressum & Datenschutz live editieren, Wartungsmodus, Audit-Log
-- **Echtzeit** â€“ Alle Updates via Socket.IO WebSockets (< 500 ms Latenz)
-- **Twitch-Integration** â€“ OAuth, IRC-Befehle (`!zahl+N`, `!zahl-N`, `bingo`), EventSub Channel-Point-Redeems
-- **Hell/Dunkel-Modus** â€“ Automatische Systemerkennung, sofortiger Wechsel
-- **Mehrsprachig** â€“ Deutsch & Englisch (DE/EN), Cookie-basierter Wechsel
-- **Mobile-first** â€“ VollstÃ¤ndig responsiv, touch-optimierte Bingo-Karten
+- **Streamer** — Bingo-Spiele erstellen und verwalten, Channel-Point-Redeems konfigurieren, Gewinnerzahl festlegen
+- **Zuschauer** — Mit Twitch anmelden, persönliche 5×5-Bingo-Karte erhalten, Zahlen markieren, Bingo melden
+- **Moderatoren** — Alle Karten live einsehen, Zahlen verwalten, nach Bingo-Nähe sortieren
+- **Admin-Portal** — Nutzer/Rollen verwalten, Impressum & Datenschutz live editieren, Wartungsmodus, Audit-Log
+- **Echtzeit** — Alle Updates via Socket.IO WebSockets (< 500 ms Latenz)
+- **Twitch-Integration** — OAuth, IRC-Befehle (`!zahl+N`, `!zahl-N`, `bingo`), EventSub Channel-Point-Redeems
+- **In-App Bot-Autorisierung** — Bot-Account direkt im Admin-Panel mit der eigenen App-Client-ID autorisieren (kein externes Tool nötig)
+- **Broadcaster-Modus** — Chat-Nachrichten optional über den eigenen Streamer-Account senden statt über einen separaten Bot-Account
+- **Automatisches Token-Refresh** — Abgelaufene Twitch-Tokens werden über `RefreshingAuthProvider` automatisch erneuert und in der Datenbank gespeichert
+- **Hell/Dunkel-Modus** — Automatische Systemerkennung, sofortiger Wechsel
+- **Mehrsprachig** — Deutsch & Englisch (DE/EN), Cookie-basierter Wechsel
+- **Mobile-first** — Vollständig responsiv, touch-optimierte Bingo-Karten
 
 ---
 
 ## Architektur
 
 ```
-streambingo-proxy  (Nginx)          :4000  â† Ã–ffentlicher Einstiegspunkt
-streambingo-web    (Next.js 16)     :4001  â† Frontend
-streambingo-api    (NestJS 11)      :4002  â† Backend API + WebSocket
-streambingo-db     (PostgreSQL 17)  :4003  â† Datenbank
-streambingo-cache  (Redis 7)        :4004  â† Cache
+streambingo-proxy  (Nginx)          :4000  ← Öffentlicher Einstiegspunkt
+streambingo-web    (Next.js 16)     :4001  ← Frontend
+streambingo-api    (NestJS 11)      :4002  ← Backend API + WebSocket
+streambingo-db     (PostgreSQL 17)  :4003  ← Datenbank
+streambingo-cache  (Redis 7)        :4004  ← Cache
 ```
 
-Alle Dienste sind Docker-containerisiert und werden Ã¼ber Docker Compose orchestriert. Entwickelt fÃ¼r die Bereitstellung auf Synology NAS via Docker Desktop, erreichbar Ã¼ber eine ipv64.net-Domain.
+Alle Dienste sind Docker-containerisiert und werden über Docker Compose orchestriert. Entwickelt für die Bereitstellung auf Synology NAS via Docker Desktop, erreichbar über eine ipv64.net-Domain.
 
 ---
 
@@ -44,11 +47,11 @@ Alle Dienste sind Docker-containerisiert und werden Ã¼ber Docker Compose orche
 |---------|------------|
 | Frontend | Next.js 16 (App Router, Turbopack), TypeScript, TailwindCSS 4, shadcn/ui |
 | Backend | NestJS 11, TypeScript, Socket.IO |
-| Datenbank | PostgreSQL 17 + Prisma ORM v7 |
+| Datenbank | PostgreSQL 17 + Prisma ORM |
 | Cache | Redis 7 |
 | Proxy | Nginx |
 | Auth | Twitch OAuth2 |
-| Echtzeit | Twitch IRC (@twurple/chat), Twitch EventSub |
+| Twitch | @twurple/auth, @twurple/chat, @twurple/api |
 | CI/CD | GitHub Actions |
 | Container | Docker, Docker Compose |
 
@@ -60,7 +63,6 @@ Alle Dienste sind Docker-containerisiert und werden Ã¼ber Docker Compose orche
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows) oder Docker Engine (Linux)
 - Eine [Twitch Developer Application](https://dev.twitch.tv/console) (Client ID + Secret)
-- Einen Twitch-Account fÃ¼r den Bot (oder den Streamer-Account verwenden)
 
 ### 1. Repository klonen
 
@@ -73,10 +75,10 @@ cd bingo
 
 ```bash
 cp .env.example .env
-# .env mit den eigenen Werten befÃ¼llen
+# .env mit den eigenen Werten befüllen
 ```
 
-### 3. Mit Docker Compose starten (Entwicklung)
+### 3. Mit Docker Compose starten
 
 ```bash
 docker compose up --build
@@ -84,30 +86,72 @@ docker compose up --build
 
 Die Plattform ist jetzt unter **http://localhost:4000** erreichbar.
 
-Beim ersten Start fÃ¼hrt der **Setup-Assistent** durch:
+Beim ersten Start führt der **Setup-Assistent** durch:
 1. Setup-Token eingeben (aus `ADMIN_SETUP_TOKEN` in `.env`)
 2. Twitch App-Zugangsdaten (Client ID + Secret) eintragen
-3. Bot-Account konfigurieren (Benutzername, Access Token, Refresh Token)
-
-### 4. Produktions-Deployment (Synology NAS)
-
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
-
-VollstÃ¤ndige Anleitung: [docs/deployment-synology.md](docs/deployment-synology.md)
+3. Bot-Account konfigurieren (siehe [Twitch-App einrichten](#twitch-app-einrichten))
 
 ---
 
 ## Twitch-App einrichten
 
-1. Auf [dev.twitch.tv/console](https://dev.twitch.tv/console) â†’ **Anwendung registrieren**
-2. **OAuth-Redirect-URL** exakt eintragen: `https://deinedomain.de/api/auth/callback/twitch`  
-   âš ï¸ Kein abschlieÃŸender SchrÃ¤gstrich. FÃ¼r lokale Entwicklung: `http://localhost:4000/api/auth/callback/twitch`
-3. **Client ID** und **Client Secret** kopieren â€” werden im Setup-Assistenten eingegeben (nicht in `.env`)  
-   â„¹ï¸ Diese App-Zugangsdaten laufen **nicht ab** und mÃ¼ssen nicht erneuert werden.
-4. Bot-Zugangsdaten: Access Token + Refresh Token Ã¼ber [twitchtokengenerator.com](https://twitchtokengenerator.com) generieren  
-   âš ï¸ Diese **User Access Tokens** laufen ab. StreamBingo verwendet `RefreshingAuthProvider` (@twurple/auth) â€” abgelaufene Tokens werden automatisch erneuert und in der Datenbank gespeichert. Daher muss **unbedingt ein Refresh Token** mit generiert und eingetragen werden.
+### Schritt 1: Twitch Developer Application
+
+1. Auf [dev.twitch.tv/console](https://dev.twitch.tv/console) → **Anwendung registrieren**
+2. **OAuth-Redirect-URL** exakt eintragen (kein abschließender Schrägstrich):
+   ```
+   https://deinedomain.de/api/auth/callback/twitch
+   ```
+   Für lokale Entwicklung: `http://localhost:4000/api/auth/callback/twitch`
+3. **Client ID** und **Client Secret** kopieren — werden im Setup-Assistenten eingegeben
+   > ℹ️ Diese App-Zugangsdaten laufen **nicht ab** und müssen nie erneuert werden.
+
+### Schritt 2: Bot-Account autorisieren (empfohlen)
+
+StreamBingo enthält einen **In-App OAuth-Flow** für den Bot-Account:
+
+1. Im Admin-Portal → Tab **Bot** → **Bot-Account autorisieren** klicken
+2. Twitch-Login öffnet sich — als **Bot-Account** einloggen (nicht als Streamer)
+3. Token und Benutzername werden automatisch gespeichert
+4. Bot verbindet sich automatisch neu
+
+> ✅ **Empfohlen:** Diese Methode verwendet die eigene App-Client-ID — Token-Refresh funktioniert zuverlässig.  
+> ⚠️ **Nicht empfohlen:** Tokens von externen Tools wie `twitchtokengenerator.com` sind an deren Client-ID gebunden und können mit dieser App **nicht** erneuert werden (Fehler 400 bei Refresh).
+
+---
+
+## Bot-Konfiguration
+
+### IRC-Befehle
+
+| Befehl | Berechtigung | Funktion |
+|--------|-------------|----------|
+| `!zahl+N` | Mod / Broadcaster | Zahl N ziehen |
+| `!zahl-N` | Mod / Broadcaster | Zahl N entfernen |
+| `bingo` | Alle | Bingo melden |
+| `!buycard` | Alle | Bingo-Karte erhalten |
+| `!zahlen` | Alle | Gezogene Zahlen anzeigen |
+| `!bingogewinner` | Alle | Gewinner anzeigen |
+
+Alle Befehlsnamen und Berechtigungen können im Admin-Portal → Bot → Chat-Befehle angepasst werden.
+
+### Broadcaster-Modus
+
+Wenn aktiviert (**Admin → Bot → Broadcaster-Modus**), werden ausgehende Chat-Nachrichten über den eigenen Twitch-Account des Streamers gesendet statt über den Bot-Account.
+
+**Vorteile:**
+- Eigener Account kann nicht durch Anti-Spam-Filter (StreamElements, Nightbot etc.) blockiert werden
+- Slow-Mode gilt nicht für den Broadcaster selbst
+- Kein separater Bot-Account nötig
+
+Der Bot-Account wird weiterhin zum **Empfangen** von Befehlen verwendet (falls konfiguriert).
+
+### Automatisches Token-Refresh
+
+StreamBingo verwendet `RefreshingAuthProvider` von `@twurple/auth`:
+- Abgelaufene Tokens werden **automatisch** im Hintergrund erneuert
+- Aktualisierte Tokens werden direkt in der Datenbank gespeichert
+- Kein manuelles Eingreifen nötig (solange ein gültiger Refresh Token vorhanden ist)
 
 ---
 
@@ -115,18 +159,18 @@ VollstÃ¤ndige Anleitung: [docs/deployment-synology.md](docs/deployment-synolog
 
 | Variable | Beschreibung | Pflicht |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL-Verbindungsstring | âœ… |
-| `REDIS_URL` | Redis-Verbindungsstring | âœ… |
-| `TWITCH_CLIENT_ID` | Twitch App Client ID (Fallback; Setup-Wert hat Vorrang) | âœ… |
-| `TWITCH_CLIENT_SECRET` | Twitch App Client Secret (Fallback) | âœ… |
-| `TWITCH_REDIRECT_URI` | OAuth-Callback-URL | âœ… |
-| `TWITCH_EVENTSUB_SECRET` | HMAC-Secret fÃ¼r EventSub | âœ… |
-| `JWT_SECRET` | JWT-Secret (min. 32 Zeichen) | âœ… |
-| `JWT_EXPIRES_IN` | JWT-Ablaufzeit (z. B. `7d`) | âœ… |
-| `NEXT_PUBLIC_API_URL` | Backend-API-URL (Ã¶ffentlich) | âœ… |
-| `NEXT_PUBLIC_WS_URL` | WebSocket-URL (Ã¶ffentlich) | âœ… |
-| `ADMIN_SETUP_TOKEN` | Einmaliges Setup-Token | âœ… |
-| `NODE_ENV` | `development` oder `production` | âœ… |
+| `DATABASE_URL` | PostgreSQL-Verbindungsstring | ✅ |
+| `REDIS_URL` | Redis-Verbindungsstring | ✅ |
+| `TWITCH_CLIENT_ID` | Twitch App Client ID (Fallback; Setup-Wert hat Vorrang) | ✅ |
+| `TWITCH_CLIENT_SECRET` | Twitch App Client Secret (Fallback) | ✅ |
+| `TWITCH_REDIRECT_URI` | OAuth-Callback-URL | ✅ |
+| `TWITCH_EVENTSUB_SECRET` | HMAC-Secret für EventSub | ✅ |
+| `JWT_SECRET` | JWT-Secret (min. 32 Zeichen) | ✅ |
+| `JWT_EXPIRES_IN` | JWT-Ablaufzeit (z. B. `7d`) | ✅ |
+| `NEXT_PUBLIC_API_URL` | Backend-API-URL (öffentlich) | ✅ |
+| `NEXT_PUBLIC_WS_URL` | WebSocket-URL (öffentlich) | ✅ |
+| `ADMIN_SETUP_TOKEN` | Einmaliges Setup-Token | ✅ |
+| `NODE_ENV` | `development` oder `production` | ✅ |
 
 ---
 
@@ -137,18 +181,21 @@ VollstÃ¤ndige Anleitung: [docs/deployment-synology.md](docs/deployment-synolog
 | `VIEWER` | Eigene Karte ansehen, Zahlen markieren, Bingo melden |
 | `MODERATOR` | Alle Viewer-Rechte + alle Karten einsehen, Zahlen verwalten |
 | `STREAMER` | Alle Moderator-Rechte + Spiele erstellen/verwalten, Redeems konfigurieren |
-| `ADMIN` | VollstÃ¤ndige Plattformkontrolle, alle Nutzer und Spiele verwalten |
+| `ADMIN` | Vollständige Plattformkontrolle, alle Nutzer und Spiele verwalten |
 
-Der **erste Nutzer**, der sich Ã¼ber Twitch anmeldet, wird automatisch zum Admin.
+Der **erste Nutzer**, der sich über Twitch anmeldet und den Setup-Assistenten abschließt, wird automatisch zum Admin. Weitere Admins können im Admin-Portal ernannt werden.
+
+Moderatoren werden automatisch über die Twitch Helix API erkannt (Kanal-Moderatoren).
 
 ---
 
-## API-Ãœbersicht
+## API-Übersicht
 
 | Endpunkt | Methode | Auth | Beschreibung |
 |----------|---------|------|-------------|
-| `/api/auth/twitch` | GET | â€” | Twitch OAuth starten |
-| `/api/auth/callback/twitch` | GET | â€” | OAuth-Callback |
+| `/api/auth/twitch` | GET | — | Twitch OAuth starten |
+| `/api/auth/bot-twitch` | GET | Admin | Bot-Account OAuth starten |
+| `/api/auth/callback/twitch` | GET | — | OAuth-Callback |
 | `/api/auth/logout` | POST | Nutzer | Abmelden |
 | `/api/games` | POST | Streamer | Neues Bingo-Spiel erstellen |
 | `/api/games/:id` | PATCH | Streamer | Spiel aktualisieren (starten/beenden) |
@@ -156,7 +203,10 @@ Der **erste Nutzer**, der sich Ã¼ber Twitch anmeldet, wird automatisch zum Adm
 | `/api/games/:id/cards` | GET | Mod/Streamer | Alle Karten abrufen |
 | `/api/admin/users` | GET | Admin | Alle Nutzer auflisten |
 | `/api/admin/settings` | GET/PATCH | Admin | Plattformeinstellungen |
-| `/api/setup` | POST | â€” | Ersteinrichtung (Assistent) |
+| `/api/admin/bot-status` | GET | Admin | IRC-Bot-Status abrufen |
+| `/api/admin/bot-reconnect` | POST | Admin | Bot neu verbinden |
+| `/api/admin/bot-broadcaster-mode` | POST | Admin | Broadcaster-Modus umschalten |
+| `/api/setup` | POST | — | Ersteinrichtung (Assistent) |
 
 ---
 
@@ -164,16 +214,24 @@ Der **erste Nutzer**, der sich Ã¼ber Twitch anmeldet, wird automatisch zum Adm
 
 ```
 bingo/
-â”œâ”€â”€ frontend/          # Next.js 16 App Router
-â”œâ”€â”€ backend/           # NestJS 11 API
-â”‚   â””â”€â”€ prisma/        # Prisma-Schema & Migrationen
-â”œâ”€â”€ docker/            # Docker & Nginx-Konfigurationen
-â”œâ”€â”€ docs/              # Dokumentation
-â”œâ”€â”€ .github/           # GitHub Actions Workflows
-â”œâ”€â”€ docker-compose.yml
-â”œâ”€â”€ docker-compose.prod.yml
-â””â”€â”€ .env.example
+├── frontend/          # Next.js 16 App Router
+├── backend/           # NestJS 11 API
+│   └── prisma/        # Prisma-Schema & Migrationen
+├── docker/            # Docker & Nginx-Konfigurationen
+├── .github/           # GitHub Actions Workflows
+├── docker-compose.yml
+└── .env.example
 ```
+
+---
+
+## CI/CD
+
+GitHub Actions führt bei jedem Push auf `master` automatisch aus:
+- **Backend:** `npm ci` → Prisma Client generieren → ESLint → `nest build`
+- **Frontend:** `npm ci` → ESLint → `next build`
+
+Docker-Images werden bei Git-Tags (`v*`) automatisch gebaut und in die GitHub Container Registry (`ghcr.io`) gepusht.
 
 ---
 
@@ -182,14 +240,13 @@ bingo/
 Dieses Projekt verwendet [Semantic Versioning](https://semver.org/): `X.Y.Z`
 
 - `X` (Major): Breaking Changes
-- `Y` (Minor): Neue Features / PhasenabschlÃ¼sse
+- `Y` (Minor): Neue Features / Phasenabschlüsse
 - `Z` (Patch): Bugfixes und kleine Verbesserungen
 
-VollstÃ¤ndige Historie: [CHANGELOG.md](CHANGELOG.md)
+Vollständige Historie: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
 ## Lizenz
 
-[MIT](LICENSE) Â© 2026 X3S2
-
+[MIT](LICENSE) © 2026 X3S2

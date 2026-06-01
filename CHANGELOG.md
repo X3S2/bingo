@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-06-07
+
+### Fixed
+- **README.de.md Encoding** — Die deutsche README war vollständig mit Mojibake-Zeichen korrumpiert (UTF-8-Bytes als Latin-1 interpretiert: `ðŸ‡¬ðŸ‡§` statt 🇬🇧, `Ã¼` statt ü, `âš ï¸` statt ⚠️ usw.). Datei komplett neu geschrieben mit korrekter UTF-8-Kodierung.
+- **CI-Workflow (`.github/workflows/ci.yml`)** — Trigger-Branches waren `main` und `develop` — das Projekt verwendet ausschließlich `master`. Der Badge zeigte dauerhaft „no status". Fix: Branches auf `master` geändert.
+
+### Changed
+- **README.de.md** — Vollständig aktualisiert: neue Features aus v1.3.0 dokumentiert (In-App Bot-OAuth, Broadcaster-Modus, automatisches Token-Refresh), Twitch-Setup-Abschnitt überarbeitet (In-App OAuth als empfohlene Methode, Warnung vor twitchtokengenerator.com), API-Übersicht um `/api/auth/bot-twitch` und `/api/admin/bot-broadcaster-mode` erweitert, Architektur auf Next.js 16 korrigiert.
+- **README.md** — Aktualisiert: Bot-OAuth-Autorisierung und Broadcaster-Modus dokumentiert, Token-Refresh-Abschnitt ergänzt, API-Tabelle um `/api/auth/bot-twitch`, `/api/admin/bot-status`, `/api/admin/bot-reconnect` und `/api/admin/bot-broadcaster-mode` erweitert, Next.js-Version auf 16 korrigiert, Version-Badge auf 1.3.2 aktualisiert.
+
+---
+
 ## [1.3.1] - 2026-06-01
 
 ### Fixed

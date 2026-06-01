@@ -1,12 +1,12 @@
 # StreamBingo
 
-**v1.3.1** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
+**v1.3.2** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
 
 > 🇩🇪 [Deutsche Version → README.de.md](README.de.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -18,6 +18,9 @@
 - **Admin Portal** – Manage streamers/users, live-edit Imprint & Privacy Policy, configure global auto-stop, monitor platform health
 - **Real-time** – All updates via Socket.IO WebSockets (< 500ms latency)
 - **Twitch Integration** – OAuth, IRC commands (`!zahl+N`, `!zahl-N`, `BINGO`), EventSub Channel Point Redeems
+- **In-App Bot Authorization** – Authorize the bot account directly in the Admin Panel using your own App Client ID (no external tools needed)
+- **Broadcaster Mode** – Optionally send chat messages via the streamer's own account instead of a separate bot account
+- **Automatic Token Refresh** – Expired Twitch tokens are renewed automatically via `RefreshingAuthProvider` and stored in the database
 - **Dark/Light Mode** – Automatic system detection, instant toggle
 - **Multilingual** – German & English (DE/EN)
 - **Mobile-first** – Fully responsive, touch-optimized Bingo cards
@@ -27,11 +30,11 @@
 ## Architecture
 
 ```
-streambingo-proxy  (Nginx)       :4000  ← Public entry point
-streambingo-web    (Next.js 15)  :4001  ← Frontend
-streambingo-api    (NestJS 11)   :4002  ← Backend API + WebSocket
-streambingo-db     (PostgreSQL 17):4003 ← Database
-streambingo-cache  (Redis 7)     :4004  ← Cache (optional adapter)
+streambingo-proxy  (Nginx)         :4000  ← Public entry point
+streambingo-web    (Next.js 16)    :4001  ← Frontend
+streambingo-api    (NestJS 11)     :4002  ← Backend API + WebSocket
+streambingo-db     (PostgreSQL 17) :4003  ← Database
+streambingo-cache  (Redis 7)       :4004  ← Cache (optional adapter)
 ```
 
 All services are containerized with Docker and orchestrated via Docker Compose. Designed for deployment on Synology NAS via Docker Desktop, accessible through an ipv64.net domain.
@@ -128,8 +131,27 @@ See [docs/deployment-synology.md](docs/deployment-synology.md) for the full Syno
    ⚠️ No trailing slash. For local dev: `http://localhost:4000/api/auth/callback/twitch`
 3. Copy **Client ID** and **Client Secret** — you'll enter them in the Setup Wizard (not `.env`)  
    ℹ️ These app credentials do **not expire** and never need to be refreshed.
-4. Bot credentials: generate an Access Token + Refresh Token via [twitchtokengenerator.com](https://twitchtokengenerator.com)  
-   ⚠️ These **user access tokens** do expire. StreamBingo uses `RefreshingAuthProvider` (@twurple/auth) — expired tokens are renewed automatically and stored in the database. A **Refresh Token is required** for this to work.
+4. **Bot account authorization (recommended):** Go to **Admin Portal → Bot → Authorize Bot Account**. A Twitch login opens — sign in as the bot account. Token and username are saved automatically.  
+   > ✅ This method uses your own App Client ID — token refresh works reliably.  
+   > ⚠️ **Not recommended:** Tokens from external tools like `twitchtokengenerator.com` are bound to their Client ID and **cannot** be refreshed by this app (HTTP 400 on refresh).
+
+### Broadcaster Mode
+
+When enabled (**Admin → Bot → Broadcaster Mode**), outgoing chat messages are sent via the streamer's own Twitch account instead of the bot account.
+
+**Advantages:**
+- Cannot be blocked by anti-spam bots (StreamElements, Nightbot, etc.)
+- Slow Mode does not apply to the broadcaster
+- No separate bot account required
+
+The bot account is still used to **receive** commands (if configured).
+
+### Automatic Token Refresh
+
+StreamBingo uses `RefreshingAuthProvider` from `@twurple/auth`:
+- Expired tokens are renewed **automatically** in the background
+- Updated tokens are written to the database immediately
+- No manual intervention needed (as long as a valid Refresh Token exists)
 
 For Channel Point Redeems:
 - The streamer must partner or affiliate with Twitch
@@ -155,6 +177,7 @@ Moderators are **auto-detected** from the Twitch channel's moderator list via th
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/auth/twitch` | GET | — | Initiate Twitch OAuth |
+| `/api/auth/bot-twitch` | GET | Admin | Initiate bot account OAuth |
 | `/api/auth/callback/twitch` | GET | — | OAuth callback |
 | `/api/auth/logout` | POST | User | Logout |
 | `/api/games` | POST | Streamer | Create a new Bingo game |
@@ -165,6 +188,9 @@ Moderators are **auto-detected** from the Twitch channel's moderator list via th
 | `/api/admin/users` | GET | Admin | List all users |
 | `/api/admin/games` | GET | Admin | List all games |
 | `/api/admin/settings` | GET/PATCH | Admin | Platform settings |
+| `/api/admin/bot-status` | GET | Admin | Get IRC bot status |
+| `/api/admin/bot-reconnect` | POST | Admin | Reconnect bot |
+| `/api/admin/bot-broadcaster-mode` | POST | Admin | Toggle broadcaster mode |
 | `/api/setup` | POST | — | Initial setup (wizard) |
 
 WebSocket events documented in [docs/websocket.md](docs/websocket.md).
@@ -175,7 +201,7 @@ WebSocket events documented in [docs/websocket.md](docs/websocket.md).
 
 ```
 bingo/
-├── frontend/          # Next.js 15 App Router
+├── frontend/          # Next.js 16 App Router
 ├── backend/           # NestJS 11 API
 │   └── prisma/        # Prisma schema & migrations
 ├── docker/            # Docker & Nginx configs
