@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-06-01
+
+### Fixed
+- **GitHub Actions Workflow** — GHCR-Image-Tags schlugen fehl weil `github.repository` Großbuchstaben enthält (`X3S2/bingo`). Fix: Repository-Name wird per `tr` in Kleinbuchstaben umgewandelt → `ghcr.io/x3s2/bingo/backend:vX.Y.Z`.
+- **Datenschutz-Seite** — Eigener DE/EN-Umschaltknopf entfernt; Sprache folgt jetzt dem globalen Locale-Schalter in der Navbar. Hardcoded `"Kein Inhalt vorhanden."` durch i18n-Key `common.noContent` ersetzt.
+- **PageToolbar (Home, Help)** — Text-Buttons `DE`/`EN` durch Flaggen-Emojis `🇩🇪`/`🇬🇧` ersetzt; Lucide `Sun`/`Moon`-Icons durch `☀️`/`🌙`-Emojis ersetzt — einheitliches Design mit der Navbar.
+- **Admin-Panel Tabs (Mobile)** — Bei schmalen Bildschirmen wurden umgebrochene Tabs (Imprint, Privacy, Audit Log) nicht mehr als Buttons dargestellt. Fix: `TabsList` explizit als `flex flex-wrap` mit `bg-muted p-1 rounded-lg` gestylt.
+
+---
+
 ## [1.3.0] - 2026-06-01
 
 ### Added
