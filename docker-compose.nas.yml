@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # StreamBingo – docker-compose für Synology NAS (Container Manager)
 # =============================================================================
 # Diese Datei enthält ALLE Werte direkt eingetragen (keine .env-Datei nötig).
@@ -133,7 +133,7 @@ services:
       # ANPASSEN: Sicheres Datenbankpasswort (muss mit DATABASE_URL übereinstimmen)
       - POSTGRES_PASSWORD=ANPASSEN_DB_PASSWORT
     volumes:
-      - streambingo-db-data:/var/lib/postgresql/data
+      - streambingo-db-data-3:/var/lib/postgresql/data
       - ./docker/db/init:/docker-entrypoint-initdb.d:ro
       - ./docker/db/backup.sh:/backup.sh:ro
     networks:
@@ -163,8 +163,8 @@ services:
       retries: 5
 
 volumes:
-  streambingo-db-data:
-    name: streambingo-db-data
+  streambingo-db-data-3:
+    name: streambingo-db-data-3
   streambingo-cache-data:
     name: streambingo-cache-data
 
