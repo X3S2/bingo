@@ -1,12 +1,12 @@
-# StreamBingo
+﻿# StreamBingo
 
-**v1.3.2** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
+**v1.3.3** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
 
 > 🇬🇧 [English version → README.md](README.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.3-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -91,6 +91,16 @@ Beim ersten Start führt der **Setup-Assistent** durch:
 2. Twitch App-Zugangsdaten (Client ID + Secret) eintragen
 3. Bot-Account konfigurieren (siehe [Twitch-App einrichten](#twitch-app-einrichten))
 
+### 4. Synology NAS (Container Manager, ohne Konsole)
+
+Der Synology Container Manager liest **keine `.env`-Datei** automatisch — alle Variablen müssen direkt im YAML eingetragen sein. Verwende dafür die mitgelieferte `docker-compose.nas.yml`:
+
+1. **File Station** → Projektordner → `docker-compose.nas.yml` öffnen
+2. Alle `ANPASSEN_*`-Platzhalter durch echte Werte ersetzen und speichern
+3. **Container Manager** → Projekt → **Erstellen** → Inhalt der `docker-compose.nas.yml` einfügen
+
+> ⚠️ Die reguläre `docker-compose.yml` mit `${VARIABLE}`-Syntax **nicht** im Container Manager verwenden — die Platzhalter werden dort nicht aufgelöst.
+
 ---
 
 ## Twitch-App einrichten
@@ -132,6 +142,7 @@ StreamBingo enthält einen **In-App OAuth-Flow** für den Bot-Account:
 | `!buycard` | Alle | Bingo-Karte erhalten |
 | `!zahlen` | Alle | Gezogene Zahlen anzeigen |
 | `!bingogewinner` | Alle | Gewinner anzeigen |
+| `!bingolink` | Alle | Spiel-Link im Chat posten |
 
 Alle Befehlsnamen und Berechtigungen können im Admin-Portal → Bot → Chat-Befehle angepasst werden.
 
@@ -214,12 +225,13 @@ Moderatoren werden automatisch über die Twitch Helix API erkannt (Kanal-Moderat
 
 ```
 bingo/
-├── frontend/          # Next.js 16 App Router
-├── backend/           # NestJS 11 API
-│   └── prisma/        # Prisma-Schema & Migrationen
-├── docker/            # Docker & Nginx-Konfigurationen
-├── .github/           # GitHub Actions Workflows
-├── docker-compose.yml
+├── frontend/               # Next.js 16 App Router
+├── backend/                # NestJS 11 API
+│   └── prisma/             # Prisma-Schema & Migrationen
+├── docker/                 # Docker & Nginx-Konfigurationen
+├── .github/                # GitHub Actions Workflows
+├── docker-compose.yml      # Lokale Entwicklung
+├── docker-compose.nas.yml  # Synology NAS / Container Manager
 └── .env.example
 ```
 

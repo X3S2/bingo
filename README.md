@@ -1,12 +1,12 @@
 # StreamBingo
 
-**v1.3.2** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
+**v1.3.3** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
 
 > 🇩🇪 [Deutsche Version → README.de.md](README.de.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.3-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -93,13 +93,17 @@ On first start, the **Setup Wizard** will guide you through:
 - Admin account creation
 - Bot account configuration
 
-### 4. Production deployment (Synology NAS)
+### 4. Synology NAS (Container Manager, without Console)
 
-```bash
-docker compose -f docker-compose.prod.yml up -d
-```
+The Synology Container Manager does **not** auto-load `.env` files — all variables must be hardcoded in the YAML. Use the included `docker-compose.nas.yml`:
 
-See [docs/deployment-synology.md](docs/deployment-synology.md) for the full Synology NAS setup guide and [docs/twitch-setup.md](docs/twitch-setup.md) for Twitch developer application configuration.
+1. Open `docker-compose.nas.yml` in File Station
+2. Replace all `ANPASSEN_*` placeholders with your real values and save
+3. **Container Manager → Project → Create** → paste the contents of `docker-compose.nas.yml`
+
+> ⚠️ Do **not** use the regular `docker-compose.yml` with `${VARIABLE}` syntax in Container Manager — placeholders won't be resolved.
+
+See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 ---
 
@@ -134,6 +138,20 @@ See [docs/deployment-synology.md](docs/deployment-synology.md) for the full Syno
 4. **Bot account authorization (recommended):** Go to **Admin Portal → Bot → Authorize Bot Account**. A Twitch login opens — sign in as the bot account. Token and username are saved automatically.  
    > ✅ This method uses your own App Client ID — token refresh works reliably.  
    > ⚠️ **Not recommended:** Tokens from external tools like `twitchtokengenerator.com` are bound to their Client ID and **cannot** be refreshed by this app (HTTP 400 on refresh).
+
+### IRC Commands
+
+| Command | Permission | Function |
+|---------|-----------|----------|
+| `!zahl+N` | Mod / Broadcaster | Draw number N |
+| `!zahl-N` | Mod / Broadcaster | Remove number N |
+| `bingo` | All | Claim bingo |
+| `!buycard` | All | Get bingo card |
+| `!zahlen` | All | Show drawn numbers |
+| `!bingogewinner` | All | Show winners |
+| `!bingolink` | All | Post game link in chat |
+
+All command names and permissions are configurable in Admin Portal → Bot → Chat Commands.
 
 ### Broadcaster Mode
 

@@ -179,6 +179,7 @@
     "cmd_buycard": "Get card",
     "cmd_zahlen": "Show numbers",
     "cmd_winners": "Show winners",
+    "cmd_bingolink": "Post game link",
     "selectGame": "Select game",
     "switchGame": "Switch game",
     "running": "Running",

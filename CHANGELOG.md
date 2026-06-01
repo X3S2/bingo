@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2026-06-01
+
+### Added
+- **`!bingolink` Chat-Befehl** — Neuer Befehl der den direkten Link zum laufenden Bingo-Spiel im Chat postet (`🎮 Bingo-Spiel: https://domain/game/<id>`). Funktioniert im normalen Bot-Modus und im Broadcaster-Modus. Im Admin-Panel unter Bot → Chat-Befehle konfigurierbar (Name, Berechtigung, An/Aus).
+- **`docker-compose.nas.yml`** — Neue Compose-Datei speziell für Synology NAS / Container Manager. Enthält alle Umgebungsvariablen direkt eingetragen (kein `${...}`-Syntax) damit die `.env`-Datei nicht benötigt wird. Alle Platzhalter mit `ANPASSEN_*` markiert.
+
+### Changed
+- **i18n (de.json / en.json)** — Label `cmd_bingolink` in beiden Sprachen ergänzt (`"Spiel-Link posten"` / `"Post game link"`).
+- **Admin-Panel** — `!bingolink` erscheint jetzt in der Befehlsliste unter Bot → Chat-Befehle.
+
+---
+
 ## [1.3.2] - 2026-06-07
 
 ### Fixed

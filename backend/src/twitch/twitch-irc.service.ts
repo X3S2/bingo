@@ -54,7 +54,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private cmdCacheAt = 0;
   private readonly CMD_CACHE_TTL = 30_000; // 30 s
 
-  private static readonly CMD_SLUGS = ['zahl_add', 'zahl_remove', 'bingo', 'buycard', 'zahlen', 'winners'] as const;
+  private static readonly CMD_SLUGS = ['zahl_add', 'zahl_remove', 'bingo', 'buycard', 'zahlen', 'winners', 'bingolink'] as const;
   private static readonly CMD_DEFAULTS: Record<string, { name: string; perm: 'all' | 'mod' | 'broadcaster' }> = {
     zahl_add:    { name: '!zahl+',         perm: 'mod' },
     zahl_remove: { name: '!zahl-',         perm: 'mod' },
@@ -62,6 +62,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     buycard:     { name: '!buycard',       perm: 'all' },
     zahlen:      { name: '!zahlen',        perm: 'all' },
     winners:     { name: '!bingogewinner', perm: 'all' },
+    bingolink:   { name: '!bingolink',     perm: 'all' },
   };
 
   private async refreshCmdCache(): Promise<void> {
@@ -556,6 +557,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       buycard:     'Karte erhalten',
       zahlen:      'Zahlen anzeigen',
       winners:     'Gewinner anzeigen',
+      bingolink:   'Spiel-Link posten',
     };
     for (const slug of TwitchIrcService.CMD_SLUGS) {
       const cfg = this.getCmd(slug);
@@ -708,6 +710,15 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       } catch (err: any) {
         await this.say(channel, `❌ @${username} ${err.message}`);
       }
+      return;
+    }
+
+    // ── !bingolink – post game link ───────────────────────────────────────
+    const cbingolink = this.getCmd('bingolink');
+    if (cbingolink.enabled && trimmed === cbingolink.name.toLowerCase()) {
+      if (!this.checkPerm(cbingolink.perm, msg)) return;
+      const appUrl = this.config.get<string>('APP_URL') || 'http://localhost:4000';
+      await this.say(channel, `🎮 Bingo-Spiel: ${appUrl}/game/${gameId}`);
       return;
     }
   }

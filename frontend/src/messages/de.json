@@ -324,6 +324,7 @@
     "cmd_buycard": "Karte erhalten",
     "cmd_zahlen": "Zahlen anzeigen",
     "cmd_winners": "Gewinner anzeigen",
+    "cmd_bingolink": "Spiel-Link posten",
     "selectGame": "Spiel auswählen",
     "switchGame": "Spiel wechseln",
     "running": "Läuft",
