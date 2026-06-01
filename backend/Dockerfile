@@ -36,4 +36,4 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 EXPOSE 3001
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
