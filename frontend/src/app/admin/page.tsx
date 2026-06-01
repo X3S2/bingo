@@ -667,7 +667,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
         </div>
 
         <Tabs defaultValue="stats">
-          <TabsList className="flex-wrap h-auto gap-1">
+          <TabsList className="flex flex-wrap h-auto gap-1 items-start justify-start bg-muted p-1 rounded-lg">
             <TabsTrigger value="stats">{t('stats')}</TabsTrigger>
             <TabsTrigger value="users">{t('users')}</TabsTrigger>
             <TabsTrigger value="games">{t('games')}</TabsTrigger>
