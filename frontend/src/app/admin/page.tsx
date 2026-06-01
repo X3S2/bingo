@@ -175,7 +175,7 @@ export default function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const { data: botStatus, refetch: refetchBotStatus, dataUpdatedAt: botStatusUpdatedAt } = useQuery({
+  const { data: botStatus, refetch: refetchBotStatus } = useQuery({
     queryKey: ['admin-bot-status'],
     queryFn: async () => {
       const r = await fetch(`${API}/admin/bot-status`, { credentials: 'include' });
@@ -805,11 +805,13 @@ You have the right to lodge a complaint with a data protection supervisory autho
                         {tb('botLogin')} <span className="font-mono font-medium text-foreground">@{botStatus.botLogin}</span>
                       </div>
                     )}
-                    {botStatus.tokenValid && botStatus.tokenExpiresIn != null && (
+                    {botStatus.tokenValid && (botStatus.tokenExpiresAt != null || botStatus.tokenExpiresIn != null) && (
                       <div className="col-span-2 text-muted-foreground">
                         {tb('expiresIn')}{' '}
                         {(() => {
-                          const remaining = Math.max(0, (botStatus.tokenExpiresIn ?? 0) - Math.floor((now - botStatusUpdatedAt) / 1000));
+                          const remaining = botStatus.tokenExpiresAt
+                            ? Math.max(0, Math.floor((new Date(botStatus.tokenExpiresAt).getTime() - now) / 1000))
+                            : Math.max(0, (botStatus.tokenExpiresIn ?? 0) - Math.floor((now - Date.now()) / 1000));
                           if (remaining <= 0) return <span className="font-medium text-yellow-600 dark:text-yellow-400">{tb('expiringSoon')}</span>;
                           const h = Math.floor(remaining / 3600);
                           const m = Math.floor((remaining % 3600) / 60);

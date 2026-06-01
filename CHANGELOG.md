@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-06-01
+
+### Fixed
+- **Token-Countdown korrekt** — Ablaufzeit wurde bisher direkt aus Twitchs `/validate`-Endpoint abgerufen, der den *gespeicherten* (möglicherweise alten) Token prüfte und deshalb "1s" zurückgab. Fix: `tokenExpiresAt` wird jetzt intern im Backend gespeichert — beim Start via Validate gesät und bei jedem Token-Refresh (über den `onRefresh`-Callback von twurple) aktualisiert. Das Frontend zählt von dem absoluten Zeitstempel herunter.
+- **"Token manuell refreshen" schlägt nicht mehr fehl** — Der alte Code nutzte `apiClient.asUser()` → `getAuthenticatedUser()` welcher den `user:read:email`-Scope benötigt, den der Bot-Token nicht hat. Fix: direkt `authProvider.refreshAccessTokenForUser(botUserId)` aufgerufen — kein API-Scope nötig.
+- **`botUserId` wird gespeichert** — `addUserForToken()` gibt die Twitch-User-ID zurück; diese wird jetzt in `this.botUserId` gespeichert und für den manuellen Refresh verwendet.
+
+---
+
 ## [1.2.0] - 2026-06-01
 
 ### Added

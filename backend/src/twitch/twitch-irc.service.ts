@@ -16,7 +16,8 @@ export interface BotStatus {
   connected: boolean;
   botLogin: string | null;
   tokenValid: boolean;
-  tokenExpiresIn: number | null; // seconds
+  tokenExpiresIn: number | null; // seconds remaining (for compatibility)
+  tokenExpiresAt: string | null; // ISO timestamp — authoritative for countdown
   lastRefreshedAt: string | null;
   joinedChannels: string[];
 }
@@ -33,7 +34,9 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private clientId: string | null = null;
   private clientSecret: string | null = null;
   private botLogin: string | null = null;
+  private botUserId: string | null = null;
   private lastRefreshedAt: Date | null = null;
+  private tokenExpiresAt: Date | null = null;
   private _connected = false;
 
   // ─── Command config cache ────────────────────────────────────────────────
@@ -139,6 +142,10 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       try {
         this.botToken = newTokenData.accessToken;
         this.lastRefreshedAt = new Date();
+        // Track when this token expires so the status panel shows correct time
+        if (newTokenData.expiresIn != null && newTokenData.expiresIn > 0) {
+          this.tokenExpiresAt = new Date(Date.now() + newTokenData.expiresIn * 1000);
+        }
         await this.prisma.adminSetting.upsert({
           where: { key: 'bot_access_token' },
           create: { key: 'bot_access_token', value: newTokenData.accessToken },
@@ -173,7 +180,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     // Using expiresIn:0/obtainmentTimestamp:0 would force an immediate refresh
     // attempt before any API call, which fails if the refresh token is tied to
     // a different client application.
-    await this.authProvider.addUserForToken(
+    this.botUserId = await this.authProvider.addUserForToken(
       {
         accessToken: this.botToken,
         refreshToken: this.botRefreshToken,
@@ -207,6 +214,12 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
 
     await this.chatClient.connect();
     this._connected = true;
+
+    // Seed tokenExpiresAt so the admin panel shows correct countdown from the start
+    const initValidate = await this.validateToken();
+    if (initValidate.valid && initValidate.expiresIn != null && initValidate.expiresIn > 0) {
+      this.tokenExpiresAt = new Date(Date.now() + initValidate.expiresIn * 1000);
+    }
 
     // Auto-join all currently RUNNING games from DB
     try {
@@ -248,11 +261,21 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
 
   async getBotStatus(): Promise<BotStatus> {
     const tokenInfo = await this.validateToken();
+    // Only update tokenExpiresAt from validate if it's a meaningful value (> 60s).
+    // Small values (≤ 60s) likely mean this.botToken is stale — the RefreshingAuthProvider
+    // may have already refreshed internally and tokenExpiresAt was updated via onRefresh.
+    if (tokenInfo.valid && tokenInfo.expiresIn != null && tokenInfo.expiresIn > 60) {
+      this.tokenExpiresAt = new Date(Date.now() + tokenInfo.expiresIn * 1000);
+    }
+    const tokenExpiresIn = this.tokenExpiresAt
+      ? Math.max(0, Math.floor((this.tokenExpiresAt.getTime() - Date.now()) / 1000))
+      : tokenInfo.expiresIn;
     return {
       connected: this._connected,
       botLogin: this.botLogin,
       tokenValid: tokenInfo.valid,
-      tokenExpiresIn: tokenInfo.expiresIn,
+      tokenExpiresIn,
+      tokenExpiresAt: this.tokenExpiresAt?.toISOString() ?? null,
       lastRefreshedAt: this.lastRefreshedAt?.toISOString() ?? null,
       joinedChannels: Array.from(this.activeChannels.keys()),
     };
@@ -262,37 +285,25 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     return Array.from(this.activeChannels.keys());
   }
 
-  /** Force a token refresh by setting obtainmentTimestamp to 0 and re-requesting */
+  /** Force a token refresh using twurple's built-in refresh mechanism */
   async forceRefreshToken(adminId: string): Promise<{ success: boolean; message: string }> {
-    if (!this.authProvider || !this.botLogin) {
+    if (!this.authProvider || !this.botUserId) {
       return { success: false, message: 'Bot nicht initialisiert oder kein Auth-Provider vorhanden.' };
     }
     try {
-      // RefreshingAuthProvider exposes refreshAccessTokenForUser(userId)
-      // but user must first be added. We trigger via the API client (any call forces refresh check).
-      // Alternatively force by resetting token data:
-      await this.authProvider.addUserForToken(
-        {
-          accessToken: this.botToken!,
-          refreshToken: this.botRefreshToken,
-          expiresIn: 0,
-          obtainmentTimestamp: 0,
-          scope: ['chat:read', 'chat:edit'],
-        },
-        ['chat'],
-      );
-      // Make a lightweight API call to trigger the actual refresh
-      await this.apiClient?.asUser(this.botLogin, (ctx) => ctx.users.getAuthenticatedUser(this.botLogin!));
+      // refreshAccessTokenForUser directly calls the Twitch token endpoint —
+      // no API scope needed, only the refresh token and client credentials.
+      await this.authProvider.refreshAccessTokenForUser(this.botUserId);
       await this.prisma.auditLog.create({
         data: {
           adminId,
           action: AuditAction.BOT_TOKEN_REFRESHED,
           targetType: 'BotToken',
-          targetId: this.botLogin,
+          targetId: this.botLogin ?? 'bot',
           metadata: { manual: true, at: new Date().toISOString() },
         },
       });
-      return { success: true, message: 'Token-Refresh angefordert. Neues Token wird nach dem nächsten API-Aufruf gespeichert.' };
+      return { success: true, message: 'Token erfolgreich erneuert.' };
     } catch (e: any) {
       return { success: false, message: `Refresh fehlgeschlagen: ${e.message}` };
     }
