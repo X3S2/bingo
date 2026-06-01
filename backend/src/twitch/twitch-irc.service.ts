@@ -246,10 +246,21 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
 
   /** Validate the current bot access token via Twitch's validate endpoint */
   async validateToken(): Promise<{ valid: boolean; expiresIn: number | null; login: string | null }> {
-    if (!this.botToken) return { valid: false, expiresIn: null, login: null };
+    // Prefer the current token from the authProvider (may be more recent than this.botToken
+    // if twurple refreshed internally after a 401 but onRefresh hasn't flushed yet).
+    let tokenToValidate = this.botToken;
+    if (this.authProvider && this.botUserId) {
+      try {
+        const current = await this.authProvider.getAccessTokenForUser(this.botUserId);
+        if (current?.accessToken) tokenToValidate = current.accessToken;
+      } catch {
+        // fall back to this.botToken
+      }
+    }
+    if (!tokenToValidate) return { valid: false, expiresIn: null, login: null };
     try {
       const res = await fetch('https://id.twitch.tv/oauth2/validate', {
-        headers: { Authorization: `OAuth ${this.botToken}` },
+        headers: { Authorization: `OAuth ${tokenToValidate}` },
       });
       if (!res.ok) return { valid: false, expiresIn: null, login: null };
       const data: { expires_in: number; login: string } = await res.json();
