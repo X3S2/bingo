@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.8] - 2026-06-01
+
+### Added
+- **i18n: Moderator-Namespace** — Neue Schlüssel `numberDrawnSuccess`, `numberRangeError`, `noCardsFound`, `removeWinnerError` (DE+EN)
+
+### Fixed
+- **"Moderieren"-Button auf der Spiel-Seite** — Ist jetzt ein korrekter `<Button variant="outline">` rechts neben dem Live-Indikator (statt Text-Link links). Auf Mobilgeräten wird der Schriftzug ausgeblendet, nur das Icon bleibt sichtbar
+- **Hardcodierte deutsche Strings im Moderator-Dashboard** — Toast-Meldungen ("Zahl X gezogen", "Zahl muss zwischen 1 und 75 liegen", Gewinner-Entfernen-Fehler) und "Keine Karten gefunden" waren nicht übersetzt; alle nutzen jetzt i18n
+- **Chat-Commands i18n** — Alle 6 Befehle (`cmd_zahl_add`, `cmd_zahl_remove`, `cmd_bingo`, `cmd_buycard`, `cmd_zahlen`, `cmd_winners`) haben korrekte DE+EN Übersetzungen; wurden als korrekt verifiziert
+
+### Changed
+- **Mobile: Suche im Moderator-Dashboard** — Sucheingabe nutzt jetzt volle Breite auf kleinen Bildschirmen (`w-full sm:max-w-[180px]`)
+- **Mobile: Game-Seite Live-Indikator** — "Live"/"Disconnected" Text wird auf kleinen Bildschirmen ausgeblendet, nur Icon bleibt sichtbar
+
+---
+
 ## [1.1.7] - 2026-06-01
 
 ### Added

@@ -260,20 +260,15 @@ export default function GamePage({ params }: GamePage) {
       <main className="container mx-auto px-4 py-8 flex flex-col gap-6 max-w-2xl">
         {/* Game Header */}
         <div className="flex items-center gap-3 flex-wrap justify-between">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             {user?.role !== 'VIEWER' && (
-              <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
                 ← Dashboard
-              </a>
-            )}
-            {['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') && game.status === 'RUNNING' && (
-              <a href={`/moderator/${id}`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                🛡️ {t('moderate')}
               </a>
             )}
             {(allRunningGames ?? []).length > 1 && (
               <Select value={id} onValueChange={(v) => router.push(`/game/${v}`)}>
-                <SelectTrigger className="h-8 text-sm w-auto min-w-[8rem] max-w-[16rem]">
+                <SelectTrigger className="h-8 text-sm w-auto min-w-[8rem] max-w-[14rem]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -295,7 +290,7 @@ export default function GamePage({ params }: GamePage) {
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Start button for Streamer/Admin when game is in CREATED state */}
             {['STREAMER', 'ADMIN'].includes(user?.role ?? '') && game.status === 'CREATED' && (
               <Button
@@ -306,11 +301,17 @@ export default function GamePage({ params }: GamePage) {
                 {startMutation.isPending ? t('starting') : t('startGame')}
               </Button>
             )}
+            {/* Moderate button for MOD/STREAMER/ADMIN */}
+            {['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') && game.status === 'RUNNING' && (
+              <Button size="sm" variant="outline" asChild>
+                <a href={`/moderator/${id}`}>🛡️ <span className="hidden sm:inline">{t('moderate')}</span></a>
+              </Button>
+            )}
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               {socketConnected ? (
-                <><Wifi className="w-3 h-3 text-green-500" /> {t('live')}</>
+                <><Wifi className="w-3 h-3 text-green-500" /> <span className="hidden sm:inline">{t('live')}</span></>
               ) : (
-                <><WifiOff className="w-3 h-3 text-red-500" /> {t('disconnectedLabel')}</>
+                <><WifiOff className="w-3 h-3 text-red-500" /> <span className="hidden sm:inline">{t('disconnectedLabel')}</span></>
               )}
             </div>
           </div>

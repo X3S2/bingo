@@ -289,7 +289,11 @@
     "cmd_winners": "Gewinner anzeigen",
     "selectGame": "Spiel auswählen",
     "switchGame": "Spiel wechseln",
-    "running": "Läuft"
+    "running": "Läuft",
+    "numberDrawnSuccess": "Zahl {number} gezogen",
+    "numberRangeError": "Zahl muss zwischen 1 und 75 liegen",
+    "noCardsFound": "Keine Karten gefunden.",
+    "removeWinnerError": "Fehler beim Entfernen des Gewinners"
   },
   "setup": {
     "title": "StreamBingo einrichten",

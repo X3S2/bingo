@@ -154,7 +154,7 @@ export default function ModeratorPage({ params }: ModPage) {
       return r.json();
     },
     onSuccess: (_, number) => {
-      toast.success(`Zahl ${number} gezogen`);
+      toast.success(t('numberDrawnSuccess', { number }));
       setNumberInput('');
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['cards', id] });
@@ -190,7 +190,7 @@ export default function ModeratorPage({ params }: ModPage) {
       });
       if (!r.ok) {
         const e = await r.json();
-        throw new Error(e.message || 'Fehler beim Entfernen des Gewinners');
+        throw new Error(e.message || t('removeWinnerError'));
       }
     },
     onSuccess: () => {
@@ -239,13 +239,13 @@ export default function ModeratorPage({ params }: ModPage) {
   const handleDraw = () => {
     const n = parseInt(numberInput, 10);
     if (n >= 1 && n <= 75) drawMutation.mutate(n);
-    else toast.error('Zahl muss zwischen 1 und 75 liegen');
+    else toast.error(t('numberRangeError'));
   };
 
   const handleRemove = () => {
     const n = parseInt(numberInput, 10);
     if (n >= 1 && n <= 75) removeMutation.mutate(n);
-    else toast.error('Zahl muss zwischen 1 und 75 liegen');
+    else toast.error(t('numberRangeError'));
   };
 
   if (authLoading) {
@@ -428,7 +428,7 @@ export default function ModeratorPage({ params }: ModPage) {
                 placeholder={t('search')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="max-w-[180px]"
+                className="w-full sm:max-w-[180px]"
               />
             </div>
           </div>
@@ -478,7 +478,7 @@ export default function ModeratorPage({ params }: ModPage) {
             })}
             {processedCards.length === 0 && (
               <p className="text-muted-foreground col-span-full text-center py-8">
-                Keine Karten gefunden.
+                {t('noCardsFound')}
               </p>
             )}
           </div>

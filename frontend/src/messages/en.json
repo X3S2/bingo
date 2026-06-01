@@ -179,7 +179,11 @@
     "cmd_winners": "Show winners",
     "selectGame": "Select game",
     "switchGame": "Switch game",
-    "running": "Running"
+    "running": "Running",
+    "numberDrawnSuccess": "Number {number} drawn",
+    "numberRangeError": "Number must be between 1 and 75",
+    "noCardsFound": "No cards found.",
+    "removeWinnerError": "Error removing winner"
   },
   "admin": {
     "title": "Admin Portal",
