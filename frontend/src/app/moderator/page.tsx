@@ -65,14 +65,14 @@ export default function ModeratorIndexPage() {
             <Skeleton className="h-8 w-64" />
             <Skeleton className="h-4 w-48" />
           </>
-        ) : allGames.length > 1 ? (
+        ) : (allGames?.length ?? 0) > 1 ? (
           <div className="flex flex-col items-center gap-4 w-full max-w-sm">
             <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors self-start">
               ← Dashboard
             </a>
             <h1 className="text-2xl font-bold">{t('selectGame')}</h1>
             <div className="flex flex-col gap-3 w-full">
-              {allGames.map((g) => (
+              {(allGames ?? []).map((g) => (
                 <Link
                   key={g.id}
                   href={`/moderator/${g.id}`}
