@@ -28,6 +28,7 @@ export default function SetupPage() {
   const t = useTranslations('setup');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [tokenError, setTokenError] = useState(false);
   const collected = useRef({ setupToken: '', twitchClientId: '', twitchClientSecret: '', botLogin: '' });
 
   const redirectUri =
@@ -38,7 +39,12 @@ export default function SetupPage() {
   const handleNext = () => {
     if (step === 1) {
       const token = getVal('setupToken');
-      if (!token) { toast.error(t('errorSetupToken')); return; }
+      if (!token) {
+        setTokenError(true);
+        toast.error(t('errorSetupToken'));
+        return;
+      }
+      setTokenError(false);
       collected.current.setupToken = token;
     }
     if (step === 2) {
@@ -111,7 +117,17 @@ export default function SetupPage() {
                 <p className="text-sm text-muted-foreground">{t('setupTokenHint')}</p>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="setupToken">{t('setupToken')}</Label>
-                  <Input id="setupToken" type="password" autoComplete="off" placeholder="nOJv..." />
+                  <Input
+                    id="setupToken"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={t('setupTokenPlaceholder')}
+                    className={tokenError ? 'border-destructive focus-visible:ring-destructive' : ''}
+                    onChange={() => setTokenError(false)}
+                  />
+                  {tokenError && (
+                    <p className="text-sm text-destructive font-medium">{t('errorSetupToken')}</p>
+                  )}
                 </div>
               </>
             )}
