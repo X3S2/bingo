@@ -40,7 +40,13 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-      target: development
+      target: production
+      # NEXT_PUBLIC_ vars must be passed at build time – they are embedded in
+      # the JS bundle by `next build` and are NOT available at runtime.
+      args:
+        # ANPASSEN: Deine öffentliche Domain (z.B. https://bingo.meinname.ipv64.net)
+        NEXT_PUBLIC_API_URL: https://ANPASSEN_DEINE_DOMAIN/api
+        NEXT_PUBLIC_WS_URL: https://ANPASSEN_DEINE_DOMAIN
     container_name: streambingo-web
     restart: unless-stopped
     ports:
@@ -52,9 +58,6 @@ services:
       - NEXT_PUBLIC_WS_URL=https://ANPASSEN_DEINE_DOMAIN
       - NEXTAUTH_URL=https://ANPASSEN_DEINE_DOMAIN
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
       - ./CHANGELOG.md:/app/public/CHANGELOG.md:ro
     depends_on:
       streambingo-api:
@@ -73,7 +76,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: development
+      target: production
+    # Run DB schema push before starting the compiled server
+    command: sh -c "node_modules/.bin/prisma db push --accept-data-loss && node dist/main.js"
     container_name: streambingo-api
     restart: unless-stopped
     ports:
@@ -101,9 +106,6 @@ services:
       - ADMIN_SETUP_TOKEN=ANPASSEN_SETUP_TOKEN
       # ANPASSEN: Öffentliche Domain
       - APP_URL=https://ANPASSEN_DEINE_DOMAIN
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
     depends_on:
       streambingo-db:
         condition: service_healthy

@@ -15,6 +15,11 @@ RUN npm ci
 COPY frontend/ .
 # Include CHANGELOG from project root so it is served as a static file
 COPY CHANGELOG.md ./public/CHANGELOG.md
+# Accept NEXT_PUBLIC_ vars at build time so they are embedded in the bundle
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WS_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 RUN npm run build
 
 # ── Production stage ───────────────────────────────────────────────

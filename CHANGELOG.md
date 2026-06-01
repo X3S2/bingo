@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.6] - 2026-06-01
+
+### Fixed
+- **Setup-Seite: alle Buttons reagieren nicht (NAS/CDN)** — Fundamentaler Fix: Frontend und Backend werden jetzt im `production`-Build-Target ausgeführt statt im `development`-Modus. Im Dev-Modus versuchte der Turbopack-HMR-Client kontinuierlich WebSocket-Verbindungen aufzubauen (`/_next/webpack-hmr`), die durch die IPv64-CDN-Schicht immer fehlschlugen. Diese Reconnect-Schleife unterbrach Reacts `hydrateRoot`-Kette dauerhaft — `__REACT_DEVTOOLS_GLOBAL_HOOK__.renderers.size` blieb 0, kein `__reactFiber` wurde an DOM-Knoten gebunden, alle Event-Handler fehlten. Im Production-Build gibt es keinen HMR-Client; React initialisiert sich einmalig korrekt.
+- **`NEXT_PUBLIC_*` Build-Zeit-Variablen** — `NEXT_PUBLIC_API_URL` und `NEXT_PUBLIC_WS_URL` werden jetzt als Docker-Build-Args (`ARG`/`ENV` im Builder-Stage) in das JS-Bundle eingebettet. Ohne diesen Fix wären die Werte im Production-Bundle `undefined`.
+- **Backend Production** — `streambingo-api` verwendet jetzt ebenfalls `target: production`; `prisma db push` wird via `command`-Override vor `node dist/main.js` ausgeführt.
+
+---
+
 ## [1.3.5] - 2026-06-01
 
 ### Fixed
