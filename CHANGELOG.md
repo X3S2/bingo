@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.9] - 2026-06-01
+
+### Removed
+- **"Gezogene Zahlen"-Link auf der Spielseite** — Redundanter Link zum Moderatoren-Dashboard wurde entfernt, da der "Moderieren"-Button im Header bereits diese Funktion übernimmt
+
+### Changed
+- **Dashboard: Rollen-Buttons nebeneinander auf breiten Screens** — Ab `lg` (1024 px) werden alle 3 Buttons (Moderatoren-, Streamer-, Admin-Dashboard) in einer Zeile nebeneinander dargestellt (`lg:grid-cols-3`) statt gestreckt in 2 Spalten
+
+---
+
 ## [1.1.8] - 2026-06-01
 
 ### Added

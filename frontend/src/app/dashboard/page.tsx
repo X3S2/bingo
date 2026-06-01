@@ -112,7 +112,7 @@ export default function DashboardPage() {
           <Badge variant={user.role === 'ADMIN' ? 'destructive' : 'secondary'} className="ml-auto">{user.role}</Badge>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {roleLinks.map((l) => (
             <Link key={l.href} href={l.href} className={`group relative rounded-xl border bg-gradient-to-br ${l.gradient} p-5 flex flex-col gap-1.5 transition-all duration-200 hover:shadow-md hover:border-primary/30`}>
               <span className="text-base font-semibold">{l.label}</span>

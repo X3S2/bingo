@@ -337,11 +337,7 @@ export default function GamePage({ params }: GamePage) {
               hasWon={hasWon}
               onMarkChange={handleMarkChange}
             />
-            {['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') && (
-              <p className="text-xs text-center text-muted-foreground">
-                <a href={`/moderator/${id}`} className="underline underline-offset-2">{t('drawnNumbers')}</a>
-              </p>
-            )}
+
           </>
         ) : game.status === 'RUNNING' && ['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') ? (
           <div className="flex flex-col items-center gap-4 py-8">
@@ -349,9 +345,7 @@ export default function GamePage({ params }: GamePage) {
             <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending}>
               {joinMutation.isPending ? t('joining') : t('joinGame')}
             </Button>
-            <p className="text-xs text-muted-foreground">
-              <a href={`/moderator/${id}`} className="underline underline-offset-2">{t('drawnNumbers')}</a>
-            </p>
+
           </div>
         ) : game.status === 'RUNNING' ? (
           <div className="flex flex-col gap-4 py-8 max-w-md mx-auto w-full">
