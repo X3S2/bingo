@@ -72,6 +72,7 @@
     "noActiveGame": "No active game",
     "noActiveGameDesc": "No Bingo game is currently running. Check back later!",
     "selectGame": "Which game do you want to play?",
+    "activeGames": "Active Games",
     "nonViewerNote": "As a {role} you don't need your own card. Use the Moderator Dashboard to manage the game.",
     "numberDrawnToast": "🎱 Number {number} drawn!"
   },

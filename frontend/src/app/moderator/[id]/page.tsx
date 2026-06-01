@@ -290,7 +290,7 @@ export default function ModeratorPage({ params }: ModPage) {
               <SelectContent>
                 {availableGames.map((g) => (
                   <SelectItem key={g.id} value={g.id} className="text-xs">
-                    {g.title} — {g.channelName}
+                    {g.channelName}{g.title && g.title !== g.channelName ? ` – ${g.title}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>

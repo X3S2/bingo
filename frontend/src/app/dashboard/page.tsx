@@ -81,8 +81,8 @@ export default function DashboardPage() {
                     href={`/game/${g.id}`}
                     className="rounded-xl border bg-gradient-to-br from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 p-5 flex flex-col gap-1 text-left transition-all hover:shadow-md hover:border-primary/30"
                   >
-                    <span className="font-semibold">🎮 {g.title}</span>
-                    <span className="text-sm text-muted-foreground">{g.channelName}</span>
+                    <span className="font-semibold">🎮 {g.channelName}</span>
+                    <span className="text-sm text-muted-foreground">{g.title}</span>
                   </Link>
                 ))}
               </div>
@@ -120,23 +120,15 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Active games section — join as player */}
+        {/* Active games button — links to game picker */}
         {(runningGames ?? []).length > 0 && (
-          <div className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">{tb('activeGames')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(runningGames ?? []).map((g) => (
-                <Link
-                  key={g.id}
-                  href={`/game/${g.id}`}
-                  className="rounded-xl border bg-gradient-to-br from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 p-4 flex flex-col gap-1 text-left transition-all hover:shadow-md hover:border-primary/30"
-                >
-                  <span className="font-semibold text-sm">🎮 {g.title}</span>
-                  <span className="text-xs text-muted-foreground">{g.channelName}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <Link
+            href="/game"
+            className="group relative rounded-xl border bg-gradient-to-br from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 p-5 flex flex-col gap-1.5 transition-all duration-200 hover:shadow-md hover:border-primary/30"
+          >
+            <span className="text-base font-semibold">🎮 {tb('activeGames')} ({(runningGames ?? []).length})</span>
+            <span className="text-sm text-muted-foreground">{tb('selectGame')}</span>
+          </Link>
         )}
       </main>
     </div>

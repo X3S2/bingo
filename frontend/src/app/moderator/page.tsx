@@ -79,10 +79,10 @@ export default function ModeratorIndexPage() {
                   className="rounded-xl border bg-gradient-to-br from-blue-500/10 to-cyan-500/10 hover:from-blue-500/20 hover:to-cyan-500/20 p-5 flex flex-col gap-1.5 text-left transition-all hover:shadow-md hover:border-primary/30"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold">🛡️ {g.title}</span>
+                    <span className="font-semibold">🛡️ {g.channelName}</span>
                     <Badge variant="default" className="text-xs">{t('running')}</Badge>
                   </div>
-                  <span className="text-sm text-muted-foreground">{g.channelName}</span>
+                  <span className="text-sm text-muted-foreground">{g.title}</span>
                 </Link>
               ))}
             </div>

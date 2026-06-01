@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.6] - 2026-06-01
+
+### Added
+- **Spiel-Picker-Seite `/game`** — Neue Seite für alle eingeloggten Nutzer: zeigt alle laufenden Spiele. Viewer werden automatisch weitergeleitet wenn nur ein Spiel läuft. Mods/Streamer/Admins sehen pro Spiel zwei Buttons: "Jetzt mitspielen" und "Moderieren" (Weiterleitung zur Mod-Ansicht)
+- **i18n: `bingo.activeGames`** — Fehlender Übersetzungsschlüssel (DE/EN) hinzugefügt
+
+### Fixed
+- **MISSING_MESSAGE: `bingo.activeGames`** — Fehlender i18n-Key in `de.json`/`en.json` verursachte Console-Error auf dem Dashboard
+
+### Changed
+- **Streamer-Name statt Spieltitel** — In allen Spiel-Dropdowns (Spiel-Seite, Mod-Dashboard) und Picker-Karten wird jetzt der Streamer-Channel (`channelName`) als primäre Bezeichnung angezeigt, da Spieltitel nicht eindeutig sind
+- **Dashboard: Aktive Spiele als Button** — Statt der inline Spiel-Liste zeigt das Non-Viewer-Dashboard jetzt einen einzigen „Aktive Spiele“-Button, der zur neuen `/game`-Picker-Seite führt
+
+---
+
 ## [1.1.5] - 2026-06-01
 
 ### Added

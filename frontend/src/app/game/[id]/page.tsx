@@ -273,7 +273,9 @@ export default function GamePage({ params }: GamePage) {
                 </SelectTrigger>
                 <SelectContent>
                   {(allRunningGames ?? []).map((g) => (
-                    <SelectItem key={g.id} value={g.id}>{g.title || g.channelName}</SelectItem>
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.channelName}{g.title && g.title !== g.channelName ? ` – ${g.title}` : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
