@@ -62,7 +62,7 @@
     "drawnNumbers": "Drawn Numbers",
     "winners": "Winners",
     "position": "Place",
-    "columns": ["B", "I", "N", "G", "O"],
+
     "live": "Live",
     "disconnectedLabel": "Disconnected",
     "gameNotFound": "Game not found.",

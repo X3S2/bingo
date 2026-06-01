@@ -62,7 +62,6 @@
     "drawnNumbers": "Gezogene Zahlen",
     "winners": "Gewinner",
     "position": "Platz",
-    "columns": ["B", "I", "N", "G", "O"],
     "live": "Live",
     "disconnectedLabel": "Getrennt",
     "gameNotFound": "Spiel nicht gefunden.",
