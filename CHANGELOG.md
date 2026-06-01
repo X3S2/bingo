@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.4] - 2026-06-01
+
+### Fixed
+- **Setup-Wizard Schritt 1** — Das Token-Eingabefeld hatte `placeholder="nOJv..."` (Beginn des tatsächlichen Tokens) was wie ein vorausgefülltes Passwortfeld aussah. User haben nichts eingetippt, der Fehler-Toast war kaum sichtbar — wirkte wie „nichts passiert". Fix: Placeholder durch beschreibenden Text ersetzt (`Token aus docker-compose.nas.yml (ADMIN_SETUP_TOKEN)`), zusätzlich Inline-Fehlermeldung direkt unter dem Eingabefeld (roter Rahmen + rote Schrift) wenn das Feld leer bleibt.
+- **i18n (de.json / en.json)** — Neuer Key `setupTokenPlaceholder` ergänzt; `setupTokenHint` verweist jetzt auf `docker-compose.nas.yml` für NAS-Nutzer.
+
+---
+
 ## [1.3.3] - 2026-06-01
 
 ### Added
