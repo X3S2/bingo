@@ -11,7 +11,8 @@
     "no": "Nein",
     "success": "Erfolg",
     "submit": "Absenden",
-    "recommended": "Empfohlen"
+    "recommended": "Empfohlen",
+    "noContent": "Kein Inhalt vorhanden."
   },
   "nav": {
     "home": "Start",

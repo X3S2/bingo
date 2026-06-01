@@ -11,7 +11,8 @@
     "no": "No",
     "success": "Success",
     "submit": "Submit",
-    "recommended": "Recommended"
+    "recommended": "Recommended",
+    "noContent": "No content available."
   },
   "nav": {
     "home": "Home",

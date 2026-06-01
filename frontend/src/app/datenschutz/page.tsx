@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import { Navbar } from '@/components/navigation/navbar';
+import { useLocaleToggle } from '@/providers/locale-provider';
+import { useTranslations } from 'next-intl';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -19,7 +20,8 @@ async function getLegalContent(key: string): Promise<string> {
 }
 
 export default function DatenschutzPage() {
-  const [showEn, setShowEn] = useState(false);
+  const { locale } = useLocaleToggle();
+  const tc = useTranslations('common');
 
   const { data: deContent = '' } = useQuery({
     queryKey: ['datenschutz', 'de'],
@@ -30,34 +32,21 @@ export default function DatenschutzPage() {
     queryFn: () => getLegalContent('datenschutz_en'),
   });
 
-  const content = showEn ? enContent : deContent;
+  const content = locale === 'en' ? enContent : deContent;
 
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
       <main className="container mx-auto px-4 py-12 max-w-3xl">
-        <div className="flex items-center justify-between mb-8 gap-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">{showEn ? 'Privacy Policy' : 'Datenschutzerklärung'}</h1>
-            <span className="text-sm font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground">
-              {showEn ? 'EN' : 'DE'}
-            </span>
-          </div>
-          <button
-            onClick={() => setShowEn((v) => !v)}
-            title={showEn ? 'Auf Deutsch anzeigen' : 'Show in English'}
-            className="text-2xl leading-none hover:opacity-80 transition-opacity focus:outline-none"
-            aria-label={showEn ? 'Auf Deutsch anzeigen' : 'Show in English'}
-          >
-            {showEn ? '🇩🇪' : '🇬🇧'}
-          </button>
-        </div>
+        <h1 className="text-3xl font-bold mb-8">
+          {locale === 'en' ? 'Privacy Policy' : 'Datenschutzerklärung'}
+        </h1>
         {content ? (
           <div className="prose prose-neutral dark:prose-invert max-w-none">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         ) : (
-          <p className="text-muted-foreground">Kein Inhalt vorhanden.</p>
+          <p className="text-muted-foreground">{tc('noContent')}</p>
         )}
       </main>
     </div>

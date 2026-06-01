@@ -28,9 +28,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract tag
+      - name: Extract tag and lowercase repo
         id: tag
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build & Push Backend Image
         uses: docker/build-push-action@v6
@@ -39,8 +41,8 @@ jobs:
           target: production
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/backend:${{ steps.tag.outputs.VERSION }}
-            ghcr.io/${{ github.repository }}/backend:latest
+            ghcr.io/${{ steps.tag.outputs.REPO }}/backend:${{ steps.tag.outputs.VERSION }}
+            ghcr.io/${{ steps.tag.outputs.REPO }}/backend:latest
 
       - name: Build & Push Frontend Image
         uses: docker/build-push-action@v6
@@ -49,8 +51,8 @@ jobs:
           target: production
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/frontend:${{ steps.tag.outputs.VERSION }}
-            ghcr.io/${{ github.repository }}/frontend:latest
+            ghcr.io/${{ steps.tag.outputs.REPO }}/frontend:${{ steps.tag.outputs.VERSION }}
+            ghcr.io/${{ steps.tag.outputs.REPO }}/frontend:latest
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_WS_URL=${{ secrets.NEXT_PUBLIC_WS_URL }}
