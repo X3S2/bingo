@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.5] - 2026-06-01
+
+### Fixed
+- **Setup-Seite: alle Buttons reagieren nicht** — Kritischer Hydration-Fehler behoben. Die Variable `redirectUri` wurde direkt beim Component-Render berechnet (`typeof window !== 'undefined'`): Server lieferte `localhost`, Client lieferte die tatsächliche Domain. React erkannte den Mismatch, warf einen Hydration-Error und band keine Event-Handler an — daher reagierten Sprach-Umschalter, Dark/Light-Modus und der Weiter-Button in Schritt 1 alle nicht. Fix: `redirectUri` wird jetzt mit `useState('')` + `useEffect` gesetzt, sodass Server und Client den gleichen initialen Wert rendern und der Fehler nicht mehr auftritt.
+
+---
+
 ## [1.3.4] - 2026-06-01
 
 ### Fixed

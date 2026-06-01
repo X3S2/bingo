@@ -1,12 +1,12 @@
 ﻿# StreamBingo
 
-**v1.3.4** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
+**v1.3.5** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
 
 > 🇬🇧 [English version → README.md](README.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.4-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.5-blue.svg)](CHANGELOG.md)
 
 ---
 

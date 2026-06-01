@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -29,12 +29,12 @@ export default function SetupPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [tokenError, setTokenError] = useState(false);
+  const [redirectUri, setRedirectUri] = useState('');
   const collected = useRef({ setupToken: '', twitchClientId: '', twitchClientSecret: '', botLogin: '' });
 
-  const redirectUri =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/api/auth/callback/twitch`
-      : 'http://localhost:4000/api/auth/callback/twitch';
+  useEffect(() => {
+    setRedirectUri(`${window.location.origin}/api/auth/callback/twitch`);
+  }, []);
 
   const handleNext = () => {
     if (step === 1) {
