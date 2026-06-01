@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-06-01
+
+### Added
+- **Live-Countdown für Token-Ablauf** — "Token gültig noch:" zeigt jetzt einen sekundengenau runterzählenden Countdown (z.B. `3h 59min 42s`). Unter 5 Minuten wechselt die Anzeige auf Gelb. Bei 0 wird "Läuft bald ab / wird erneuert" angezeigt.
+
+### Fixed
+- **Bot-Konfiguration vollständig übersetzt** — Alle Fehlenden i18n-Strings in der Bot-Config (Twitch App Beschreibung, Token-Generierungs-Anleitung 5 Schritte, Feldbezeichnungen und Hilfstexte für Bot-Benutzername, Access Token, Refresh Token) jetzt in DE + EN
+- **Chat-Befehle vollständig übersetzt** — Spaltenköpfe (Funktion, Befehlsname, Berechtigung, Aktiv), Funktionsnamen (Zahl ziehen, Bingo melden, …), Berechtigungs-Dropdown (Alle Zuschauer, Mod & Broadcaster, Nur Broadcaster), An/Aus-Status, Hinweistext für Zahlen-Präfix
+
+---
+
 ## [1.1.9] - 2026-06-01
 
 ### Removed

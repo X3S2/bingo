@@ -81,6 +81,7 @@ export default function AdminPage() {
   const tb = useTranslations('bot');
   const tbi = useTranslations('bingo');
   const tc = useTranslations('common');
+  const tm = useTranslations('moderator');
 
   useEffect(() => {
     if (!authLoading && user && user.role !== 'ADMIN') router.replace('/dashboard');
@@ -174,7 +175,7 @@ export default function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const { data: botStatus, refetch: refetchBotStatus } = useQuery({
+  const { data: botStatus, refetch: refetchBotStatus, dataUpdatedAt: botStatusUpdatedAt } = useQuery({
     queryKey: ['admin-bot-status'],
     queryFn: async () => {
       const r = await fetch(`${API}/admin/bot-status`, { credentials: 'include' });
@@ -200,6 +201,11 @@ export default function AdminPage() {
     clientId: '', clientSecret: '', botLogin: '', accessToken: '', refreshToken: '',
   });
   const [showBotSecrets, setShowBotSecrets] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ─── Command config ───────────────────────────────────────────────────────
   type CmdPerm = 'all' | 'mod' | 'broadcaster';
@@ -802,17 +808,15 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     {botStatus.tokenValid && botStatus.tokenExpiresIn != null && (
                       <div className="col-span-2 text-muted-foreground">
                         {tb('expiresIn')}{' '}
-                        {botStatus.tokenExpiresIn <= 0 ? (
-                          <span className="font-medium text-yellow-600 dark:text-yellow-400">{tb('expiringSoon')}</span>
-                        ) : botStatus.tokenExpiresIn < 3600 ? (
-                          <span className="font-medium text-yellow-600 dark:text-yellow-400">
-                            {Math.floor(botStatus.tokenExpiresIn / 60)}min
-                          </span>
-                        ) : (
-                          <span className="font-medium text-foreground">
-                            {Math.floor(botStatus.tokenExpiresIn / 3600)}h {Math.floor((botStatus.tokenExpiresIn % 3600) / 60)}min
-                          </span>
-                        )}
+                        {(() => {
+                          const remaining = Math.max(0, (botStatus.tokenExpiresIn ?? 0) - Math.floor((now - botStatusUpdatedAt) / 1000));
+                          if (remaining <= 0) return <span className="font-medium text-yellow-600 dark:text-yellow-400">{tb('expiringSoon')}</span>;
+                          const h = Math.floor(remaining / 3600);
+                          const m = Math.floor((remaining % 3600) / 60);
+                          const s = remaining % 60;
+                          const color = remaining < 300 ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground';
+                          return <span className={`font-medium ${color}`}>{h > 0 ? `${h}h ` : ''}{m > 0 || h > 0 ? `${m}min ` : ''}{s}s</span>;
+                        })()}
                       </div>
                     )}
                     {botStatus.lastRefreshedAt && (
@@ -890,7 +894,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     <div className="h-px flex-1 bg-border" />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Einmalig aus deiner registrierten Twitch-Anwendung. Diese Zugangsdaten laufen <strong>nicht</strong> ab.
+                    {tb('twitchAppDesc')}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1">
@@ -934,48 +938,48 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     <div className="h-px flex-1 bg-border" />
                   </div>
                   <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex flex-col gap-1">
-                    <strong>⚠️ Wichtig beim Token generieren:</strong>
+                    <strong>{tb('tokenWarningTitle')}</strong>
                     <ol className="list-decimal list-inside space-y-0.5 mt-0.5">
-                      <li>Auf twitchtokengenerator.com <strong>„Custom Scope Token"</strong> wählen</li>
-                      <li>Oben rechts <strong>„Use my own client credentials"</strong> aktivieren</li>
-                      <li>Deine Client ID + Secret von oben eintragen</li>
-                      <li>Scopes: <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">chat:read</code> und <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">chat:edit</code> auswählen</li>
-                      <li>Als <strong>Bot-Account</strong> (nicht als Streamer) einloggen</li>
+                      <li>{tb('tokenStep1')}</li>
+                      <li>{tb('tokenStep2')}</li>
+                      <li>{tb('tokenStep3')}</li>
+                      <li>{tb('tokenStep4Pre')} <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">chat:read</code> {tb('tokenStep4Mid')} <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">chat:edit</code></li>
+                      <li>{tb('tokenStep5')}</li>
                     </ol>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1">
-                      <Label className="text-xs">Bot Twitch-Benutzername *</Label>
+                      <Label className="text-xs">{tb('fieldBotUsername')} *</Label>
                       <Input
                         value={botCreds.botLogin}
                         onChange={(e) => setBotCreds((c) => ({ ...c, botLogin: e.target.value }))}
                         placeholder="mein_bot_account"
                         autoComplete="off"
                       />
-                      <span className="text-xs text-muted-foreground">Twitch-Login des Bot-Accounts (Kleinbuchstaben)</span>
+                      <span className="text-xs text-muted-foreground">{tb('fieldBotUsernameHint')}</span>
                     </div>
                     <div className="hidden sm:block" />
                     <div className="flex flex-col gap-1 sm:col-span-2">
-                      <Label className="text-xs">Access Token *</Label>
+                      <Label className="text-xs">{tb('fieldAccessToken')} *</Label>
                       <Input
                         value={botCreds.accessToken}
                         onChange={(e) => setBotCreds((c) => ({ ...c, accessToken: e.target.value }))}
-                        placeholder="ACCESS TOKEN aus twitchtokengenerator.com"
+                        placeholder={tb('fieldAccessTokenPlaceholder')}
                         type={showBotSecrets ? 'text' : 'password'}
                         autoComplete="off"
                       />
-                      <span className="text-xs text-muted-foreground">Beginnt typischerweise nicht mit „oauth:" — den Token-Wert direkt kopieren.</span>
+                      <span className="text-xs text-muted-foreground">{tb('fieldAccessTokenHint')}</span>
                     </div>
                     <div className="flex flex-col gap-1 sm:col-span-2">
-                      <Label className="text-xs">Refresh Token *</Label>
+                      <Label className="text-xs">{tb('fieldRefreshToken')} *</Label>
                       <Input
                         value={botCreds.refreshToken}
                         onChange={(e) => setBotCreds((c) => ({ ...c, refreshToken: e.target.value }))}
-                        placeholder="REFRESH TOKEN aus twitchtokengenerator.com"
+                        placeholder={tb('fieldRefreshTokenPlaceholder')}
                         type={showBotSecrets ? 'text' : 'password'}
                         autoComplete="off"
                       />
-                      <span className="text-xs text-muted-foreground">Ermöglicht automatische Erneuerung — ohne Refresh Token muss nach ~4 h manuell neu verbunden werden.</span>
+                      <span className="text-xs text-muted-foreground">{tb('fieldRefreshTokenHint')}</span>
                     </div>
                   </div>
                 </div>
@@ -1001,10 +1005,10 @@ You have the right to lodge a complaint with a data protection supervisory autho
                 <div className="flex flex-col gap-2">
                   {/* Header row */}
                   <div className="hidden sm:grid sm:grid-cols-[1fr_1fr_180px_120px_auto] gap-2 px-2 text-xs font-semibold text-muted-foreground">
-                    <span>Funktion</span>
-                    <span>Befehlsname</span>
-                    <span>Berechtigung</span>
-                    <span>Aktiv</span>
+                    <span>{tb('cmdHeaderFunction')}</span>
+                    <span>{tb('cmdHeaderCommand')}</span>
+                    <span>{tb('cmdHeaderPerm')}</span>
+                    <span>{tb('cmdHeaderActive')}</span>
                     <span />
                   </div>
                   {CMD_SLUGS.map((slug) => {
@@ -1012,7 +1016,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     const def = CMD_DEFAULTS[slug];
                     return (
                       <div key={slug} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_180px_120px_auto] gap-2 items-center border rounded-lg p-3 sm:p-2">
-                        <div className="text-sm font-medium">{def.label}</div>
+                        <div className="text-sm font-medium">{tm(`cmd_${slug}`)}</div>
                         <Input
                           value={cfg.name}
                           onChange={(e) => setCmdConfigs((prev) => ({ ...prev, [slug]: { ...prev[slug], name: e.target.value } }))}
@@ -1027,9 +1031,9 @@ You have the right to lodge a complaint with a data protection supervisory autho
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">Alle Zuschauer</SelectItem>
-                            <SelectItem value="mod">Mod &amp; Broadcaster</SelectItem>
-                            <SelectItem value="broadcaster">Nur Broadcaster</SelectItem>
+                            <SelectItem value="all">{tb('cmdPermAll')}</SelectItem>
+                            <SelectItem value="mod">{tb('cmdPermMod')}</SelectItem>
+                            <SelectItem value="broadcaster">{tb('cmdPermBroadcaster')}</SelectItem>
                           </SelectContent>
                         </Select>
                         <div className="flex items-center gap-2">
@@ -1037,7 +1041,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
                             checked={cfg.enabled}
                             onCheckedChange={(v) => setCmdConfigs((prev) => ({ ...prev, [slug]: { ...prev[slug], enabled: v } }))}
                           />
-                          <span className="text-xs text-muted-foreground">{cfg.enabled ? 'An' : 'Aus'}</span>
+                          <span className="text-xs text-muted-foreground">{cfg.enabled ? tb('cmdOn') : tb('cmdOff')}</span>
                         </div>
                         <Button
                           size="sm"
@@ -1052,7 +1056,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
                     );
                   })}
                   <p className="text-xs text-muted-foreground mt-2">
-                    Für Zahlen-Befehle: Befehlsname ist das Präfix vor der Zahl, z.B. <code className="font-mono">!zahl+</code> → Aufruf: <code className="font-mono">!zahl+42</code>
+                    {tb('cmdZahlHintPre')} <code className="font-mono">!zahl+</code> {tb('cmdZahlHintPost')} <code className="font-mono">!zahl+42</code>
                   </p>
                 </div>
               </CardContent>
