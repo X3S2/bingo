@@ -25,6 +25,14 @@ export class AuthService {
     private config: ConfigService,
   ) {}
 
+  async validateInviteToken(token: string) {
+    const invite = await this.prisma.inviteToken.findUnique({ where: { token } });
+    if (!invite) return { valid: false, reason: 'not_found' };
+    if (invite.usedAt) return { valid: false, reason: 'already_used' };
+    if (invite.expiresAt && invite.expiresAt < new Date()) return { valid: false, reason: 'expired' };
+    return { valid: true, role: invite.role };
+  }
+
   /**
    * Called after successful Twitch OAuth callback.
    * Creates or updates the user, returns a JWT.
