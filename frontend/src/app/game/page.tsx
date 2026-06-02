@@ -9,6 +9,7 @@ import { Navbar } from '@/components/navigation/navbar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
@@ -25,7 +26,7 @@ export default function GamePickerPage() {
     if (!authLoading && !user) router.replace('/login');
   }, [user, authLoading, router]);
 
-  const { data: runningGames, isLoading: gamesLoading } = useQuery<{ id: string; title: string; channelName: string }[]>({
+  const { data: runningGames, isLoading: gamesLoading } = useQuery<{ id: string; title: string; channelName: string; canModerate?: boolean }[]>({
     queryKey: ['all-running-games'],
     queryFn: async () => {
       const r = await fetch(`${API}/games/all-running`, { credentials: 'include' });
@@ -95,9 +96,22 @@ export default function GamePickerPage() {
                         <Link href={`/game/${g.id}`}>{t('joinGame')}</Link>
                       </Button>
                       {isModRole && (
-                        <Button size="sm" variant="outline" asChild className="flex-1">
-                          <Link href={`/moderator/${g.id}`}>🛡️ {ts('moderate')}</Link>
-                        </Button>
+                        g.canModerate ? (
+                          <Button size="sm" variant="outline" asChild className="flex-1">
+                            <Link href={`/moderator/${g.id}`}>🛡️ {ts('moderate')}</Link>
+                          </Button>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="outline" className="flex-1" disabled>
+                                  🛡️ {ts('moderate')}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>{ts('noModAccess')}</p></TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )
                       )}
                     </div>
                   </div>

@@ -59,6 +59,14 @@ export default function ImpressumPage() {
         ) : (
           <p className="text-muted-foreground">Kein Inhalt vorhanden.</p>
         )}
+        <div className="mt-8 pt-6 border-t">
+          <p className="text-sm text-muted-foreground">
+            {showEn ? 'See also:' : 'Siehe auch:'}{' '}
+            <a href="/datenschutz" className="text-primary hover:underline">
+              {showEn ? 'Privacy Policy' : 'Datenschutzerklärung'}
+            </a>
+          </p>
+        </div>
       </main>
     </div>
   );

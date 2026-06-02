@@ -12,6 +12,7 @@ import { WinConditionService } from './win-condition.service';
 import { GameGateway } from '../gateway/game.gateway';
 import { TwitchIrcService } from '../twitch/twitch-irc.service';
 import { TwitchRewardService } from '../twitch/twitch-reward.service';
+import { ModAccessService } from '../auth/mod-access.service';
 import { GameStatus, UserRole } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -26,6 +27,7 @@ export class BingoService {
     private twitchIrc: TwitchIrcService,
     @Inject(forwardRef(() => TwitchRewardService))
     private twitchReward: TwitchRewardService,
+    private readonly modAccessService: ModAccessService,
   ) {}
 
   // ── Game Management ───────────────────────────────────────
@@ -147,17 +149,37 @@ export class BingoService {
     });
   }
 
-  async getAllRunningGames() {
-    return this.prisma.bingoGame.findMany({
+  async getAllRunningGames(userId?: string, userRole?: string) {
+    const games = await this.prisma.bingoGame.findMany({
       where: { status: GameStatus.RUNNING },
-      select: { id: true, title: true, channelName: true, status: true, startedAt: true },
+      select: { id: true, title: true, channelName: true, status: true, startedAt: true, streamerId: true },
       orderBy: { startedAt: 'desc' },
     });
+    if (!userId) {
+      return games.map(g => ({ ...g, canModerate: false }));
+    }
+    if (userRole === UserRole.ADMIN) {
+      return games.map(g => ({ ...g, canModerate: true }));
+    }
+    const activeModChannels = await this.modAccessService.getActiveModChannels(userId);
+    return games.map(g => ({
+      ...g,
+      canModerate: g.streamerId === userId || activeModChannels.includes(g.channelName.toLowerCase()),
+    }));
   }
 
-  async getGamesByModerator(userId: string) {
-    // Moderator can access all running games
-    return this.getAllRunningGames();
+  async getGamesByModerator(userId: string, userRole: string) {
+    return this.getAllRunningGames(userId, userRole);
+  }
+
+  async checkModeratorAccess(userId: string, gameId: string, userRole: string): Promise<void> {
+    if (userRole === UserRole.ADMIN) return;
+    const game = await this.getGameOrThrow(gameId);
+    if (game.streamerId === userId) return;
+    const activeModChannels = await this.modAccessService.getActiveModChannels(userId);
+    if (!activeModChannels.includes(game.channelName.toLowerCase())) {
+      throw new ForbiddenException('No moderator rights for this channel');
+    }
   }
 
   async getGamesByStreamer(streamerId: string) {

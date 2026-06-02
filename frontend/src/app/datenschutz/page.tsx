@@ -48,6 +48,14 @@ export default function DatenschutzPage() {
         ) : (
           <p className="text-muted-foreground">{tc('noContent')}</p>
         )}
+        <div className="mt-8 pt-6 border-t">
+          <p className="text-sm text-muted-foreground">
+            {locale === 'en' ? 'See also:' : 'Siehe auch:'}{' '}
+            <a href="/impressum" className="text-primary hover:underline">
+              {locale === 'en' ? 'Imprint' : 'Impressum'}
+            </a>
+          </p>
+        </div>
       </main>
     </div>
   );

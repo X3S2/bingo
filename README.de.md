@@ -1,12 +1,12 @@
 ﻿# StreamBingo
 
-**v1.3.5** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
+**v1.5.0** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
 
 > 🇬🇧 [English version → README.md](README.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.5-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -196,7 +196,7 @@ StreamBingo verwendet `RefreshingAuthProvider` von `@twurple/auth`:
 
 Der **erste Nutzer**, der sich über Twitch anmeldet und den Setup-Assistenten abschließt, wird automatisch zum Admin. Weitere Admins können im Admin-Portal ernannt werden.
 
-Moderatoren werden automatisch über die Twitch Helix API erkannt (Kanal-Moderatoren).
+Moderatoren werden **automatisch pro Kanal** über die Twitch Helix API (`/helix/moderation/channels`) erkannt. Die Prüfung erfolgt beim Login und in konfigurierbaren Intervallen (Standard: 10 Minuten). Verliert ein Nutzer alle Mod-Rechte, wird seine Rolle auf `VIEWER` zurückgestuft.
 
 ---
 

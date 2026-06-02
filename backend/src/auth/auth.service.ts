@@ -1,8 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { ModAccessService } from './mod-access.service';
 import { ConfigService } from '@nestjs/config';
-import { GameStatus, UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 
 export interface TwitchUserData {
   twitchId: string;
@@ -21,10 +22,10 @@ export interface JwtPayload {
 export class AuthService {
   constructor(
     private prisma: PrismaService,
+    private readonly modAccessService: ModAccessService,
     private jwtService: JwtService,
     private config: ConfigService,
   ) {}
-
   async validateInviteToken(token: string) {
     const invite = await this.prisma.inviteToken.findUnique({ where: { token } });
     if (!invite) return { valid: false, reason: 'not_found' };
@@ -137,38 +138,15 @@ export class AuthService {
    * Check if user moderates any channel that currently has a running game.
    * Returns true if the user should be elevated to MODERATOR.
    */
-  private async tryElevateModerator(twitchId: string, twitchAccessToken: string): Promise<boolean> {
-    try {
-      const clientId = await this.getClientId();
-      const res = await fetch(
-        `https://api.twitch.tv/helix/moderation/channels?user_id=${encodeURIComponent(twitchId)}&first=100`,
-        {
-          headers: {
-            Authorization: `Bearer ${twitchAccessToken}`,
-            'Client-Id': clientId,
-          },
-        },
-      );
-      if (!res.ok) return false;
-
-      const data: any = await res.json();
-      const channelLogins: string[] = (data.data ?? []).map((c: any) =>
-        (c.broadcaster_login as string).toLowerCase(),
-      );
-      if (channelLogins.length === 0) return false;
-
-      // Check if any running game uses one of those channels
-      const runningGame = await this.prisma.bingoGame.findFirst({
-        where: {
-          status: GameStatus.RUNNING,
-          channelName: { in: channelLogins },
-        },
-      });
-
-      return runningGame !== null;
-    } catch {
-      return false;
-    }
+  private async tryElevateModerator(
+    twitchId: string,
+    twitchAccessToken: string,
+  ): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { twitchId } });
+    if (!user) return false;
+    await this.modAccessService.checkAndUpdate({ ...user, twitchAccessToken });
+    const updated = await this.prisma.user.findUnique({ where: { twitchId } });
+    return updated?.role === UserRole.MODERATOR;
   }
 
   async validateUser(payload: JwtPayload) {

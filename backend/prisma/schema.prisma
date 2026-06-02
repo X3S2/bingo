@@ -13,6 +13,19 @@ datasource db {
 // Enums
 // ============================================================
 
+model ChannelModAccess {
+  id          String   @id @default(cuid())
+  userId      String
+  channelName String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channelName])
+}
+
 enum UserRole {
   VIEWER
   MODERATOR
@@ -61,6 +74,9 @@ model User {
   // Stored Twitch OAuth tokens for API calls (e.g. Channel Points)
   twitchAccessToken  String?
   twitchRefreshToken String?
+  modLastCheckedAt   DateTime?
+
+  channelModAccess   ChannelModAccess[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

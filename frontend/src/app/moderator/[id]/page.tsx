@@ -73,8 +73,8 @@ export default function ModeratorPage({ params }: ModPage) {
     setCookieBannerVisible(!localStorage.getItem('cookie_accepted'));
   }, []);
 
-  // Query all available games for the mod switcher — all roles see ALL running games
-  const { data: availableGames } = useQuery<{ id: string; title: string; channelName: string }[]>({
+  // Query all available games for the mod switcher — filtered to games the user can moderate
+  const { data: availableGames } = useQuery<{ id: string; title: string; channelName: string; canModerate?: boolean }[]>({
     queryKey: ['available-mod-games'],
     queryFn: async () => {
       const r = await fetch(`${API}/games/all-running`, { credentials: 'include' });
@@ -91,6 +91,15 @@ export default function ModeratorPage({ params }: ModPage) {
     }
     if (!authLoading && !user) router.replace('/login');
   }, [user, authLoading, router]);
+
+  // Redirect if user cannot moderate this specific game
+  useEffect(() => {
+    if (!availableGames) return;
+    const thisGame = availableGames.find(g => g.id === id);
+    if (thisGame && thisGame.canModerate === false) {
+      router.replace('/game');
+    }
+  }, [availableGames, id, router]);
 
   const { data: game } = useQuery({
     queryKey: ['game', id],
@@ -288,13 +297,13 @@ export default function ModeratorPage({ params }: ModPage) {
             </>
           )}
           {/* Game switcher: shown when multiple games are available */}
-          {availableGames && availableGames.length > 1 && (
+          {availableGames && availableGames.filter(g => g.canModerate !== false).length > 1 && (
             <Select value={id} onValueChange={(val) => router.push(`/moderator/${val}`)}>
               <SelectTrigger className="h-8 w-auto max-w-[220px] text-xs gap-1">
                 <SelectValue placeholder={t('switchGame')} />
               </SelectTrigger>
               <SelectContent>
-                {availableGames.map((g) => (
+                {availableGames.filter(g => g.canModerate !== false).map((g) => (
                   <SelectItem key={g.id} value={g.id} className="text-xs">
                     {g.channelName}{g.title && g.title !== g.channelName ? ` – ${g.title}` : ''}
                   </SelectItem>

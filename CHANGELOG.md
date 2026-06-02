@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-06-04
+
+### Added
+- **Per-channel IRC moderator system** — New `ChannelModAccess` Prisma model tracks which channels each user has active IRC mod rights. Twitch `/moderation/channels` API is polled on login and at configurable intervals.
+- **`ModAccessService`** — `checkAndUpdate()` rate-limits Twitch API checks per user; `canModerateGame()` evaluates ADMIN/owner/mod-by-channel; `getActiveModChannels()` returns the list of authorized channels.
+- **`canModerate` field on running games API** — `GET /bingo/all-running` and moderator game list now include a `canModerate: boolean` per game based on the requesting user's access.
+- **"Moderieren" button disabled with tooltip** — On the game page, the Moderate button is greyed out (disabled) with tooltip "Keine Mod-Rechte für diesen Channel" when the user has no mod rights for that channel.
+- **Moderator page access guard** — Redirect to `/game` if the loaded game's `canModerate === false`. Game switcher only shows games the user can moderate.
+- **Admin: mod check interval setting** — New `mod_check_interval_minutes` admin setting input in the Settings tab.
+- **Impressum ↔ Datenschutz cross-links** — Fixed "Siehe auch" section added below content on both `/impressum` and `/datenschutz`.
+
+### Changed
+- **Streamer help steps** — Removed old "Setup-Assistent" step, added "Spiel-Link teilen" as Step 1, updated Step 5 bot-join hint.
+- **Viewer help Step 1 text** — "auf deiner Karte" → "im Zahlen-Board unterhalb deiner Karte" (DE) / "in the number board below your card" (EN).
+- **Role demotion** — If a user loses all IRC mod rights, their `User.role` is downgraded to `VIEWER`.
+
+---
+
 ## [1.4.0] - 2026-06-02
 
 ### Added

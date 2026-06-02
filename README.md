@@ -1,12 +1,12 @@
 # StreamBingo
 
-**v1.3.5** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
+**v1.5.0** — Production-ready Twitch Bingo web platform for streamers, moderators, and viewers.
 
 > 🇩🇪 [Deutsche Version → README.de.md](README.de.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.5-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.md)
 
 ---
 
@@ -186,7 +186,7 @@ For Channel Point Redeems:
 | `STREAMER` | All moderator permissions + create/manage games, configure Redeems |
 | `ADMIN` | Full platform control, manage all users and games |
 
-Moderators are **auto-detected** from the Twitch channel's moderator list via the Helix API.
+Moderators are **auto-detected** per channel via the Twitch Helix API (`/helix/moderation/channels`). Access is checked on login and re-checked at a configurable interval (default: 10 minutes). If a user loses all mod rights, their role is downgraded to `VIEWER`.
 
 ---
 

@@ -196,6 +196,7 @@ export default function AdminPage() {
 
   const [maintenanceMsg, setMaintenanceMsg] = useState('');
   const [maintenanceOptimistic, setMaintenanceOptimistic] = useState<boolean | null>(null);
+  const [modCheckInterval, setModCheckInterval] = useState('10');
   const [userSearch, setUserSearch] = useState('');
   const [botCreds, setBotCreds] = useState({
     clientId: '', clientSecret: '', botLogin: '', accessToken: '', refreshToken: '',
@@ -241,6 +242,7 @@ export default function AdminPage() {
     if (settings) {
       setMaintenanceMsg(settings.find((s: { key: string }) => s.key === 'maintenance_message')?.value ?? '');
       const g = (k: string) => settings.find((s: { key: string }) => s.key === k)?.value ?? '';
+      setModCheckInterval(g('mod_check_interval_minutes') || '10');
       setLegalData({
         name: g('legal_name'), firma: g('legal_firma'), strasse: g('legal_strasse'),
         plzOrt: g('legal_plz_ort'), land: g('legal_land') || 'Deutschland',
@@ -1184,6 +1186,30 @@ You have the right to lodge a complaint with a data protection supervisory autho
                   <Button
                     variant="outline"
                     onClick={() => saveSettingMutation.mutate({ key: 'maintenance_message', value: maintenanceMsg })}
+                  >
+                    {tc('save')}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Mod-Check Interval */}
+            <Card>
+              <CardHeader><CardTitle className="text-base">{t('modCheckInterval')}</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <p className="text-xs text-muted-foreground">{t('modCheckIntervalDesc')}</p>
+                <div className="flex gap-2 items-center">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    className="max-w-[120px]"
+                    value={modCheckInterval}
+                    onChange={(e) => setModCheckInterval(e.target.value)}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => saveSettingMutation.mutate({ key: 'mod_check_interval_minutes', value: modCheckInterval })}
                   >
                     {tc('save')}
                   </Button>
