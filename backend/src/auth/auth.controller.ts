@@ -5,6 +5,7 @@ import {
   Res,
   Req,
   Post,
+  Param,
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import { RolesGuard, Roles } from './guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
+import { AdminService } from '../admin/admin.service';
 
 // Simple in-memory state store (sufficient for single-instance)
 const oauthStates = new Map<string, number>();
@@ -26,7 +28,13 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private config: ConfigService,
+    private adminService: AdminService,
   ) {}
+
+  @Get('validate-invite/:token')
+  validateInvite(@Param('token') token: string) {
+    return this.adminService.validateInviteToken(token);
+  }
 
   /**
    * Initiate bot account Twitch OAuth – admin only.

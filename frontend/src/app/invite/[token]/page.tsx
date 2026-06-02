@@ -19,10 +19,9 @@ export default function InvitePage({ params }: InvitePageProps) {
   const [role, setRole] = useState<string>('STREAMER');
 
   useEffect(() => {
-    // Validate the token with the backend (requires JWT cookie)
-    // If user is not logged in, we still show the page; they'll log in and the token will be consumed at callback
+    // Validate the token with the backend before login.
     const controller = new AbortController();
-    fetch(`${API}/admin/validate-invite/${encodeURIComponent(token)}`, {
+    fetch(`${API}/auth/validate-invite/${encodeURIComponent(token)}`, {
       credentials: 'include',
       signal: controller.signal,
     })
