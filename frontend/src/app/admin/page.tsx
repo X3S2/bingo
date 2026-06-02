@@ -668,7 +668,7 @@ You have the right to lodge a complaint with a data protection supervisory autho
         </div>
 
         <Tabs defaultValue="stats">
-          <TabsList className="flex flex-wrap h-auto gap-1 items-start justify-start bg-muted p-1 rounded-lg">
+          <TabsList className="flex flex-wrap h-auto gap-1 items-start justify-start bg-muted p-1 rounded-lg w-full">
             <TabsTrigger value="stats">{t('stats')}</TabsTrigger>
             <TabsTrigger value="users">{t('users')}</TabsTrigger>
             <TabsTrigger value="games">{t('games')}</TabsTrigger>
@@ -683,12 +683,12 @@ You have the right to lodge a complaint with a data protection supervisory autho
           {/* Stats */}
           <TabsContent value="stats" className="mt-4">
             {stats ? (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
                   { label: t('totalUsers'), value: stats.totalUsers },
                   { label: t('totalGames'), value: stats.totalGames },
                   { label: t('activeGames'), value: stats.activeGames },
-                  { label: t('totalWinners'), value: stats.totalWinners },
+                  // { label: t('totalWinners'), value: stats.totalWinners }, // hidden by design
                 ].map((s) => (
                   <Card key={s.label}>
                     <CardContent className="pt-4">
@@ -835,14 +835,22 @@ You have the right to lodge a complaint with a data protection supervisory autho
                         {botStatus.connected ? tb('connected') : tb('disconnected')}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {botStatus.tokenValid
                         ? <ShieldCheck className="w-4 h-4 text-green-500" />
-                        : <ShieldX className="w-4 h-4 text-red-500" />}
+                        : botStatus.connected
+                          ? <ShieldCheck className="w-4 h-4 text-blue-500" />
+                          : <ShieldX className="w-4 h-4 text-red-500" />}
                       <span className="font-medium">{tb('token')}</span>
-                      <Badge variant={botStatus.tokenValid ? 'default' : 'destructive'} className="text-xs">
-                        {botStatus.tokenValid ? tb('valid') : tb('invalid')}
+                      <Badge
+                        variant={botStatus.tokenValid ? 'default' : botStatus.connected ? 'outline' : 'destructive'}
+                        className="text-xs"
+                      >
+                        {botStatus.tokenValid ? tb('valid') : botStatus.connected ? tb('tokenViaOAuth') : tb('invalid')}
                       </Badge>
+                      {!botStatus.tokenValid && botStatus.connected && (
+                        <span className="text-xs text-muted-foreground col-span-2">{tb('tokenViaOAuthHint')}</span>
+                      )}
                     </div>
                     {botStatus.botLogin && (
                       <div className="col-span-2 text-muted-foreground">

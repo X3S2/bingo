@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trophy, Wifi, WifiOff, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Trophy, Wifi, WifiOff, ChevronDown, ChevronUp, X, HelpCircle } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -66,6 +66,12 @@ export default function ModeratorPage({ params }: ModPage) {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'proximity' | 'name'>('proximity');
   const [showCmds, setShowCmds] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [cookieBannerVisible, setCookieBannerVisible] = useState(false);
+
+  useEffect(() => {
+    setCookieBannerVisible(!localStorage.getItem('cookie_accepted'));
+  }, []);
 
   // Query all available games for the mod switcher — all roles see ALL running games
   const { data: availableGames } = useQuery<{ id: string; title: string; channelName: string }[]>({
@@ -484,6 +490,61 @@ export default function ModeratorPage({ params }: ModPage) {
           </div>
         </div>
       </main>
+
+      {/* Floating help button */}
+      <button
+        onClick={() => setHelpOpen(!helpOpen)}
+        className={`fixed right-6 z-50 w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg flex items-center justify-center transition-all duration-300 ${
+          cookieBannerVisible ? 'bottom-[4.5rem]' : 'bottom-6'
+        } ${helpOpen ? 'ring-2 ring-white/50' : ''}`}
+        title={helpOpen ? t('helpClose') : t('helpOpen')}
+        aria-label={helpOpen ? t('helpClose') : t('helpOpen')}
+      >
+        <HelpCircle className="w-6 h-6" />
+      </button>
+
+      {/* Help side panel */}
+      {helpOpen && (
+        <div
+          className="fixed right-0 z-30 flex flex-col bg-background border-l shadow-2xl"
+          style={{ top: '3.5rem', bottom: 0, width: 'min(480px, 90vw)' }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b">
+            <h2 className="font-semibold text-base">{t('helpTitle')}</h2>
+            <button
+              onClick={() => setHelpOpen(false)}
+              className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label={t('helpClose')}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5 text-sm">
+            <ModHelpSection step={1} title={t('helpStep1Title')} text={t('helpStep1Text')} />
+            <ModHelpSection step={2} title={t('helpStep2Title')} text={t('helpStep2Text')} />
+            <ModHelpSection step={3} title={t('helpStep3Title')} text={t('helpStep3Text')} />
+            <ModHelpSection step={4} title={t('helpStep4Title')} text={t('helpStep4Text')} />
+            <ModHelpSection step={5} title={t('helpStep5Title')} text={t('helpStep5Text')} />
+            <div className="mt-2 rounded-md bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-4 py-3 text-muted-foreground text-xs">
+              {t('helpFooter')}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModHelpSection({ step, title, text }: { step: number; title: string; text: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center text-xs font-bold">
+        {step}
+      </div>
+      <div>
+        <p className="font-semibold mb-0.5">{title}</p>
+        <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{text}</p>
+      </div>
     </div>
   );
 }

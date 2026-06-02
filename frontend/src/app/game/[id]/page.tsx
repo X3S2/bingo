@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Wifi, WifiOff } from 'lucide-react';
+import { Wifi, WifiOff, HelpCircle, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
@@ -34,6 +34,12 @@ export default function GamePage({ params }: GamePage) {
   const t = useTranslations('bingo');
   const [socketConnected, setSocketConnected] = useState(() => socket?.connected ?? false);
   const [lastDrawnNumber, setLastDrawnNumber] = useState<number | null>(null);
+  const [viewerHelpOpen, setViewerHelpOpen] = useState(false);
+  const [cookieBannerVisible, setCookieBannerVisible] = useState(false);
+
+  useEffect(() => {
+    setCookieBannerVisible(!localStorage.getItem('cookie_accepted'));
+  }, []);
 
   // Debounced save of viewer's manual marks to server (500ms delay)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -117,6 +123,17 @@ export default function GamePage({ params }: GamePage) {
     },
     enabled: !!user,
     staleTime: 30_000,
+  });
+
+  const { data: botCmds } = useQuery<Record<string, { name: string; enabled: boolean; perm: string }>>({
+    queryKey: ['bot-commands'],
+    queryFn: async () => {
+      const r = await fetch(`${API}/twitch/bot-commands`, { credentials: 'include' });
+      if (!r.ok) return {};
+      return r.json();
+    },
+    enabled: !!user,
+    staleTime: 60_000,
   });
 
   const joinMutation = useMutation({
@@ -381,6 +398,58 @@ export default function GamePage({ params }: GamePage) {
         <NumberBoard numbers={drawnNumbers} />
         <WinnerBoard winners={winners ?? []} />
       </main>
+
+      {/* Floating viewer help button — small and subtle */}
+      <button
+        onClick={() => setViewerHelpOpen(!viewerHelpOpen)}
+        className={`fixed right-6 z-50 w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg flex items-center justify-center transition-all duration-300 border border-white/10 ${
+          cookieBannerVisible ? 'bottom-[4.5rem]' : 'bottom-6'
+        } ${viewerHelpOpen ? 'ring-2 ring-white/40' : ''}`}
+        title={viewerHelpOpen ? t('helpClose') : t('helpOpen')}
+        aria-label={viewerHelpOpen ? t('helpClose') : t('helpOpen')}
+      >
+        <HelpCircle className="w-4 h-4" />
+      </button>
+
+      {/* Viewer help side panel */}
+      {viewerHelpOpen && (
+        <div
+          className="fixed right-0 z-30 flex flex-col bg-background border-l shadow-2xl"
+          style={{ top: '3.5rem', bottom: 0, width: 'min(480px, 90vw)' }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b">
+            <h2 className="font-semibold text-base">{t('helpTitle')}</h2>
+            <button
+              onClick={() => setViewerHelpOpen(false)}
+              className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label={t('helpClose')}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5 text-sm">
+            <ViewerHelpSection step={1} title={t('helpStep1Title')} text={t('helpStep1Text')} />
+            <ViewerHelpSection step={2} title={t('helpStep2Title')} text={t('helpStep2Text')} />
+            <ViewerHelpSection step={3} title={t('helpStep3Title')} text={t('helpStep3Text', { bingoCmd: botCmds?.bingo?.name ?? 'bingo' })} />
+            <ViewerHelpSection step={4} title={t('helpStep4Title')} text={t('helpStep4Text')} />
+            <ViewerHelpSection step={5} title={t('helpStep5Title')} text={t('helpStep5Text')} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ViewerHelpSection({ step, title, text }: { step: number; title: string; text: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center text-xs font-bold">
+        {step}
+      </div>
+      <div>
+        <p className="font-semibold mb-0.5">{title}</p>
+        <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{text}</p>
+      </div>
     </div>
   );
 }

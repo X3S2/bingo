@@ -75,6 +75,9 @@ export class BingoService {
     // Auto-activate Channel Points rewards (fire-and-forget)
     this.twitchReward.toggleGameRewards(game.streamerId, gameId, true).catch(() => {});
 
+    // Auto-join bot to channel
+    this.twitchIrc.registerActiveGame(game.channelName, gameId);
+
     return updated;
   }
 
@@ -94,6 +97,9 @@ export class BingoService {
 
     // Auto-deactivate Channel Points rewards (fire-and-forget)
     this.twitchReward.toggleGameRewards(game.streamerId, gameId, false).catch(() => {});
+
+    // Auto-leave bot from channel
+    this.twitchIrc.unregisterActiveGame(game.channelName);
 
     return updated;
   }

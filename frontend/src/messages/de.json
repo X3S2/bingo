@@ -76,7 +76,20 @@
     "activeGames": "Aktive Spiele",
     "nonViewerNote": "Als {role} benötigst du keine eigene Karte. Nutze das Moderator-Dashboard für die Spielverwaltung.",
     "numberDrawnToast": "🎱 Nummer {number} gezogen!",
-    "moderate": "Moderieren"
+    "moderate": "Moderieren",
+    "helpOpen": "Hilfe öffnen",
+    "helpClose": "Hilfe schließen",
+    "helpTitle": "Wie funktioniert StreamBingo?",
+    "helpStep1Title": "1. Zahlen werden gezogen",
+    "helpStep1Text": "Der Moderator oder Streamer zieht Zahlen (1–75). Diese erscheinen automatisch auf deiner Karte und im Zahlen-Board.",
+    "helpStep2Title": "2. Eigene Markierungen",
+    "helpStep2Text": "Du kannst Felder auf deiner Karte anklicken, um sie manuell zu markieren. Diese Markierungen sind nur für dich sichtbar und werden automatisch gespeichert.",
+    "helpStep3Title": "3. Bingo melden — Pflicht!",
+    "helpStep3Text": "Wenn du eine vollständige Reihe, Spalte oder Diagonale hast:\n• Schreibe \"{bingoCmd}\" in den Twitch Chat\n• ODER drücke den \"BINGO melden!\"-Button auf dieser Seite\n\nNur so wird dein Gewinn registriert! Groß- und Kleinschreibung ist egal.",
+    "helpStep4Title": "4. Kein automatischer Gewinn",
+    "helpStep4Text": "Ohne das aktive Melden über Chat oder Button wird kein Gewinn gewertet – auch wenn alle Zahlen auf deiner Karte gezogen wurden. Sei schnell, denn wer zuerst meldet, gewinnt!",
+    "helpStep5Title": "5. Preise & Verantwortung",
+    "helpStep5Text": "Der Streamer legt die Preise eigenständig fest. StreamBingo ist lediglich das Spielsystem und nicht für die Auszahlung oder Gestaltung der Preise verantwortlich. Bei Fragen zu Preisen wende dich an die Mods oder den Streamer direkt."
   },
   "streamer": {
     "title": "Streamer-Verwaltung",
@@ -141,8 +154,12 @@
     "helpStep4Title": "4. Spiel erstellen & starten",
     "helpStep4Text": "Klicke auf \"Neues Bingo erstellen\". Starte das Spiel mit dem Play-Button. Deine Viewer können nun über Channel Points eine Karte erhalten und mitspielen.",
     "helpStep5Title": "5. Moderieren & Zahlen ziehen",
-    "helpStep5Text": "Öffne das Moderator-Dashboard für das Spiel. Dort kannst du Zahlen ziehen, Gewinner verwalten und Chat-Befehle einsehen. Der Bot muss in deinem Channel sein (Bot-Join-Button).",
-    "helpFooter": "Brauchst du weitere Hilfe? Wende dich bitte im Discord an User \"X3S2\"."
+    "helpStep5Text": "Öffne das Moderator-Dashboard für das Spiel über den \"Moderieren\"-Button. Dort kannst du Zahlen ziehen, Gewinner verwalten und Chat-Befehle einsehen. Der Bot verbindet sich automatisch, wenn du das Spiel startest.",
+    "helpFooter": "Brauchst du weitere Hilfe? Wende dich bitte im Discord an User \"X3S2\".",
+    "gameCreatedToast": "Spiel erstellt!",
+    "gameStartedToast": "Spiel gestartet!",
+    "gameStoppedToast": "Spiel beendet!",
+    "linkCopied": "Link kopiert!"
   },
   "dashboard": {
     "welcome": "Willkommen zurück, {name}",
@@ -296,7 +313,9 @@
     "broadcasterMode": "Broadcaster-Modus",
     "broadcasterModeDesc": "Nachrichten werden über deinen eigenen Twitch-Account gesendet statt über den Bot-Account. Kein separater Bot-Account nötig — dein Account kann nicht durch Spam-Filter blockiert werden.",
     "broadcasterModeActive": "Broadcaster-Modus aktiv",
-    "broadcasterModeHint": "Wenn aktiviert, nutzt die App deinen eingeloggten Twitch-Account zum Senden von Chat-Nachrichten. Der Bot-Account wird weiterhin zum Empfangen von Befehlen verwendet (falls konfiguriert)."
+    "broadcasterModeHint": "Wenn aktiviert, nutzt die App deinen eingeloggten Twitch-Account zum Senden von Chat-Nachrichten. Der Bot-Account wird weiterhin zum Empfangen von Befehlen verwendet (falls konfiguriert).",
+    "tokenViaOAuth": "In-App-OAuth aktiv",
+    "tokenViaOAuthHint": "Token wird über die Bot-Account-Autorisierung verwaltet – alles korrekt so."
   },
   "moderator": {
     "title": "Moderator-Dashboard",
@@ -330,7 +349,21 @@
     "numberDrawnSuccess": "Zahl {number} gezogen",
     "numberRangeError": "Zahl muss zwischen 1 und 75 liegen",
     "noCardsFound": "Keine Karten gefunden.",
-    "removeWinnerError": "Fehler beim Entfernen des Gewinners"
+    "removeWinnerError": "Fehler beim Entfernen des Gewinners",
+    "helpOpen": "Hilfe öffnen",
+    "helpClose": "Hilfe schließen",
+    "helpTitle": "Moderator-Hilfe: So nutzt du das Dashboard",
+    "helpStep1Title": "1. Spielübersicht",
+    "helpStep1Text": "Hier siehst du alle Spielerkarten live, gezogene Zahlen und die aktuelle Gewinnerliste. Die Karten werden nach Bingo-Nähe sortiert – ganz oben die Spieler, die am nächsten an Bingo sind.",
+    "helpStep2Title": "2. Zahlen ziehen",
+    "helpStep2Text": "Gib eine Zahl zwischen 1 und 75 ein und klicke auf \"Zahl ziehen\". Die Zahl erscheint sofort auf allen Spielerkarten. Im Twitch Chat geht es auch mit dem Befehl !zahl+N (z.B. !zahl+42).",
+    "helpStep3Title": "3. Zahlen entfernen",
+    "helpStep3Text": "Wenn eine Zahl irrtümlich gezogen wurde: Gleiche Zahl eingeben → \"Zahl entfernen\" klicken. Die Zahl wird von allen Karten zurückgesetzt. Im Chat: !zahl-N",
+    "helpStep4Title": "4. Gewinner verwalten",
+    "helpStep4Text": "Wenn ein Viewer Bingo meldet (Chat oder Button), erscheint er automatisch in der Gewinnerliste. Mit dem X-Button kannst du einen Gewinner entfernen, z.B. wenn ein Fehler passiert ist.",
+    "helpStep5Title": "5. Bot-Join",
+    "helpStep5Text": "Der Bot verbindet sich automatisch, wenn das Spiel gestartet wird. Falls oben \"Bot nicht verbunden\" steht, kann der Streamer den Bot manuell einbinden: Streamer-Verwaltung → Bot-Join-Button beim laufenden Spiel.",
+    "helpFooter": "Bei weiteren Fragen an den Streamer oder im Discord an User \"X3S2\" wenden."
   },
   "setup": {
     "title": "StreamBingo einrichten",

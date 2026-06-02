@@ -182,10 +182,9 @@ export default function StreamerPage() {
       return r.json();
     },
     onSuccess: (data: Game) => {
-      toast.success('Spiel erstellt!');
+      toast.success(t('gameCreatedToast'));
       setForm((f) => ({ ...f, title: '' }));
       void qc.invalidateQueries({ queryKey: ['my-games'] });
-      router.push(`/moderator/${data.id}`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -203,10 +202,8 @@ export default function StreamerPage() {
       return r.json();
     },
     onSuccess: (data: Game) => {
-      toast.success('Spiel gestartet!');
+      toast.success(t('gameStartedToast'));
       void qc.invalidateQueries({ queryKey: ['my-games'] });
-      triggerBotJoin(data.channelName);
-      router.push(`/moderator/${data.id}`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -224,7 +221,7 @@ export default function StreamerPage() {
       return r.json();
     },
     onSuccess: () => {
-      toast.success('Spiel beendet!');
+      toast.success(t('gameStoppedToast'));
       void qc.invalidateQueries({ queryKey: ['my-games'] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -270,7 +267,7 @@ export default function StreamerPage() {
   const copyLink = (gameId: string) => {
     const origin = window.location.origin;
     void navigator.clipboard.writeText(`${origin}/game/${gameId}`).then(() => {
-      toast.success('Link kopiert!');
+      toast.success(t('linkCopied'));
     });
   };
 

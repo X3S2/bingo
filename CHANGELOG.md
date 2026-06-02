@@ -11,6 +11,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-06-02
+
+### Added
+- **Bot auto-join on game start** — `startGame()` now calls `twitchIrc.registerActiveGame()` automatically. Bot joins the channel when the streamer starts a game.
+- **Bot auto-leave on game stop** — `stopGame()` now calls `twitchIrc.unregisterActiveGame()`. Bot leaves the channel when the game ends (manual stop, auto-stop, or cron).
+- **Moderator help panel** — Floating `?`-button (violet, `w-12 h-12`) opens a fixed side panel with 5 numbered help steps explaining the dashboard. Adapts position above the cookie banner when visible.
+- **Viewer help panel** — Smaller floating `?`-button (`w-9 h-9`, slate background) on the game page. Dynamically loads the bingo command name from the bot-commands API for Step 3 text.
+
+### Changed
+- **Streamer page** — After creating or starting a game, the page stays on the streamer management page instead of redirecting to the moderator dashboard. Redirect was confusing for streamers managing multiple games.
+- **Streamer help text (Step 5)** — Updated to reflect that the bot now auto-connects on game start. Bot-Join button stays visible as manual recovery if the moderator view shows "Bot not connected".
+- **All toasts on streamer page** — Replaced hardcoded German strings with i18n keys (`gameCreatedToast`, `gameStartedToast`, `gameStoppedToast`, `linkCopied`).
+- **Admin bot-status badge** — When `connected === true && !tokenValid`, shows "In-App-OAuth aktiv" with `variant="outline"` and blue `ShieldCheck` icon instead of red "Ungültig". Indicates In-App-OAuth is active and working.
+- **Admin stats panel** — Removed "Gesamte Gewinner" stat card; grid changed from `lg:grid-cols-4` to `lg:grid-cols-3`.
+- **Admin mobile tabs** — Added `w-full` to `TabsList` so the `bg-muted` background extends over all wrapped rows on small screens.
+
+---
+
+## [1.3.13] - 2026-06-02
+
+### Fixed
+- **NestJS build output path** — `dist/main.js` not found at container startup. Root cause: `nest-cli.json` has `"sourceRoot": "src"`, which causes Nest to output to `dist/src/main.js` instead of `dist/main.js`. Fixed `Dockerfile` CMD to use `dist/src/main.js`.
+
+---
+
+## [1.3.12] - 2026-06-02
+
+### Fixed
+- **NAS database password** — `docker-compose.yml` on the NAS still contained placeholder `ANPASSEN_DB_PASSWORT`. Updated to real password. Renamed the postgres volume from `postgres_data-2` to `postgres_data-3` to force a clean database init.
+
+---
+
+## [1.3.11] - 2026-06-02
+
+### Fixed
+- **`prisma.config.ts` missing in production Docker stage** — Multi-stage `Dockerfile` did not copy `prisma.config.ts` into the final image. Added `COPY prisma.config.ts ./` to the production stage. Without it, Prisma 7 could not find the database URL and crashed on startup.
+
+---
+
+## [1.3.10] - 2026-06-02
+
+### Fixed
+- **Reverted Prisma `url` back to `prisma.config.ts`** — Attempted fix in v1.3.9 (adding `url` to `schema.prisma`) caused `Error: P1012 Argument url is missing in datasource block`. In Prisma 7, the database URL must be set in `prisma.config.ts`, not in `schema.prisma`.
+
+---
+
+## [1.3.9] - 2026-06-02
+
+### Fixed
+- **Prisma 7 `url` field** — Attempted to add `url = env("DATABASE_URL")` back to `schema.prisma` datasource block to fix connection. (Reverted in v1.3.10 — invalid in Prisma 7.)
+
+---
+
+## [1.3.8] - 2026-06-02
+
+### Fixed
+- **`string[]` incompatible with `AbstractIntlMessages`** — `de.json` / `en.json` contained a `columns` array in the `bingo` namespace (`["B","I","N","G","O"]`). next-intl's type system requires all values to be strings or nested objects, not arrays. Removed the unused `columns` array from both locale files.
+
+---
+
+## [1.3.7] - 2026-06-02
+
+### Fixed
+- **`allGames.length` crash on moderator page** — `allGames` was `undefined` on first render before the query resolved, causing a runtime crash. Added null guards: `(allGames?.length ?? 0) > 1` and `(allGames ?? []).map(...)`.
+
+---
+
 ## [1.3.6] - 2026-06-01
 
 ### Fixed
