@@ -91,7 +91,13 @@
     "helpStep4Title": "4. No automatic win",
     "helpStep4Text": "Without actively claiming via chat or button, no win is recorded — even if all numbers on your card have been drawn. Be fast, first to claim wins!",
     "helpStep5Title": "5. Prizes & Responsibility",
-    "helpStep5Text": "The streamer sets the prizes independently. StreamBingo is only the game system and is not responsible for prize payouts or prize design. For questions about prizes, contact the mods or streamer directly."
+    "helpStep5Text": "The streamer sets the prizes independently. StreamBingo is only the game system and is not responsible for prize payouts or prize design. For questions about prizes, contact the mods or streamer directly.",
+    "eligibilityNotFollowing": "You are not following this channel. Following is required for this game.",
+    "eligibilityFollowDays": "You have been following for {current} day(s). At least {required} day(s) required.",
+    "eligibilityNotSubscribed": "You are not subscribed to this channel. An active subscription is required.",
+    "eligibilitySubMonths": "You have been subscribed for {current} month(s). At least {required} month(s) required.",
+    "eligibilityScopeMissing": "Eligibility check is currently unavailable. Please contact the streamer.",
+    "eligibilitySubMonthsIrcOnly": "This game requires a subscription of a minimum duration. Type {cmd} in Twitch chat to join."
   },
   "streamer": {
     "title": "Streamer Management",
@@ -162,7 +168,18 @@
     "gameCreatedToast": "Game created!",
     "gameStartedToast": "Game started!",
     "gameStoppedToast": "Game stopped!",
-    "linkCopied": "Link copied!"
+    "linkCopied": "Link copied!",
+    "cpTosWarningTitle": "⚠️ Important Channel Points Notice",
+    "cpTosWarningText": "Using Channel Points as entry requirements for giveaways may violate Twitch Community Guidelines. You are solely responsible for compliance with Twitch policies.",
+    "cpTosLink": "Twitch Community Guidelines",
+    "cpTosAccept": "I have read the Twitch Community Guidelines and act at my own responsibility when using this feature.",
+    "buycardConditionLabel": "Card Access – Conditions",
+    "buycardCondition_all": "Everyone",
+    "buycardCondition_follow": "Followers Only",
+    "buycardCondition_sub": "Subscribers Only",
+    "buycardMinFollowDays": "Minimum Follow Duration (days)",
+    "buycardMinSubMonths": "Minimum Subscription Months",
+    "buycardSubMonthsHint": "Note: Exact subscription duration can only be checked via Twitch Chat (!buycard). The website only checks if the user is subscribed at all."
   },
   "dashboard": {
     "welcome": "Welcome back, {name}",
@@ -219,7 +236,16 @@
     "helpStep4Text": "When a viewer claims bingo (chat or button), they appear automatically in the winners list. Use the X button to remove a winner, e.g. if a mistake was made.",
     "helpStep5Title": "5. Bot Join",
     "helpStep5Text": "The bot connects automatically when the game is started. If the header shows \"Bot not connected\", the streamer can manually connect the bot: Streamer Management → Bot Join button next to the running game.",
-    "helpFooter": "For further questions, contact the streamer or User \"X3S2\" on Discord."
+    "helpFooter": "For further questions, contact the streamer or User \"X3S2\" on Discord.",
+    "randomDraw": "🎱 Draw Random Number",
+    "randomDrawHint": "Picks a random undrawn number. 10-second cooldown.",
+    "randomDrawError": "Error drawing a random number",
+    "assignCard": "Manually Assign Card",
+    "assignCardInputPlaceholder": "Twitch username",
+    "assignCardHint": "The user must have logged in to the website at least once.",
+    "assigning": "Assigning...",
+    "assignCardSuccess": "Card created for {name}!",
+    "assignCardError": "Error assigning card"
   },
   "admin": {
     "title": "Admin Portal",

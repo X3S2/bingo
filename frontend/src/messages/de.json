@@ -90,7 +90,13 @@
     "helpStep4Title": "4. Kein automatischer Gewinn",
     "helpStep4Text": "Ohne das aktive Melden über Chat oder Button wird kein Gewinn gewertet – auch wenn alle Zahlen auf deiner Karte gezogen wurden. Sei schnell, denn wer zuerst meldet, gewinnt!",
     "helpStep5Title": "5. Preise & Verantwortung",
-    "helpStep5Text": "Der Streamer legt die Preise eigenständig fest. StreamBingo ist lediglich das Spielsystem und nicht für die Auszahlung oder Gestaltung der Preise verantwortlich. Bei Fragen zu Preisen wende dich an die Mods oder den Streamer direkt."
+    "helpStep5Text": "Der Streamer legt die Preise eigenständig fest. StreamBingo ist lediglich das Spielsystem und nicht für die Auszahlung oder Gestaltung der Preise verantwortlich. Bei Fragen zu Preisen wende dich an die Mods oder den Streamer direkt.",
+    "eligibilityNotFollowing": "Du folgst diesem Kanal nicht. Für dieses Spiel ist ein Follow erforderlich.",
+    "eligibilityFollowDays": "Du folgst dem Kanal seit {current} Tag(en). Mindestens {required} Tag(e) sind erforderlich.",
+    "eligibilityNotSubscribed": "Du bist kein Abonnent dieses Kanals. Ein aktives Abo ist erforderlich.",
+    "eligibilitySubMonths": "Du abonnierst den Kanal seit {current} Monat(en). Mindestens {required} Monat(e) sind erforderlich.",
+    "eligibilityScopeMissing": "Die Berechtigungsprüfung ist derzeit nicht verfügbar. Bitte kontaktiere den Streamer.",
+    "eligibilitySubMonthsIrcOnly": "Für dieses Spiel ist ein Abo mit Mindest-Laufzeit erforderlich. Schreibe {cmd} im Twitch Chat um mitzuspielen."
   },
   "streamer": {
     "title": "Streamer-Verwaltung",
@@ -161,7 +167,18 @@
     "gameCreatedToast": "Spiel erstellt!",
     "gameStartedToast": "Spiel gestartet!",
     "gameStoppedToast": "Spiel beendet!",
-    "linkCopied": "Link kopiert!"
+    "linkCopied": "Link kopiert!",
+    "cpTosWarningTitle": "⚠️ Wichtiger Hinweis zu Channel Points",
+    "cpTosWarningText": "Die Nutzung von Channel Points als Zugangsvoraussetzung für Gewinnspiele kann gegen die Twitch Community Guidelines verstoßen. Du bist für die Einhaltung der Twitch-Richtlinien selbst verantwortlich.",
+    "cpTosLink": "Twitch Community Guidelines",
+    "cpTosAccept": "Ich habe die Twitch Community Guidelines gelesen und handle bei der Nutzung dieser Funktion auf eigene Verantwortung.",
+    "buycardConditionLabel": "Karte erhalten – Bedingungen",
+    "buycardCondition_all": "Jeder",
+    "buycardCondition_follow": "Nur Follower",
+    "buycardCondition_sub": "Nur Abonnenten",
+    "buycardMinFollowDays": "Mindest-Followzeit (Tage)",
+    "buycardMinSubMonths": "Mindest-Abo-Monate",
+    "buycardSubMonthsHint": "Hinweis: Die genaue Abo-Dauer kann nur via Twitch Chat (!buycard) geprüft werden. Im Browser wird nur geprüft, ob der Nutzer überhaupt abonniert ist."
   },
   "dashboard": {
     "welcome": "Willkommen zurück, {name}",
@@ -367,7 +384,16 @@
     "helpStep4Text": "Wenn ein Viewer Bingo meldet (Chat oder Button), erscheint er automatisch in der Gewinnerliste. Mit dem X-Button kannst du einen Gewinner entfernen, z.B. wenn ein Fehler passiert ist.",
     "helpStep5Title": "5. Bot-Join",
     "helpStep5Text": "Der Bot verbindet sich automatisch, wenn das Spiel gestartet wird. Falls oben \"Bot nicht verbunden\" steht, kann der Streamer den Bot manuell einbinden: Streamer-Verwaltung → Bot-Join-Button beim laufenden Spiel.",
-    "helpFooter": "Bei weiteren Fragen an den Streamer oder im Discord an User \"X3S2\" wenden."
+    "helpFooter": "Bei weiteren Fragen an den Streamer oder im Discord an User \"X3S2\" wenden.",
+    "randomDraw": "🎱 Zufallszahl ziehen",
+    "randomDrawHint": "Zieht zufällig eine noch nicht gezogene Zahl. 10 Sekunden Abkühlzeit.",
+    "randomDrawError": "Fehler beim Ziehen einer Zufallszahl",
+    "assignCard": "Karte manuell vergeben",
+    "assignCardInputPlaceholder": "Twitch-Benutzername",
+    "assignCardHint": "Der Nutzer muss sich mindestens einmal auf der Website angemeldet haben.",
+    "assigning": "Wird vergeben...",
+    "assignCardSuccess": "Karte für {name} erstellt!",
+    "assignCardError": "Fehler beim Vergeben der Karte"
   },
   "setup": {
     "title": "StreamBingo einrichten",

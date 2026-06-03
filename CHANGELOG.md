@@ -11,6 +11,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.5] - 2026-06-09
+
+### Changed
+- i18n: Added DE/EN keys for buycard conditions, TOS warning, random draw, card assign, and eligibility messages.
+- CHANGELOG and README updated for v1.5.1–v1.5.5 features.
+
+---
+
+## [1.5.4] - 2026-06-09
+
+### Added
+- **Random number draw** — New `POST /games/:id/numbers/random` endpoint picks a random undrawn number (1–75) and draws it. 10-second per-game server-side cooldown.
+- **Ball animation** — When a number is drawn via random draw (`isRandom: true`), all connected clients (moderator and viewer) show a full-screen ball animation: 5 decoy balls fly in and converge, then the actual number pops up for 2.5 seconds before fading out. Implemented as `BallAnimation` component with pure CSS keyframe animations.
+- **Manual card assignment** — Moderators can assign a card directly to a viewer via `POST /games/:id/cards/assign` (body: `{ twitchName }`). Bypasses buycard conditions. The user must have logged in at least once.
+- **Moderator page enhancements** — "🎱 Zufallszahl ziehen" button with 10s frontend countdown. Collapsible "Karte manuell vergeben" section with Twitch username input.
+
+---
+
+## [1.5.3] - 2026-06-09
+
+### Added
+- **Buycard conditions** — Games can now require viewers to be following or subscribed before they can receive a card. Conditions (`buycardCondition`, `buycardMinFollowDays`, `buycardMinSubMonths`) are stored per game.
+- **`GET /games/:id/buycard-eligibility`** — Returns eligibility result with structured reason (`not_following`, `follow_days`, `not_subscribed`, `sub_months`, `scope_missing`, `sub_months_irc_only`), `currentValue`, and `requiredValue`.
+- **`POST /games/:id/join` enriched** — Returns HTTP 403 with structured `BUYCARD_CONDITION_NOT_MET` error body when conditions are not met (reason + values).
+- **IRC !buycard eligibility check** — Chat command checks follow/sub conditions via IRC `msg.userInfo` (sub months from `badge-info`). Detailed German error messages for each condition.
+- **Streamer page: buycard conditions UI** — Game creation form now includes a "Karte erhalten – Bedingungen" section with radio buttons (Jeder/Nur Follower/Nur Abonnenten) and conditional numeric inputs.
+- **Game page: eligibility display** — If game has conditions and viewer is not eligible, a warning card shows the specific reason with current/required values.
+- **Streamer page: TOS warning** — Red warning box above Channel Points controls with Twitch Community Guidelines link and a confirmation checkbox that must be checked before controls become active.
+
+### Fixed
+- Follower check uses `GET /helix/channels/followers` with `moderator:read:followers` scope on streamer token (correct endpoint).
+- Sub months limitation documented: only available via IRC `badge-info`, not REST API.
+
+---
+
+## [1.5.2] - 2026-06-09
+
+### Fixed
+- **Gift reward creation bug** — `is_user_input_required: true` combined with `should_redemptions_skip_request_queue: true` is rejected by the Twitch API (silent failure — reward never appeared). Fixed by changing to `should_redemptions_skip_request_queue: false` for the gift reward.
+
+---
+
+## [1.5.1] - 2026-06-09
+
+### Fixed (CRITICAL)
+- **Win validation bug** — Viewer could manually mark all cells and claim a false Bingo. Root cause: `saveUserMarked()` was writing to the same `marked` field that the server uses for win checking. Fixed by adding a separate `playerMarked` (5×5 JSON) field for visual-only player marks. `marked` is now server-only (draw events). `claimBingo()` continues to check `marked` (correct). Frontend displays `marked || playerMarked` (merged) for visual fidelity.
+
+### Added
+- **`playerMarked` field on `BingoCard`** — Boolean 5×5 JSON, default all-false (no migration of old marks). Stores player's visual clicks. Never used for win checking.
+- **`twitchScopes` field on `User`** — Space-separated string of OAuth scopes granted at last login.
+- **OAuth scope enforcement** — `AuthService.REQUIRED_SCOPES` = `['moderator:read:followers', 'channel:read:subscriptions']`. `validateUser()` returns `null` (forces re-auth) if user's stored scopes don't include all required scopes. All existing users (empty `twitchScopes`) will be force re-authenticated on next request.
+- **New OAuth scopes** — `buildAuthUrl()` now requests `moderator:read:followers` and `channel:read:subscriptions` in addition to existing scopes. These are needed for follower/sub buycard condition checks.
+- **Scope storage** — `loginWithTwitch()` now accepts and stores `scope` from the OAuth callback token response.
+
+---
+
 ## [1.5.0] - 2026-06-04
 
 ### Added
