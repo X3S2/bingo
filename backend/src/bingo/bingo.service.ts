@@ -6,6 +6,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CardGeneratorService } from './card-generator.service';
 import { WinConditionService } from './win-condition.service';
@@ -16,8 +17,21 @@ import { ModAccessService } from '../auth/mod-access.service';
 import { GameStatus, UserRole } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
+export interface BuycardEligibilityResult {
+  eligible: boolean;
+  /** Reason for ineligibility */
+  reason?: 'not_following' | 'follow_days' | 'not_subscribed' | 'sub_months' | 'scope_missing' | 'sub_months_irc_only';
+  /** Current value (days following, or months subscribed) */
+  currentValue?: number;
+  /** Required value */
+  requiredValue?: number;
+}
+
 @Injectable()
 export class BingoService {
+  /** Per-game cooldown for random number draws (10 seconds) */
+  private readonly randomDrawCooldowns = new Map<string, number>();
+
   constructor(
     private prisma: PrismaService,
     private cardGen: CardGeneratorService,
@@ -28,6 +42,7 @@ export class BingoService {
     @Inject(forwardRef(() => TwitchRewardService))
     private twitchReward: TwitchRewardService,
     private readonly modAccessService: ModAccessService,
+    private readonly config: ConfigService,
   ) {}
 
   // ── Game Management ───────────────────────────────────────
@@ -37,7 +52,14 @@ export class BingoService {
     channelName: string,
     title: string,
     maxWinners = 1,
-    opts?: { autoStopEnabled?: boolean; autoStopEod?: boolean; autoStopAt?: string },
+    opts?: {
+      autoStopEnabled?: boolean;
+      autoStopEod?: boolean;
+      autoStopAt?: string;
+      buycardCondition?: string;
+      buycardMinFollowDays?: number;
+      buycardMinSubMonths?: number;
+    },
   ) {
     // Enforce: only one active (CREATED or RUNNING) game per channel at a time
     const existing = await this.prisma.bingoGame.findFirst({
@@ -57,6 +79,9 @@ export class BingoService {
         autoStopEnabled: opts?.autoStopEnabled ?? false,
         autoStopEod: opts?.autoStopEod ?? false,
         autoStopAt: opts?.autoStopAt ? new Date(opts.autoStopAt) : null,
+        buycardCondition: opts?.buycardCondition ?? 'all',
+        buycardMinFollowDays: opts?.buycardMinFollowDays ?? 0,
+        buycardMinSubMonths: opts?.buycardMinSubMonths ?? 0,
       },
     });
   }
@@ -247,19 +272,20 @@ export class BingoService {
     if (!Array.isArray(marked) || marked.length !== 5 || marked.some((r) => !Array.isArray(r) || r.length !== 5)) {
       throw new Error('Invalid marked grid');
     }
-    // Ensure free cell (center) stays marked
+    // Ensure free cell (center) stays marked in player marks too
     const card = await this.prisma.bingoCard.findUnique({
       where: { gameId_userId: { gameId, userId } },
       select: { id: true, grid: true },
     });
     if (!card) return null;
     const grid = card.grid as (number | null)[][];
-    const safemarked = marked.map((row, r) =>
+    const safePlayerMarked = marked.map((row, r) =>
       row.map((cell, c) => (grid[r][c] === null ? true : Boolean(cell))),
     );
+    // Write to playerMarked only – server-tracked "marked" is not touched here
     return this.prisma.bingoCard.update({
       where: { id: card.id },
-      data: { marked: safemarked },
+      data: { playerMarked: safePlayerMarked },
     });
   }
 
@@ -395,6 +421,198 @@ export class BingoService {
     });
   }
 
+  // ── Buycard Eligibility ───────────────────────────────────
+
+  /**
+   * Check if a viewer is eligible to receive a card based on the game's buycard conditions.
+   * @param irc  When called from IRC, pass { isSubscribed, subMonths } read from badge-info.
+   *             When called from the web API, leave undefined (will use Twitch REST API).
+   */
+  async checkBuycardEligibility(
+    gameId: string,
+    viewerTwitchId: string,
+    irc?: { isSubscribed: boolean; subMonths: number },
+  ): Promise<BuycardEligibilityResult> {
+    const game = await this.prisma.bingoGame.findUnique({
+      where: { id: gameId },
+      select: {
+        buycardCondition: true,
+        buycardMinFollowDays: true,
+        buycardMinSubMonths: true,
+        streamerId: true,
+      },
+    });
+    if (!game) return { eligible: true };
+
+    const condition = game.buycardCondition ?? 'all';
+    if (condition === 'all') return { eligible: true };
+
+    const streamer = await this.prisma.user.findUnique({
+      where: { id: game.streamerId },
+      select: { twitchId: true, twitchAccessToken: true, twitchScopes: true },
+    });
+    if (!streamer?.twitchAccessToken) return { eligible: false, reason: 'scope_missing' };
+
+    const clientId = await this.getClientId();
+
+    if (condition === 'follow') {
+      const grantedScopes = (streamer.twitchScopes || '').split(' ');
+      if (!grantedScopes.includes('moderator:read:followers')) {
+        return { eligible: false, reason: 'scope_missing' };
+      }
+      try {
+        const url = `https://api.twitch.tv/helix/channels/followers?broadcaster_id=${streamer.twitchId}&user_id=${viewerTwitchId}`;
+        const resp = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${streamer.twitchAccessToken}`,
+            'Client-Id': clientId,
+          },
+        });
+        if (resp.status === 401) return { eligible: false, reason: 'scope_missing' };
+        if (!resp.ok) return { eligible: false, reason: 'scope_missing' };
+        const data = await resp.json() as any;
+        const entry = data.data?.[0];
+        if (!entry) {
+          return {
+            eligible: false,
+            reason: 'not_following',
+            currentValue: 0,
+            requiredValue: game.buycardMinFollowDays,
+          };
+        }
+        const daysSince = Math.floor(
+          (Date.now() - new Date(entry.followed_at).getTime()) / (1000 * 60 * 60 * 24),
+        );
+        if (daysSince < game.buycardMinFollowDays) {
+          return {
+            eligible: false,
+            reason: 'follow_days',
+            currentValue: daysSince,
+            requiredValue: game.buycardMinFollowDays,
+          };
+        }
+        return { eligible: true };
+      } catch {
+        return { eligible: false, reason: 'scope_missing' };
+      }
+    }
+
+    if (condition === 'sub') {
+      if (irc !== undefined) {
+        // IRC path: exact month count available from badge-info
+        if (!irc.isSubscribed) {
+          return {
+            eligible: false,
+            reason: 'not_subscribed',
+            requiredValue: game.buycardMinSubMonths,
+          };
+        }
+        if (irc.subMonths < game.buycardMinSubMonths) {
+          return {
+            eligible: false,
+            reason: 'sub_months',
+            currentValue: irc.subMonths,
+            requiredValue: game.buycardMinSubMonths,
+          };
+        }
+        return { eligible: true };
+      } else {
+        // Web path: check subscription via REST API (no month count available)
+        const grantedScopes = (streamer.twitchScopes || '').split(' ');
+        if (!grantedScopes.includes('channel:read:subscriptions')) {
+          return { eligible: false, reason: 'scope_missing' };
+        }
+        try {
+          const url = `https://api.twitch.tv/helix/subscriptions?broadcaster_id=${streamer.twitchId}&user_id=${viewerTwitchId}`;
+          const resp = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${streamer.twitchAccessToken}`,
+              'Client-Id': clientId,
+            },
+          });
+          if (resp.status === 401) return { eligible: false, reason: 'scope_missing' };
+          if (!resp.ok) return { eligible: false, reason: 'scope_missing' };
+          const data = await resp.json() as any;
+          const subEntry = data.data?.[0];
+          if (!subEntry) {
+            return {
+              eligible: false,
+              reason: 'not_subscribed',
+              requiredValue: game.buycardMinSubMonths,
+            };
+          }
+          // Subscribed — month count is only available via IRC
+          if (game.buycardMinSubMonths > 0) {
+            return { eligible: true, reason: 'sub_months_irc_only' };
+          }
+          return { eligible: true };
+        } catch {
+          return { eligible: false, reason: 'scope_missing' };
+        }
+      }
+    }
+
+    return { eligible: true };
+  }
+
+  // ── Random Number Draw ────────────────────────────────────
+
+  async drawRandomNumber(gameId: string, drawnById?: string) {
+    const now = Date.now();
+    const lastDraw = this.randomDrawCooldowns.get(gameId) ?? 0;
+    if (now - lastDraw < 10_000) {
+      throw new BadRequestException('Bitte warte 10 Sekunden zwischen Zufallszügen.');
+    }
+
+    const game = await this.getGameOrThrow(gameId);
+    if (game.status !== GameStatus.RUNNING) throw new BadRequestException('Das Spiel läuft nicht.');
+
+    const drawnNumbers = await this.prisma.drawnNumber.findMany({
+      where: { gameId },
+      select: { number: true },
+    });
+    const drawnSet = new Set(drawnNumbers.map((d) => d.number));
+    const available = Array.from({ length: 75 }, (_, i) => i + 1).filter((n) => !drawnSet.has(n));
+
+    if (available.length === 0) {
+      throw new BadRequestException('Alle Zahlen wurden bereits gezogen.');
+    }
+
+    const randomNumber = available[Math.floor(Math.random() * available.length)];
+    this.randomDrawCooldowns.set(gameId, now);
+
+    const drawn = await this.prisma.drawnNumber.create({
+      data: { gameId, number: randomNumber, drawnById },
+    });
+
+    await this.updateAllCardsWithNumber(gameId, randomNumber);
+
+    // Emit with isRandom: true so clients can trigger the animation
+    this.gateway.emitToGame(gameId, 'number:drawn', {
+      number: randomNumber,
+      drawnAt: drawn.drawnAt,
+      isRandom: true,
+    });
+    return drawn;
+  }
+
+  // ── Manual Card Assignment ────────────────────────────────
+
+  async assignCard(gameId: string, twitchName: string, actorId: string, actorRole: string) {
+    await this.checkModeratorAccess(actorId, gameId, actorRole);
+
+    const user = await this.prisma.user.findFirst({
+      where: { displayName: { equals: twitchName, mode: 'insensitive' } },
+    });
+    if (!user) {
+      throw new NotFoundException(
+        'Nutzer nicht gefunden – er muss sich mindestens einmal auf der Website angemeldet haben.',
+      );
+    }
+
+    return this.createCardForUser(gameId, user.id);
+  }
+
   // ── Auto-stop CRON ────────────────────────────────────────
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -427,6 +645,11 @@ export class BingoService {
   }
 
   // ── Private helpers ───────────────────────────────────────
+
+  private async getClientId(): Promise<string> {
+    const s = await this.prisma.adminSetting.findUnique({ where: { key: 'twitch_client_id' } });
+    return s?.value || this.config.get<string>('TWITCH_CLIENT_ID') || '';
+  }
 
   private async getGameOrThrow(gameId: string) {
     const game = await this.prisma.bingoGame.findUnique({ where: { id: gameId } });

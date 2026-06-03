@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Users, Hash, Wifi, ChevronDown, ChevronUp, Gift, Zap, AlertTriangle, HelpCircle, X } from 'lucide-react';
+import { Copy, ExternalLink, Users, Hash, Wifi, ChevronDown, ChevronUp, Gift, Zap, AlertTriangle, HelpCircle, X, ShieldAlert } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -71,10 +72,14 @@ export default function StreamerPage() {
     autoStopEnabled: true,
     autoStopEod: true,
     autoStopAt: '',
+    buycardCondition: 'all' as 'all' | 'follow' | 'sub',
+    buycardMinFollowDays: 0,
+    buycardMinSubMonths: 0,
   });
 
   const [cpSettings, setCpSettings] = useState<CpSettings>(DEFAULT_CP);
   const [cpOpen, setCpOpen] = useState(false);
+  const [cpTosAccepted, setCpTosAccepted] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user && !['STREAMER', 'ADMIN'].includes(user.role)) router.replace('/dashboard');
@@ -165,6 +170,9 @@ export default function StreamerPage() {
         maxWinners: form.maxWinners,
         autoStopEnabled: form.autoStopEnabled,
         autoStopEod: form.autoStopEod,
+        buycardCondition: form.buycardCondition,
+        buycardMinFollowDays: form.buycardMinFollowDays,
+        buycardMinSubMonths: form.buycardMinSubMonths,
       };
       if (form.autoStopEnabled && form.autoStopAt) {
         body.autoStopAt = form.autoStopAt;
@@ -303,6 +311,37 @@ export default function StreamerPage() {
           </CardHeader>
           {cpOpen && (
             <CardContent className="flex flex-col gap-5">
+              {/* Twitch TOS Warning */}
+              <div className="rounded-lg border border-destructive bg-destructive/10 p-4 flex flex-col gap-3">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-semibold text-destructive">{t('cpTosWarningTitle')}</p>
+                    <p className="text-xs text-muted-foreground">{t('cpTosWarningText')}</p>
+                    <a
+                      href="https://safety.twitch.tv/s/article/Community-Guidelines"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-destructive underline underline-offset-2 hover:opacity-80 flex items-center gap-1 mt-0.5"
+                    >
+                      {t('cpTosLink')} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="cp-tos-accept"
+                    checked={cpTosAccepted}
+                    onCheckedChange={(v) => setCpTosAccepted(Boolean(v))}
+                  />
+                  <Label htmlFor="cp-tos-accept" className="text-xs cursor-pointer leading-tight">
+                    {t('cpTosAccept')}
+                  </Label>
+                </div>
+              </div>
+
+              {/* CP settings — only active after TOS acceptance */}
+              <div className={cpTosAccepted ? '' : 'opacity-40 pointer-events-none select-none'}>
               {/* Mode toggle */}
               <div className="flex items-center gap-3">
                 <Switch
@@ -510,11 +549,12 @@ export default function StreamerPage() {
               <div className="flex justify-end">
                 <Button
                   onClick={() => saveCpMutation.mutate(cpSettings)}
-                  disabled={saveCpMutation.isPending}
+                  disabled={saveCpMutation.isPending || !cpTosAccepted}
                 >
                   {t('saveSettings')}
                 </Button>
               </div>
+              </div>{/* end TOS-gated wrapper */}
             </CardContent>
           )}
         </Card>
@@ -597,6 +637,53 @@ export default function StreamerPage() {
                 </div>
               </div>
             )}
+
+            {/* Buycard conditions */}
+            <div className="flex flex-col gap-3 rounded-lg border p-3">
+              <p className="text-sm font-semibold">{t('buycardConditionLabel')}</p>
+              <div className="flex flex-wrap gap-3">
+                {(['all', 'follow', 'sub'] as const).map((opt) => (
+                  <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="radio"
+                      name="buycardCondition"
+                      value={opt}
+                      checked={form.buycardCondition === opt}
+                      onChange={() => setForm({ ...form, buycardCondition: opt })}
+                      className="accent-primary"
+                    />
+                    {t(`buycardCondition_${opt}`)}
+                  </label>
+                ))}
+              </div>
+              {form.buycardCondition === 'follow' && (
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="minFollowDays">{t('buycardMinFollowDays')}</Label>
+                  <Input
+                    id="minFollowDays"
+                    type="number"
+                    min={0}
+                    className="max-w-[160px]"
+                    value={form.buycardMinFollowDays}
+                    onChange={(e) => setForm({ ...form, buycardMinFollowDays: parseInt(e.target.value, 10) || 0 })}
+                  />
+                </div>
+              )}
+              {form.buycardCondition === 'sub' && (
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor="minSubMonths">{t('buycardMinSubMonths')}</Label>
+                  <Input
+                    id="minSubMonths"
+                    type="number"
+                    min={0}
+                    className="max-w-[160px]"
+                    value={form.buycardMinSubMonths}
+                    onChange={(e) => setForm({ ...form, buycardMinSubMonths: parseInt(e.target.value, 10) || 0 })}
+                  />
+                  <p className="text-xs text-muted-foreground">{t('buycardSubMonthsHint')}</p>
+                </div>
+              )}
+            </div>
           </CardContent>
           <CardFooter>
             <Button

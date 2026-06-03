@@ -10,12 +10,24 @@ import {
   UseGuards,
   Req,
   HttpCode,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { BingoService } from './bingo.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/guards/roles.guard';
 import { UserRole } from '@prisma/client';
-import { IsString, IsInt, IsOptional, Min, Max, MinLength, IsBoolean, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsInt,
+  IsOptional,
+  Min,
+  Max,
+  MinLength,
+  IsBoolean,
+  IsArray,
+  IsIn,
+} from 'class-validator';
 
 class CreateGameDto {
   @IsString() @MinLength(1) title: string;
@@ -24,6 +36,9 @@ class CreateGameDto {
   @IsBoolean() @IsOptional() autoStopEnabled?: boolean;
   @IsBoolean() @IsOptional() autoStopEod?: boolean;
   @IsString() @IsOptional() autoStopAt?: string;
+  @IsString() @IsIn(['all', 'follow', 'sub']) @IsOptional() buycardCondition?: string;
+  @IsInt() @Min(0) @IsOptional() buycardMinFollowDays?: number;
+  @IsInt() @Min(0) @IsOptional() buycardMinSubMonths?: number;
 }
 
 class DrawNumberDto {
@@ -32,6 +47,10 @@ class DrawNumberDto {
 
 class SaveMarkedDto {
   @IsArray() marked: boolean[][];
+}
+
+class AssignCardDto {
+  @IsString() @MinLength(1) twitchName: string;
 }
 
 @Controller('games')
@@ -46,6 +65,9 @@ export class BingoController {
       autoStopEnabled: dto.autoStopEnabled,
       autoStopEod: dto.autoStopEod,
       autoStopAt: dto.autoStopAt,
+      buycardCondition: dto.buycardCondition,
+      buycardMinFollowDays: dto.buycardMinFollowDays,
+      buycardMinSubMonths: dto.buycardMinSubMonths,
     });
   }
 
@@ -114,10 +136,41 @@ export class BingoController {
     return this.bingoService.getUserCard(id, req.user.id);
   }
 
-  /** Any authenticated user can join a game as a player (creates own card) */
+  /** Any authenticated user can join a game as a player (creates own card, subject to buycard conditions) */
   @Post(':id/join')
-  joinGame(@Param('id') id: string, @Req() req: any) {
+  async joinGame(@Param('id') id: string, @Req() req: any) {
+    const eligibility = await this.bingoService.checkBuycardEligibility(id, req.user.twitchId);
+    if (!eligibility.eligible && eligibility.reason !== 'sub_months_irc_only') {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.FORBIDDEN,
+          code: 'BUYCARD_CONDITION_NOT_MET',
+          reason: eligibility.reason,
+          currentValue: eligibility.currentValue,
+          requiredValue: eligibility.requiredValue,
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
     return this.bingoService.createCardForUser(id, req.user.id);
+  }
+
+  /** Check buycard eligibility for the current user */
+  @Get(':id/buycard-eligibility')
+  getBuycardEligibility(@Param('id') id: string, @Req() req: any) {
+    return this.bingoService.checkBuycardEligibility(id, req.user.twitchId);
+  }
+
+  @Post(':id/numbers/random')
+  @Roles(UserRole.MODERATOR)
+  drawRandom(@Param('id') id: string, @Req() req: any) {
+    return this.bingoService.drawRandomNumber(id, req.user.id);
+  }
+
+  @Post(':id/cards/assign')
+  @Roles(UserRole.MODERATOR)
+  assignCard(@Param('id') id: string, @Body() dto: AssignCardDto, @Req() req: any) {
+    return this.bingoService.assignCard(id, dto.twitchName, req.user.id, req.user.role);
   }
 
   @Patch(':id/my-card/marked')

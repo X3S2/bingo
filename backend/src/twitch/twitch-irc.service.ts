@@ -704,6 +704,38 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
         await this.say(channel, `@${username} Du bist noch nicht registriert. Bitte melde dich zuerst auf der Website an.`);
         return;
       }
+
+      // Buycard conditions check (IRC path – sub months from badge-info available)
+      const isSubscribed = msg.userInfo.isSubscriber || msg.userInfo.isBroadcaster;
+      const subMonthsStr = msg.userInfo.badgeInfo?.get('subscriber');
+      const subMonths = isSubscribed ? parseInt(subMonthsStr ?? '0', 10) : 0;
+      const eligibility = await this.bingoService.checkBuycardEligibility(gameId, twitchId, { isSubscribed, subMonths });
+
+      if (!eligibility.eligible) {
+        let denyMsg = '';
+        switch (eligibility.reason) {
+          case 'not_following':
+            denyMsg = `Du folgst diesem Kanal nicht. Bitte folge zuerst${eligibility.requiredValue ? ` und warte ${eligibility.requiredValue} Tag(e)` : ''}.`;
+            break;
+          case 'follow_days':
+            denyMsg = `Du folgst dem Kanal seit ${eligibility.currentValue} Tag(en). Mindestens ${eligibility.requiredValue} Tag(e) erforderlich.`;
+            break;
+          case 'not_subscribed':
+            denyMsg = `Du musst diesen Kanal abonniert haben${eligibility.requiredValue ? ` (mind. ${eligibility.requiredValue} Monat(e))` : ''}, um mitzuspielen.`;
+            break;
+          case 'sub_months':
+            denyMsg = `Du abonnierst den Kanal seit ${eligibility.currentValue} Monat(en). Mindestens ${eligibility.requiredValue} Monat(e) erforderlich.`;
+            break;
+          case 'scope_missing':
+            denyMsg = 'Die Bedingungsprüfung ist derzeit nicht verfügbar. Bitte kontaktiere den Streamer.';
+            break;
+          default:
+            denyMsg = 'Du erfüllst die Bedingungen für dieses Spiel nicht.';
+        }
+        await this.say(channel, `❌ @${username} ${denyMsg}`);
+        return;
+      }
+
       try {
         await this.bingoService.createCardForUser(gameId, user.id);
         await this.say(channel, `✅ @${username} Deine Bingo-Karte wurde erstellt! Öffne das Spiel auf der Website.`);
