@@ -1,5 +1,5 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Injectable()
 export class OptionalJwtAuthGuard extends JwtAuthGuard {
