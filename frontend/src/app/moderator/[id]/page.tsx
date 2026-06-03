@@ -218,7 +218,7 @@ export default function ModeratorPage({ params }: ModPage) {
       return r.json() as Promise<{ number: number }>;
     },
     onSuccess: () => {
-      setRandomCooldown(10);
+      setRandomCooldown(3);
       if (cooldownRef.current) clearInterval(cooldownRef.current);
       cooldownRef.current = setInterval(() => {
         setRandomCooldown((v) => {

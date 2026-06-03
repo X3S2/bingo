@@ -212,6 +212,7 @@
     "loading": "Loading...",
     "cmd_zahl_add": "Draw number",
     "cmd_zahl_remove": "Remove number",
+    "cmd_zahlziehen": "Draw random number",
     "cmd_bingo": "Report bingo",
     "cmd_buycard": "Get card",
     "cmd_zahlen": "Show numbers",

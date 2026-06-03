@@ -55,10 +55,11 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
   private cmdCacheAt = 0;
   private readonly CMD_CACHE_TTL = 30_000; // 30 s
 
-  private static readonly CMD_SLUGS = ['zahl_add', 'zahl_remove', 'bingo', 'buycard', 'zahlen', 'winners', 'bingolink'] as const;
+  private static readonly CMD_SLUGS = ['zahl_add', 'zahl_remove', 'zahlziehen', 'bingo', 'buycard', 'zahlen', 'winners', 'bingolink'] as const;
   private static readonly CMD_DEFAULTS: Record<string, { name: string; perm: 'all' | 'mod' | 'broadcaster' }> = {
     zahl_add:    { name: '!zahl+',         perm: 'mod' },
     zahl_remove: { name: '!zahl-',         perm: 'mod' },
+    zahlziehen:  { name: '!zahlziehen',    perm: 'mod' },
     bingo:       { name: 'bingo',          perm: 'all' },
     buycard:     { name: '!buycard',       perm: 'all' },
     zahlen:      { name: '!zahlen',        perm: 'all' },
@@ -555,6 +556,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     const labels: Record<string, string> = {
       zahl_add:    'Zahl ziehen',
       zahl_remove: 'Zahl entfernen',
+      zahlziehen:  'Zufallszahl ziehen',
       bingo:       'Bingo melden',
       buycard:     'Karte erhalten',
       zahlen:      'Zahlen anzeigen',
@@ -760,6 +762,19 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
         await this.say(channel, `✅ @${username} Deine Bingo-Karte wurde erstellt! Öffne das Spiel auf der Website.`);
       } catch (err: any) {
         await this.say(channel, `❌ @${username} ${err.message}`);
+      }
+      return;
+    }
+
+    // ── !zahlziehen – draw a random number ────────────────────────────────
+    const czahlziehen = this.getCmd('zahlziehen');
+    if (czahlziehen.enabled && trimmed === czahlziehen.name.toLowerCase()) {
+      if (!this.checkPerm(czahlziehen.perm, msg)) return;
+      try {
+        const drawn = await this.bingoService.drawRandomNumber(gameId);
+        await this.say(channel, `🎲 Zufallszahl gezogen: ${drawn.number}`);
+      } catch (err: any) {
+        await this.say(channel, `❌ ${err.message}`);
       }
       return;
     }

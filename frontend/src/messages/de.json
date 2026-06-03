@@ -360,6 +360,7 @@
     "loading": "Wird geladen...",
     "cmd_zahl_add": "Zahl ziehen",
     "cmd_zahl_remove": "Zahl entfernen",
+    "cmd_zahlziehen": "Zufallszahl ziehen",
     "cmd_bingo": "Bingo melden",
     "cmd_buycard": "Karte erhalten",
     "cmd_zahlen": "Zahlen anzeigen",

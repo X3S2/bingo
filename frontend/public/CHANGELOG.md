@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.9] - 2026-06-03
+
+### Fixed
+- **Mod-UI Cooldown**: Zufallszug-Countdown im Moderator-Dashboard zeigte noch 10 Sekunden an, obwohl das Backend bereits auf 3 Sekunden gestellt wurde. Frontend-Counter jetzt auf 3s korrigiert.
+
+### Added
+- **`!zahlziehen` Chat-Befehl**: Zieht eine zufällige Zahl via Chat (Berechtigung: Moderator). Löst die Ballanimation für alle Zuschauer aus, genau wie der Button im Moderator-Dashboard. Befehlsname ist über die Bot-Einstellungen konfigurierbar.
+- **Moderator-Ansicht**: `!zahlziehen` erscheint jetzt in der Chat-Befehle-Übersicht.
+
+---
+
 ## [1.5.8] - 2026-06-03
 
 ### Fixed
