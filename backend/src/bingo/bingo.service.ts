@@ -583,8 +583,8 @@ export class BingoService {
   async drawRandomNumber(gameId: string, drawnById?: string) {
     const now = Date.now();
     const lastDraw = this.randomDrawCooldowns.get(gameId) ?? 0;
-    if (now - lastDraw < 10_000) {
-      throw new BadRequestException('Bitte warte 10 Sekunden zwischen Zufallszügen.');
+    if (now - lastDraw < 3_000) {
+      throw new BadRequestException('Bitte warte 3 Sekunden zwischen Zufallszügen.');
     }
 
     const game = await this.getGameOrThrow(gameId);

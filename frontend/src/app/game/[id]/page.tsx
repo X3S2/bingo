@@ -243,13 +243,14 @@ export default function GamePage({ params }: GamePage) {
         toast.info(t('numberDrawnToast', { number: data.number }), { duration: 4000 });
       }
       void qc.invalidateQueries({ queryKey: ['game', id] });
-      void qc.invalidateQueries({ queryKey: ['card', id] });
+      // Do NOT invalidate ['card', id] here — playerMarked is only changed by
+      // the viewer themselves; refetching on every draw would overwrite local marks.
     });
     socket.on('number:removed', () => {
       void qc.invalidateQueries({ queryKey: ['game', id] });
-      void qc.invalidateQueries({ queryKey: ['card', id] });
+      // Same reason: do not invalidate card on server-side events.
     });
-    socket.on('card:updated', () => void qc.invalidateQueries({ queryKey: ['card', id] }));
+    socket.on('card:updated', () => { /* server-marked field only — not needed for playerMarked display */ });
     socket.on('winner:added', (data: { user?: { displayName?: string } }) => {
       const name = data?.user?.displayName ?? 'Jemand';
       toast.success(`🏆 ${name} hat BINGO!`, { duration: 6000 });

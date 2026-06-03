@@ -26,21 +26,17 @@ export function BingoCard({ grid, marked, onClaim, gameRunning, hasWon, readOnly
     marked.map((row) => [...row])
   );
 
-  // When the server sends updated marks (e.g. after a number is drawn or page refetch),
-  // merge: server marks win over local (drawn numbers), free cell always true
+  // When the server sends updated marks (e.g. on initial load or page refetch),
+  // sync directly — free cell always true, rest from server playerMarked.
+  // No OR merge: that would prevent the viewer from unmarking cells.
   useEffect(() => {
-    if (readOnly) {
-      setLocalMarked(marked.map((row) => [...row]));
-      return;
-    }
-    // For viewers: merge server marks (OR) with local so drawn-number marks are always shown
-    setLocalMarked((prev) =>
-      prev.map((row, r) =>
-        row.map((cell, c) => (grid[r][c] === null ? true : cell || marked[r][c]))
+    setLocalMarked(
+      marked.map((row, r) =>
+        row.map((cell, c) => (grid[r][c] === null ? true : cell))
       )
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marked, readOnly]);
+  }, [marked]);
 
   const toggleCell = (rowIdx: number, colIdx: number) => {
     if (readOnly) return;

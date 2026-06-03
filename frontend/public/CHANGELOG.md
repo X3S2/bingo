@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.8] - 2026-06-03
+
+### Fixed
+- **Markierungen auf Viewer-Karte**: Markierungen, die einmal gesetzt waren, konnten nicht mehr demarkiert werden. Ursache war ein OR-Merge in `BingoCard.useEffect` (`cell || marked[r][c]`), der lokale Marks nie auf `false` zurücksetzte. Behoben: direktes Sync vom Server ohne OR-Merge. Zusätzlich werden `card:updated`- und `number:drawn`/`number:removed`-Ereignisse nicht mehr dazu genutzt, die Karte neu zu laden, da `playerMarked` ausschließlich durch den Viewer selbst geändert wird.
+- **Zufallszug Cooldown**: Wartezeit zwischen Zufallszügen von 10 auf 3 Sekunden reduziert.
+- **!buycard vs. Channel Points XOR**: Wenn der Streamer Channel-Point-Rewards konfiguriert und aktiviert hat, reagiert der Bot nicht mehr auf `!buycard` (stilles Ignorieren). Entweder Channel Points oder `!buycard` — nicht beides gleichzeitig.
+
+---
+
 ## [1.5.7] - 2026-06-03
 
 ### Fixed

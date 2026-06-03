@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject, forwardRef }
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { BingoService } from '../bingo/bingo.service';
+import { TwitchRewardService } from './twitch-reward.service';
 import { RefreshingAuthProvider } from '@twurple/auth';
 import { ChatClient } from '@twurple/chat';
 import { ApiClient } from '@twurple/api';
@@ -101,6 +102,7 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     private prisma: PrismaService,
     @Inject(forwardRef(() => BingoService))
     private bingoService: BingoService,
+    private twitchReward: TwitchRewardService,
   ) {}
 
   async onModuleInit() {
@@ -698,6 +700,20 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
     const cbuycard = this.getCmd('buycard');
     if (cbuycard.enabled && trimmed === cbuycard.name.toLowerCase()) {
       if (!this.checkPerm(cbuycard.perm, msg)) return;
+
+      // XOR: if channel point rewards are configured and active, ignore !buycard.
+      // Either Channel Points OR !buycard – not both.
+      const gameForCp = await this.prisma.bingoGame.findUnique({
+        where: { id: gameId },
+        select: { streamerId: true },
+      });
+      if (gameForCp) {
+        const cpSettings = await this.twitchReward.getSettings(gameForCp.streamerId);
+        if (cpSettings.configured && (cpSettings.selfEnabled || cpSettings.giftEnabled)) {
+          return; // Channel Points mode active – silently ignore !buycard
+        }
+      }
+
       const twitchId = msg.userInfo.userId;
       const user = await this.prisma.user.findUnique({ where: { twitchId } });
       if (!user) {
