@@ -307,7 +307,8 @@ export class TwitchRewardService {
               max_per_user_per_stream: settings.giftMaxPerUser > 0 ? settings.giftMaxPerUser : undefined,
               is_max_per_stream_enabled: settings.giftMaxPerStream > 0,
               max_per_stream: settings.giftMaxPerStream > 0 ? settings.giftMaxPerStream : undefined,
-              should_redemptions_skip_request_queue: true,
+              // is_user_input_required: true requires should_redemptions_skip_request_queue: false
+              should_redemptions_skip_request_queue: false,
               background_color: '#9147FF',
             });
             giftRewardId = reward.id;
