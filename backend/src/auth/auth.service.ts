@@ -162,7 +162,8 @@ export class AuthService {
     if (!user || user.isBanned) return null;
 
     // Enforce re-authentication when required OAuth scopes are missing
-    const grantedScopes = (user.twitchScopes || '').split(' ').filter(Boolean);
+    // Split by space or comma to handle legacy comma-joined scope strings
+    const grantedScopes = (user.twitchScopes || '').split(/[\s,]+/).filter(Boolean);
     const hasAllScopes = AuthService.REQUIRED_SCOPES.every(s => grantedScopes.includes(s));
     if (!hasAllScopes) return null;
 

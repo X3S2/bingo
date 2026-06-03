@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.6] - 2026-06-03
+
+### Fixed
+- **OAuth re-auth loop / 503** — Twitch returns OAuth scopes as a JSON array, not a space-delimited string. The callback now normalizes the array to a space-delimited string before storing. The scope check in `validateUser` also accepts legacy comma-separated formats. Previously this caused an infinite re-authentication loop (validateUser always returned null → 401 → redirect to login → repeat), which quickly exhausted nginx's auth rate limit zone (5 req/min) and caused 503 errors.
+- **Import path fix** — Corrected incorrect import path in `OptionalJwtAuthGuard` (`./jwt-auth.guard` → `./guards/jwt-auth.guard`), which caused Docker build failures.
+
+---
+
 ## [1.5.5] - 2026-06-09
 
 ### Changed

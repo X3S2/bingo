@@ -127,12 +127,19 @@ export class AuthController {
     try {
       const tokenData = await this.authService.exchangeCode(code);
       const twitchUser = await this.authService.getTwitchUser(tokenData.access_token);
-      const { accessToken } = await this.authService.loginWithTwitch(
+// Twitch may return scope as an array or a space-delimited string
+        const rawScope = tokenData.scope;
+        const normalizedScope = Array.isArray(rawScope)
+          ? rawScope.join(' ')
+          : typeof rawScope === 'string'
+            ? rawScope
+            : '';
+        const { accessToken } = await this.authService.loginWithTwitch(
         twitchUser,
         {
           accessToken: tokenData.access_token,
           refreshToken: tokenData.refresh_token,
-          scope: tokenData.scope ?? '',
+          scope: normalizedScope,
         },
         inviteToken,
       );
