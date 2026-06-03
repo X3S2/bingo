@@ -338,7 +338,8 @@ export default function GamePage({ params }: GamePage) {
             <Badge variant={game.status === 'RUNNING' ? 'default' : game.status === 'CREATED' ? 'outline' : 'secondary'}>
               {game.status === 'RUNNING' ? t('gameRunning') : game.status === 'CREATED' ? t('gameCreated') : t('gameStopped')}
             </Badge>
-            {lastDrawnNumber && game.status === 'RUNNING' && (
+            {/* Last drawn number badge — only shown for staff, not for viewers */}
+            {lastDrawnNumber && game.status === 'RUNNING' && ['MODERATOR', 'STREAMER', 'ADMIN'].includes(user?.role ?? '') && (
               <Badge variant="outline" className="text-lg font-bold px-3">
                 {lastDrawnNumber}
               </Badge>

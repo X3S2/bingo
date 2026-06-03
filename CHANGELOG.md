@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2026-06-04
+
+### Fixed
+- **Moderator-Animation Delay**: Ballanimation auf `/moderator` startete mit merklicher Verzögerung, da sie auf das Socket-Event `number:drawn` wartete (HTTP-Roundtrip + WebSocket-Roundtrip). Behoben: Animation wird jetzt direkt im `onSuccess`-Callback der Mutation ausgelöst (sofort nach HTTP-Antwort). Das Socket-Event setzt `animNumber` nur noch, wenn noch keine Animation läuft, um Doppel-Animationen zu verhindern.
+- **Cooldown-Hinweis**: `randomDrawHint` zeigte noch "10 Sekunden Abkühlzeit" in DE und EN — auf "3 Sekunden" / "3-second" korrigiert.
+
+### Added
+- **Hilfe-Schritt 6 (Moderator-Dashboard)**: Neuer Abschnitt im Hilfe-Dialog erklärt den `!zahlziehen`-Chat-Befehl. Der angezeigte Befehlsname passt sich dynamisch an die konfigurierte Bot-Einstellung an.
+- **Admin Bot-Panel: `!zahlziehen`**: Der Befehl fehlt noch in der Command-Tabelle auf `/admin`. `CmdSlug`-Typ und `CMD_DEFAULTS` wurden um `zahlziehen` ergänzt.
+- **Letzte gezogene Zahl (Badge)**: Das Badge im Header von `/game` wird jetzt ausschließlich für Moderatoren, Streamer und Admins angezeigt — Viewer sehen es nicht mehr. Viewer erhalten die gezogene Zahl bereits durch die Ballanimation und die Nummernleiste.
+
+---
+
 ## [1.5.10] - 2026-06-03
 
 ### Fixed

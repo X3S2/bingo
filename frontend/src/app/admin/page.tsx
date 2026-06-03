@@ -212,15 +212,16 @@ export default function AdminPage() {
   // ─── Command config ───────────────────────────────────────────────────────
   type CmdPerm = 'all' | 'mod' | 'broadcaster';
   interface CmdCfg { name: string; enabled: boolean; perm: CmdPerm; }
-  type CmdSlug = 'zahl_add' | 'zahl_remove' | 'bingo' | 'buycard' | 'zahlen' | 'winners' | 'bingolink';
+  type CmdSlug = 'zahl_add' | 'zahl_remove' | 'zahlziehen' | 'bingo' | 'buycard' | 'zahlen' | 'winners' | 'bingolink';
   const CMD_DEFAULTS: Record<CmdSlug, { label: string; defaultName: string; defaultPerm: CmdPerm }> = {
-    zahl_add:    { label: 'Zahl ziehen',       defaultName: '!zahl+',          defaultPerm: 'mod' },
-    zahl_remove: { label: 'Zahl entfernen',    defaultName: '!zahl-',          defaultPerm: 'mod' },
-    bingo:       { label: 'Bingo melden',      defaultName: 'bingo',           defaultPerm: 'all' },
-    buycard:     { label: 'Karte erhalten',    defaultName: '!buycard',        defaultPerm: 'all' },
-    zahlen:      { label: 'Zahlen anzeigen',   defaultName: '!zahlen',         defaultPerm: 'all' },
-    winners:     { label: 'Gewinner anzeigen', defaultName: '!bingogewinner',  defaultPerm: 'all' },
-    bingolink:   { label: 'Spiel-Link posten', defaultName: '!bingolink',      defaultPerm: 'all' },
+    zahl_add:    { label: 'Zahl ziehen',          defaultName: '!zahl+',          defaultPerm: 'mod' },
+    zahl_remove: { label: 'Zahl entfernen',        defaultName: '!zahl-',          defaultPerm: 'mod' },
+    zahlziehen:  { label: 'Zufallszahl ziehen',    defaultName: '!zahlziehen',     defaultPerm: 'mod' },
+    bingo:       { label: 'Bingo melden',          defaultName: 'bingo',           defaultPerm: 'all' },
+    buycard:     { label: 'Karte erhalten',         defaultName: '!buycard',        defaultPerm: 'all' },
+    zahlen:      { label: 'Zahlen anzeigen',        defaultName: '!zahlen',         defaultPerm: 'all' },
+    winners:     { label: 'Gewinner anzeigen',      defaultName: '!bingogewinner',  defaultPerm: 'all' },
+    bingolink:   { label: 'Spiel-Link posten',      defaultName: '!bingolink',      defaultPerm: 'all' },
   };
   const CMD_SLUGS = Object.keys(CMD_DEFAULTS) as CmdSlug[];
   const [cmdConfigs, setCmdConfigs] = useState<Record<CmdSlug, CmdCfg>>(() =>

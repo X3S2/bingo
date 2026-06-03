@@ -1,26 +1,29 @@
 ﻿# StreamBingo
 
-**v1.5.0** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
+**v1.6.0** — Produktionsreife Twitch-Bingo-Plattform für Streamer, Moderatoren und Zuschauer.
 
 > 🇬🇧 [English version → README.md](README.md)
 
 [![CI](https://github.com/X3S2/bingo/actions/workflows/ci.yml/badge.svg)](https://github.com/X3S2/bingo/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](CHANGELOG.md)
 
 ---
 
 ## Features
 
 - **Streamer** — Bingo-Spiele erstellen und verwalten, Channel-Point-Redeems konfigurieren, Gewinnerzahl festlegen
-- **Zuschauer** — Mit Twitch anmelden, persönliche 5×5-Bingo-Karte erhalten, Zahlen markieren, Bingo melden
-- **Moderatoren** — Alle Karten live einsehen, Zahlen verwalten, nach Bingo-Nähe sortieren
+- **Zuschauer** — Mit Twitch anmelden, persönliche 5×5-Bingo-Karte erhalten, Zahlen manuell markieren, Bingo melden
+- **Moderatoren** — Alle Karten live einsehen, Zahlen ziehen/entfernen, Zufallszug mit Ballanimation, nach Bingo-Nähe sortieren
 - **Admin-Portal** — Nutzer/Rollen verwalten, Impressum & Datenschutz live editieren, Wartungsmodus, Audit-Log
 - **Echtzeit** — Alle Updates via Socket.IO WebSockets (< 500 ms Latenz)
-- **Twitch-Integration** — OAuth, IRC-Befehle (`!zahl+N`, `!zahl-N`, `bingo`), EventSub Channel-Point-Redeems
+- **Twitch-Integration** — OAuth, IRC-Befehle (`!zahl+N`, `!zahl-N`, `!zahlziehen`, `bingo`, `!buycard`), EventSub Channel-Point-Redeems
+- **Channel Points XOR !buycard** — Wenn Channel-Point-Rewards konfiguriert und aktiv sind, wird `!buycard` stillschweigend ignoriert — entweder einer der Modi, nicht beide
 - **In-App Bot-Autorisierung** — Bot-Account direkt im Admin-Panel mit der eigenen App-Client-ID autorisieren (kein externes Tool nötig)
 - **Broadcaster-Modus** — Chat-Nachrichten optional über den eigenen Streamer-Account senden statt über einen separaten Bot-Account
 - **Automatisches Token-Refresh** — Abgelaufene Twitch-Tokens werden über `RefreshingAuthProvider` automatisch erneuert und in der Datenbank gespeichert
+- **Ballanimation** — 14-Ball-Animation bei Zufallszügen, synchron für alle Zuschauer (1,2 s Flug + 3 s Final, kein Gap)
+- **Buycard-Bedingungen** — Unabhängige Follower/Abonnent-Checkboxen mit Hierarchie (Abonnenten erfüllen Follower-Bedingung); Staff immer freigestellt
 - **Hell/Dunkel-Modus** — Automatische Systemerkennung, sofortiger Wechsel
 - **Mehrsprachig** — Deutsch & Englisch (DE/EN), Cookie-basierter Wechsel
 - **Mobile-first** — Vollständig responsiv, touch-optimierte Bingo-Karten

@@ -217,7 +217,9 @@ export default function ModeratorPage({ params }: ModPage) {
       }
       return r.json() as Promise<{ number: number }>;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Trigger animation immediately from HTTP response — no socket-roundtrip delay
+      setAnimNumber(data.number);
       setRandomCooldown(3);
       if (cooldownRef.current) clearInterval(cooldownRef.current);
       cooldownRef.current = setInterval(() => {
@@ -279,7 +281,8 @@ export default function ModeratorPage({ params }: ModPage) {
     socket.emit('join:mod', { gameId: id });
     socket.on('number:drawn', (data: { number: number; isRandom?: boolean }) => {
       if (data.isRandom) {
-        setAnimNumber(data.number);
+        // Only trigger animation from socket if not already shown (moderator triggers via onSuccess)
+        setAnimNumber((prev) => prev ?? data.number);
       }
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['cards', id] });
@@ -651,6 +654,7 @@ export default function ModeratorPage({ params }: ModPage) {
             <ModHelpSection step={3} title={t('helpStep3Title')} text={t('helpStep3Text')} />
             <ModHelpSection step={4} title={t('helpStep4Title')} text={t('helpStep4Text')} />
             <ModHelpSection step={5} title={t('helpStep5Title')} text={t('helpStep5Text')} />
+            <ModHelpSection step={6} title={t('helpStep6Title')} text={t('helpStep6Text', { cmd: botCmds?.zahlziehen?.name ?? '!zahlziehen' })} />
             <div className="mt-2 rounded-md bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 px-4 py-3 text-muted-foreground text-xs">
               {t('helpFooter')}
             </div>
