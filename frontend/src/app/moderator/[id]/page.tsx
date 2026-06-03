@@ -4,12 +4,13 @@ import { useAuth } from '@/providers/auth-provider';
 import { useSocket } from '@/providers/socket-provider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { use } from 'react';
 import { useTranslations } from 'next-intl';
 import { Navbar } from '@/components/navigation/navbar';
 import { NumberBoard } from '@/components/bingo/number-board';
+import { BallAnimation } from '@/components/BallAnimation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trophy, Wifi, WifiOff, ChevronDown, ChevronUp, X, HelpCircle } from 'lucide-react';
+import { Trophy, Wifi, WifiOff, ChevronDown, ChevronUp, X, HelpCircle, Dices, UserPlus } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -68,6 +69,13 @@ export default function ModeratorPage({ params }: ModPage) {
   const [showCmds, setShowCmds] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [cookieBannerVisible, setCookieBannerVisible] = useState(false);
+  // Random draw
+  const [animNumber, setAnimNumber] = useState<number | null>(null);
+  const [randomCooldown, setRandomCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Assign card
+  const [assignInput, setAssignInput] = useState('');
+  const [assignOpen, setAssignOpen] = useState(false);
 
   useEffect(() => {
     setCookieBannerVisible(!localStorage.getItem('cookie_accepted'));
@@ -197,6 +205,55 @@ export default function ModeratorPage({ params }: ModPage) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const randomDrawMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch(`${API}/games/${id}/numbers/random`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.message || t('randomDrawError'));
+      }
+      return r.json() as Promise<{ number: number }>;
+    },
+    onSuccess: () => {
+      setRandomCooldown(10);
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+      cooldownRef.current = setInterval(() => {
+        setRandomCooldown((v) => {
+          if (v <= 1) { clearInterval(cooldownRef.current!); return 0; }
+          return v - 1;
+        });
+      }, 1000);
+      void qc.invalidateQueries({ queryKey: ['game', id] });
+      void qc.invalidateQueries({ queryKey: ['cards', id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const assignCardMutation = useMutation({
+    mutationFn: async (twitchName: string) => {
+      const r = await fetch(`${API}/games/${id}/cards/assign`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ twitchName }),
+      });
+      if (!r.ok) {
+        const e = await r.json();
+        throw new Error(e.message || t('assignCardError'));
+      }
+      return r.json();
+    },
+    onSuccess: (_, twitchName) => {
+      toast.success(t('assignCardSuccess', { name: twitchName }));
+      setAssignInput('');
+      void qc.invalidateQueries({ queryKey: ['cards', id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const removeWinnerMutation = useMutation({
     mutationFn: async (userId: string) => {
       const r = await fetch(`${API}/games/${id}/winners/${userId}`, {
@@ -220,7 +277,10 @@ export default function ModeratorPage({ params }: ModPage) {
     if (!socket || !id) return;
     socket.emit('join:game', { gameId: id });
     socket.emit('join:mod', { gameId: id });
-    socket.on('number:drawn', () => {
+    socket.on('number:drawn', (data: { number: number; isRandom?: boolean }) => {
+      if (data.isRandom) {
+        setAnimNumber(data.number);
+      }
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['cards', id] });
     });
@@ -331,28 +391,77 @@ export default function ModeratorPage({ params }: ModPage) {
         {/* Draw / remove panel */}
         <Card>
           <CardHeader><CardTitle className="text-base">{t('drawNumber')}</CardTitle></CardHeader>
-          <CardContent className="flex flex-wrap gap-2 items-center">
-            <Input
-              type="number"
-              min={1}
-              max={75}
-              placeholder={t('numberInput')}
-              value={numberInput}
-              onChange={(e) => setNumberInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleDraw()}
-              className="max-w-[150px]"
-            />
-            <Button onClick={handleDraw} disabled={!numberInput || drawMutation.isPending}>
-              {t('drawNumber')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleRemove}
-              disabled={!numberInput || removeMutation.isPending}
-            >
-              {t('removeNumber')}
-            </Button>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Input
+                type="number"
+                min={1}
+                max={75}
+                placeholder={t('numberInput')}
+                value={numberInput}
+                onChange={(e) => setNumberInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDraw()}
+                className="max-w-[150px]"
+              />
+              <Button onClick={handleDraw} disabled={!numberInput || drawMutation.isPending}>
+                {t('drawNumber')}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleRemove}
+                disabled={!numberInput || removeMutation.isPending}
+              >
+                {t('removeNumber')}
+              </Button>
+            </div>
+            {/* Random draw */}
+            <div className="flex items-center gap-2 border-t pt-3">
+              <Button
+                variant="secondary"
+                onClick={() => randomDrawMutation.mutate()}
+                disabled={randomDrawMutation.isPending || randomCooldown > 0}
+                className="flex items-center gap-1.5"
+              >
+                <Dices className="w-4 h-4" />
+                {randomCooldown > 0 ? `${t('randomDraw')} (${randomCooldown}s)` : t('randomDraw')}
+              </Button>
+              <span className="text-xs text-muted-foreground">{t('randomDrawHint')}</span>
+            </div>
           </CardContent>
+        </Card>
+
+        {/* Assign card */}
+        <Card>
+          <CardHeader
+            className="py-2 px-4 cursor-pointer select-none"
+            onClick={() => setAssignOpen((v) => !v)}
+          >
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4" />
+                {t('assignCard')}
+              </CardTitle>
+              {assignOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CardHeader>
+          {assignOpen && (
+            <CardContent className="flex flex-wrap gap-2 items-center">
+              <Input
+                placeholder={t('assignCardInputPlaceholder')}
+                value={assignInput}
+                onChange={(e) => setAssignInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && assignInput.trim() && assignCardMutation.mutate(assignInput.trim())}
+                className="max-w-[220px]"
+              />
+              <Button
+                onClick={() => assignCardMutation.mutate(assignInput.trim())}
+                disabled={!assignInput.trim() || assignCardMutation.isPending}
+              >
+                {assignCardMutation.isPending ? t('assigning') : t('assignCard')}
+              </Button>
+              <p className="text-xs text-muted-foreground w-full">{t('assignCardHint')}</p>
+            </CardContent>
+          )}
         </Card>
 
         <NumberBoard numbers={drawnNumbers} />
@@ -499,6 +608,14 @@ export default function ModeratorPage({ params }: ModPage) {
           </div>
         </div>
       </main>
+
+      {/* Random draw ball animation */}
+      {animNumber !== null && (
+        <BallAnimation number={animNumber} onDone={() => {
+          setAnimNumber(null);
+          toast.success(t('numberDrawnSuccess', { number: animNumber }));
+        }} />
+      )}
 
       {/* Floating help button */}
       <button
