@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.10] - 2026-06-03
+
+### Fixed
+- **Markierungsbug (Viewer-Karte)**: Markierung wurde nach dem Klick kurzzeitig wieder entfernt, obwohl sie im Hintergrund korrekt gespeichert wurde. Ursache: TanStack Query hat die Karte im Hintergrund neu geladen (`staleTime: 0`, `refetchOnWindowFocus: true`) → neue Array-Referenz → `useEffect` in `BingoCard` hat gefeuert → lokale Markierung wurde mit altem Serverstand (vor dem 500ms-Debounce-Save) überschrieben. Behoben durch:
+  - `BingoCard`: `useEffect` synchronisiert Server-State für Viewer nicht mehr nach dem ersten Mount (nur noch im readOnly-Moderatormodus).
+  - Card-Query: `refetchOnWindowFocus: false` + `staleTime: 5 Min` gesetzt, da `playerMarked` ausschließlich lokal verwaltet wird.
+
+---
+
 ## [1.5.9] - 2026-06-03
 
 ### Fixed

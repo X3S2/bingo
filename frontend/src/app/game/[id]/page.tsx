@@ -91,6 +91,10 @@ export default function GamePage({ params }: GamePage) {
       return r.json();
     },
     enabled: !!user,
+    // Prevent background refetches from triggering a BingoCard re-sync that
+    // would overwrite locally-toggled marks before the debounce save fires.
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 min – card only changes via explicit actions
   });
 
   const { data: winners } = useQuery({

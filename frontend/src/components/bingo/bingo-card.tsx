@@ -26,17 +26,15 @@ export function BingoCard({ grid, marked, onClaim, gameRunning, hasWon, readOnly
     marked.map((row) => [...row])
   );
 
-  // When the server sends updated marks (e.g. on initial load or page refetch),
-  // sync directly — free cell always true, rest from server playerMarked.
-  // No OR merge: that would prevent the viewer from unmarking cells.
+  // Sync from server only for readOnly (moderator) view.
+  // For viewer cards: state is managed purely locally after initial mount.
+  // Background refetches must NOT overwrite local marks — that is what caused
+  // the "mark → instantly reverts" bug (new array reference → effect fires).
   useEffect(() => {
-    setLocalMarked(
-      marked.map((row, r) =>
-        row.map((cell, c) => (grid[r][c] === null ? true : cell))
-      )
-    );
+    if (!readOnly) return;
+    setLocalMarked(marked.map((row) => [...row]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [marked]);
+  }, [marked, readOnly]);
 
   const toggleCell = (rowIdx: number, colIdx: number) => {
     if (readOnly) return;
