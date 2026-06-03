@@ -125,9 +125,12 @@ model BingoGame {
   autoStopAt      DateTime?  // specific datetime to stop
   autoStopEod     Boolean    @default(false) // stop at end of day
   // Buycard conditions – who may receive a card via !buycard or website
-  buycardCondition     String @default("all") // "all" | "follow" | "sub"
-  buycardMinFollowDays Int    @default(0)      // minimum days following the channel
-  buycardMinSubMonths  Int    @default(0)      // minimum months subscribed
+  // Both flags can be active simultaneously: viewer qualifies if they meet EITHER condition.
+  // ADMIN/STREAMER/MODERATOR always bypass these checks.
+  buycardAllowFollowers  Boolean @default(false) // followers with >= buycardMinFollowDays qualify
+  buycardAllowSubscribers Boolean @default(false) // subscribers with >= buycardMinSubMonths qualify
+  buycardMinFollowDays   Int     @default(0)      // minimum days following the channel
+  buycardMinSubMonths    Int     @default(0)      // minimum months subscribed
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   startedAt       DateTime?

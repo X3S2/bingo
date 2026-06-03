@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.7] - 2026-06-03
+
+### Fixed
+- **Streamer/Moderator/Admin bypass**: ADMIN, STREAMER, and MODERATOR roles now always bypass buycard conditions — the streamer can no longer be blocked from joining their own game. Also applies to IRC `!buycard`.
+- **Viewer card display**: On `/game`, the BingoCard now shows only the viewer's own manual marks (`playerMarked`) — drawn numbers are no longer auto-highlighted on the card. The viewer decides themselves which cells to mark.
+- **Join error reason shown inline**: When `/join` returns 403 (condition not met), the exact reason (not following, not subscribed, follow days, etc.) is now displayed as an amber warning box on the page instead of a generic "Fehler" toast.
+- **Random draw already-drawn exclusion**: Already confirmed working — `drawRandomNumber()` builds a set of drawn numbers and only picks from the remaining pool.
+
+### Changed
+- **Buycard conditions redesign**: Replaced radio buttons (all / follow / sub) with independent checkboxes. Both "Followers" and "Subscribers" can be enabled simultaneously — a viewer qualifies if they meet *either* condition. Subscribers automatically satisfy the follower condition (hierarchy). No boxes checked = everyone can play.
+- **Schema**: Removed `buycardCondition String` field; replaced with `buycardAllowFollowers Boolean` and `buycardAllowSubscribers Boolean`. `buycardMinFollowDays` and `buycardMinSubMonths` remain.
+- **BallAnimation**: 14 balls instead of 5, distributed evenly around 360° with random offsets. Flying phase reduced to 1.2s. Final number appears immediately after balls disappear (no 5–10s gap). Pulse ring added behind the final ball. Variable ball sizes for visual variety.
+
+---
+
 ## [1.5.6] - 2026-06-03
 
 ### Fixed

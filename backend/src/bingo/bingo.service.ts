@@ -56,7 +56,8 @@ export class BingoService {
       autoStopEnabled?: boolean;
       autoStopEod?: boolean;
       autoStopAt?: string;
-      buycardCondition?: string;
+      buycardAllowFollowers?: boolean;
+      buycardAllowSubscribers?: boolean;
       buycardMinFollowDays?: number;
       buycardMinSubMonths?: number;
     },
@@ -79,7 +80,8 @@ export class BingoService {
         autoStopEnabled: opts?.autoStopEnabled ?? false,
         autoStopEod: opts?.autoStopEod ?? false,
         autoStopAt: opts?.autoStopAt ? new Date(opts.autoStopAt) : null,
-        buycardCondition: opts?.buycardCondition ?? 'all',
+        buycardAllowFollowers: opts?.buycardAllowFollowers ?? false,
+        buycardAllowSubscribers: opts?.buycardAllowSubscribers ?? false,
         buycardMinFollowDays: opts?.buycardMinFollowDays ?? 0,
         buycardMinSubMonths: opts?.buycardMinSubMonths ?? 0,
       },
@@ -425,18 +427,33 @@ export class BingoService {
 
   /**
    * Check if a viewer is eligible to receive a card based on the game's buycard conditions.
+   *
+   * Logic:
+   *  - ADMIN / STREAMER / MODERATOR always bypass all conditions.
+   *  - If neither flag is set → everyone is eligible.
+   *  - Both flags can be active simultaneously: viewer qualifies if they meet EITHER condition.
+   *  - Subscribers automatically satisfy follower conditions (hierarchy).
+   *
    * @param irc  When called from IRC, pass { isSubscribed, subMonths } read from badge-info.
    *             When called from the web API, leave undefined (will use Twitch REST API).
+   * @param userRole  The role of the requesting user (bypasses checks for staff roles).
    */
   async checkBuycardEligibility(
     gameId: string,
     viewerTwitchId: string,
     irc?: { isSubscribed: boolean; subMonths: number },
+    userRole?: string,
   ): Promise<BuycardEligibilityResult> {
+    // Staff roles always bypass buycard conditions
+    if (userRole && ['ADMIN', 'STREAMER', 'MODERATOR'].includes(userRole)) {
+      return { eligible: true };
+    }
+
     const game = await this.prisma.bingoGame.findUnique({
       where: { id: gameId },
       select: {
-        buycardCondition: true,
+        buycardAllowFollowers: true,
+        buycardAllowSubscribers: true,
         buycardMinFollowDays: true,
         buycardMinSubMonths: true,
         streamerId: true,
@@ -444,8 +461,10 @@ export class BingoService {
     });
     if (!game) return { eligible: true };
 
-    const condition = game.buycardCondition ?? 'all';
-    if (condition === 'all') return { eligible: true };
+    // If neither restriction is active → everyone can join
+    if (!game.buycardAllowFollowers && !game.buycardAllowSubscribers) {
+      return { eligible: true };
+    }
 
     const streamer = await this.prisma.user.findUnique({
       where: { id: game.streamerId },
@@ -454,9 +473,58 @@ export class BingoService {
     if (!streamer?.twitchAccessToken) return { eligible: false, reason: 'scope_missing' };
 
     const clientId = await this.getClientId();
+    const grantedScopes = (streamer.twitchScopes || '').split(/[\s,]+/).filter(Boolean);
 
-    if (condition === 'follow') {
-      const grantedScopes = (streamer.twitchScopes || '').split(' ');
+    // ── Check subscriber condition (also satisfies follower condition) ──────
+    let isSubscribed = false;
+    let subMonths = 0;
+    if (game.buycardAllowSubscribers || game.buycardAllowFollowers) {
+      if (irc !== undefined) {
+        isSubscribed = irc.isSubscribed;
+        subMonths = irc.subMonths;
+      } else if (grantedScopes.includes('channel:read:subscriptions')) {
+        try {
+          const url = `https://api.twitch.tv/helix/subscriptions?broadcaster_id=${streamer.twitchId}&user_id=${viewerTwitchId}`;
+          const resp = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${streamer.twitchAccessToken}`,
+              'Client-Id': clientId,
+            },
+          });
+          if (resp.ok) {
+            const data = await resp.json() as any;
+            isSubscribed = (data.data?.length ?? 0) > 0;
+          }
+        } catch { /* ignore — will fall through to follower check */ }
+      }
+    }
+
+    // Subscriber qualifies when subscriber flag is set and minMonths condition is met
+    if (game.buycardAllowSubscribers && isSubscribed) {
+      if (irc !== undefined) {
+        // IRC: exact month count available
+        if (subMonths >= game.buycardMinSubMonths) return { eligible: true };
+        // Not enough months but subscribed → report sub_months error (only if no follower path available)
+        if (!game.buycardAllowFollowers) {
+          return {
+            eligible: false,
+            reason: 'sub_months',
+            currentValue: subMonths,
+            requiredValue: game.buycardMinSubMonths,
+          };
+        }
+      } else {
+        // Web: month count unavailable — accept if minMonths is 0, hint to use IRC otherwise
+        if (game.buycardMinSubMonths === 0) return { eligible: true };
+        return { eligible: true, reason: 'sub_months_irc_only' };
+      }
+    }
+
+    // ── Check follower condition ──────────────────────────────────────────────
+    if (game.buycardAllowFollowers) {
+      // Subscribers implicitly satisfy follower requirement
+      if (isSubscribed) return { eligible: true };
+
       if (!grantedScopes.includes('moderator:read:followers')) {
         return { eligible: false, reason: 'scope_missing' };
       }
@@ -473,6 +541,7 @@ export class BingoService {
         const data = await resp.json() as any;
         const entry = data.data?.[0];
         if (!entry) {
+          // Not following — if subscriber path is also enabled, report as not following
           return {
             eligible: false,
             reason: 'not_following',
@@ -497,59 +566,13 @@ export class BingoService {
       }
     }
 
-    if (condition === 'sub') {
-      if (irc !== undefined) {
-        // IRC path: exact month count available from badge-info
-        if (!irc.isSubscribed) {
-          return {
-            eligible: false,
-            reason: 'not_subscribed',
-            requiredValue: game.buycardMinSubMonths,
-          };
-        }
-        if (irc.subMonths < game.buycardMinSubMonths) {
-          return {
-            eligible: false,
-            reason: 'sub_months',
-            currentValue: irc.subMonths,
-            requiredValue: game.buycardMinSubMonths,
-          };
-        }
-        return { eligible: true };
-      } else {
-        // Web path: check subscription via REST API (no month count available)
-        const grantedScopes = (streamer.twitchScopes || '').split(' ');
-        if (!grantedScopes.includes('channel:read:subscriptions')) {
-          return { eligible: false, reason: 'scope_missing' };
-        }
-        try {
-          const url = `https://api.twitch.tv/helix/subscriptions?broadcaster_id=${streamer.twitchId}&user_id=${viewerTwitchId}`;
-          const resp = await fetch(url, {
-            headers: {
-              Authorization: `Bearer ${streamer.twitchAccessToken}`,
-              'Client-Id': clientId,
-            },
-          });
-          if (resp.status === 401) return { eligible: false, reason: 'scope_missing' };
-          if (!resp.ok) return { eligible: false, reason: 'scope_missing' };
-          const data = await resp.json() as any;
-          const subEntry = data.data?.[0];
-          if (!subEntry) {
-            return {
-              eligible: false,
-              reason: 'not_subscribed',
-              requiredValue: game.buycardMinSubMonths,
-            };
-          }
-          // Subscribed — month count is only available via IRC
-          if (game.buycardMinSubMonths > 0) {
-            return { eligible: true, reason: 'sub_months_irc_only' };
-          }
-          return { eligible: true };
-        } catch {
-          return { eligible: false, reason: 'scope_missing' };
-        }
-      }
+    // Only subscriber condition was active but viewer is not subscribed
+    if (game.buycardAllowSubscribers) {
+      return {
+        eligible: false,
+        reason: 'not_subscribed',
+        requiredValue: game.buycardMinSubMonths,
+      };
     }
 
     return { eligible: true };

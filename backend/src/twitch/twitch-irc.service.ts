@@ -706,10 +706,13 @@ export class TwitchIrcService implements OnModuleInit, OnModuleDestroy {
       }
 
       // Buycard conditions check (IRC path – sub months from badge-info available)
+      // Broadcaster and moderators always bypass conditions
+      const isBroadcasterOrMod = msg.userInfo.isBroadcaster || msg.userInfo.isMod;
       const isSubscribed = msg.userInfo.isSubscriber || msg.userInfo.isBroadcaster;
       const subMonthsStr = msg.userInfo.badgeInfo?.get('subscriber');
       const subMonths = isSubscribed ? parseInt(subMonthsStr ?? '0', 10) : 0;
-      const eligibility = await this.bingoService.checkBuycardEligibility(gameId, twitchId, { isSubscribed, subMonths });
+      const ircRole = isBroadcasterOrMod ? 'MODERATOR' : user.role;
+      const eligibility = await this.bingoService.checkBuycardEligibility(gameId, twitchId, { isSubscribed, subMonths }, ircRole);
 
       if (!eligibility.eligible) {
         let denyMsg = '';

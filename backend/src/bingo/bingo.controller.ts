@@ -26,7 +26,6 @@ import {
   MinLength,
   IsBoolean,
   IsArray,
-  IsIn,
 } from 'class-validator';
 
 class CreateGameDto {
@@ -36,7 +35,8 @@ class CreateGameDto {
   @IsBoolean() @IsOptional() autoStopEnabled?: boolean;
   @IsBoolean() @IsOptional() autoStopEod?: boolean;
   @IsString() @IsOptional() autoStopAt?: string;
-  @IsString() @IsIn(['all', 'follow', 'sub']) @IsOptional() buycardCondition?: string;
+  @IsBoolean() @IsOptional() buycardAllowFollowers?: boolean;
+  @IsBoolean() @IsOptional() buycardAllowSubscribers?: boolean;
   @IsInt() @Min(0) @IsOptional() buycardMinFollowDays?: number;
   @IsInt() @Min(0) @IsOptional() buycardMinSubMonths?: number;
 }
@@ -65,7 +65,8 @@ export class BingoController {
       autoStopEnabled: dto.autoStopEnabled,
       autoStopEod: dto.autoStopEod,
       autoStopAt: dto.autoStopAt,
-      buycardCondition: dto.buycardCondition,
+      buycardAllowFollowers: dto.buycardAllowFollowers,
+      buycardAllowSubscribers: dto.buycardAllowSubscribers,
       buycardMinFollowDays: dto.buycardMinFollowDays,
       buycardMinSubMonths: dto.buycardMinSubMonths,
     });
@@ -139,7 +140,7 @@ export class BingoController {
   /** Any authenticated user can join a game as a player (creates own card, subject to buycard conditions) */
   @Post(':id/join')
   async joinGame(@Param('id') id: string, @Req() req: any) {
-    const eligibility = await this.bingoService.checkBuycardEligibility(id, req.user.twitchId);
+    const eligibility = await this.bingoService.checkBuycardEligibility(id, req.user.twitchId, undefined, req.user.role);
     if (!eligibility.eligible && eligibility.reason !== 'sub_months_irc_only') {
       throw new HttpException(
         {
@@ -158,7 +159,7 @@ export class BingoController {
   /** Check buycard eligibility for the current user */
   @Get(':id/buycard-eligibility')
   getBuycardEligibility(@Param('id') id: string, @Req() req: any) {
-    return this.bingoService.checkBuycardEligibility(id, req.user.twitchId);
+    return this.bingoService.checkBuycardEligibility(id, req.user.twitchId, undefined, req.user.role);
   }
 
   @Post(':id/numbers/random')

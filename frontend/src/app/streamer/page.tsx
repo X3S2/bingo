@@ -72,7 +72,8 @@ export default function StreamerPage() {
     autoStopEnabled: true,
     autoStopEod: true,
     autoStopAt: '',
-    buycardCondition: 'all' as 'all' | 'follow' | 'sub',
+    buycardAllowFollowers: false,
+    buycardAllowSubscribers: false,
     buycardMinFollowDays: 0,
     buycardMinSubMonths: 0,
   });
@@ -170,7 +171,8 @@ export default function StreamerPage() {
         maxWinners: form.maxWinners,
         autoStopEnabled: form.autoStopEnabled,
         autoStopEod: form.autoStopEod,
-        buycardCondition: form.buycardCondition,
+        buycardAllowFollowers: form.buycardAllowFollowers,
+        buycardAllowSubscribers: form.buycardAllowSubscribers,
         buycardMinFollowDays: form.buycardMinFollowDays,
         buycardMinSubMonths: form.buycardMinSubMonths,
       };
@@ -641,48 +643,59 @@ export default function StreamerPage() {
             {/* Buycard conditions */}
             <div className="flex flex-col gap-3 rounded-lg border p-3">
               <p className="text-sm font-semibold">{t('buycardConditionLabel')}</p>
-              <div className="flex flex-wrap gap-3">
-                {(['all', 'follow', 'sub'] as const).map((opt) => (
-                  <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
-                    <input
-                      type="radio"
-                      name="buycardCondition"
-                      value={opt}
-                      checked={form.buycardCondition === opt}
-                      onChange={() => setForm({ ...form, buycardCondition: opt })}
-                      className="accent-primary"
+              <p className="text-xs text-muted-foreground">{t('buycardConditionHint')}</p>
+              <div className="flex flex-col gap-3">
+                {/* Follower checkbox */}
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Checkbox
+                      checked={form.buycardAllowFollowers}
+                      onCheckedChange={(v) => setForm({ ...form, buycardAllowFollowers: Boolean(v) })}
                     />
-                    {t(`buycardCondition_${opt}`)}
+                    {t('buycardCondition_follow')}
                   </label>
-                ))}
+                  {form.buycardAllowFollowers && (
+                    <div className="flex flex-col gap-1 ml-6">
+                      <Label htmlFor="minFollowDays">{t('buycardMinFollowDays')}</Label>
+                      <Input
+                        id="minFollowDays"
+                        type="number"
+                        min={0}
+                        className="max-w-[160px]"
+                        value={form.buycardMinFollowDays}
+                        onChange={(e) => setForm({ ...form, buycardMinFollowDays: parseInt(e.target.value, 10) || 0 })}
+                      />
+                    </div>
+                  )}
+                </div>
+                {/* Subscriber checkbox */}
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Checkbox
+                      checked={form.buycardAllowSubscribers}
+                      onCheckedChange={(v) => setForm({ ...form, buycardAllowSubscribers: Boolean(v) })}
+                    />
+                    {t('buycardCondition_sub')}
+                  </label>
+                  {form.buycardAllowSubscribers && (
+                    <div className="flex flex-col gap-1 ml-6">
+                      <Label htmlFor="minSubMonths">{t('buycardMinSubMonths')}</Label>
+                      <Input
+                        id="minSubMonths"
+                        type="number"
+                        min={0}
+                        className="max-w-[160px]"
+                        value={form.buycardMinSubMonths}
+                        onChange={(e) => setForm({ ...form, buycardMinSubMonths: parseInt(e.target.value, 10) || 0 })}
+                      />
+                      <p className="text-xs text-muted-foreground">{t('buycardSubMonthsHint')}</p>
+                    </div>
+                  )}
+                </div>
+                {!form.buycardAllowFollowers && !form.buycardAllowSubscribers && (
+                  <p className="text-xs text-muted-foreground">{t('buycardCondition_all')}</p>
+                )}
               </div>
-              {form.buycardCondition === 'follow' && (
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="minFollowDays">{t('buycardMinFollowDays')}</Label>
-                  <Input
-                    id="minFollowDays"
-                    type="number"
-                    min={0}
-                    className="max-w-[160px]"
-                    value={form.buycardMinFollowDays}
-                    onChange={(e) => setForm({ ...form, buycardMinFollowDays: parseInt(e.target.value, 10) || 0 })}
-                  />
-                </div>
-              )}
-              {form.buycardCondition === 'sub' && (
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="minSubMonths">{t('buycardMinSubMonths')}</Label>
-                  <Input
-                    id="minSubMonths"
-                    type="number"
-                    min={0}
-                    className="max-w-[160px]"
-                    value={form.buycardMinSubMonths}
-                    onChange={(e) => setForm({ ...form, buycardMinSubMonths: parseInt(e.target.value, 10) || 0 })}
-                  />
-                  <p className="text-xs text-muted-foreground">{t('buycardSubMonthsHint')}</p>
-                </div>
-              )}
             </div>
           </CardContent>
           <CardFooter>

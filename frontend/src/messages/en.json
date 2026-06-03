@@ -174,9 +174,10 @@
     "cpTosLink": "Twitch Community Guidelines",
     "cpTosAccept": "I have read the Twitch Community Guidelines and act at my own responsibility when using this feature.",
     "buycardConditionLabel": "Card Access – Conditions",
-    "buycardCondition_all": "Everyone",
-    "buycardCondition_follow": "Followers Only",
-    "buycardCondition_sub": "Subscribers Only",
+    "buycardConditionHint": "Check who is allowed to play. Subscribers automatically satisfy the follower condition too. Nothing checked = everyone can play.",
+    "buycardCondition_all": "Nothing checked → Everyone can play",
+    "buycardCondition_follow": "Followers (with optional minimum follow duration)",
+    "buycardCondition_sub": "Subscribers (with optional minimum subscription duration)",
     "buycardMinFollowDays": "Minimum Follow Duration (days)",
     "buycardMinSubMonths": "Minimum Subscription Months",
     "buycardSubMonthsHint": "Note: Exact subscription duration can only be checked via Twitch Chat (!buycard). The website only checks if the user is subscribed at all."

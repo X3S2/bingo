@@ -173,9 +173,10 @@
     "cpTosLink": "Twitch Community Guidelines",
     "cpTosAccept": "Ich habe die Twitch Community Guidelines gelesen und handle bei der Nutzung dieser Funktion auf eigene Verantwortung.",
     "buycardConditionLabel": "Karte erhalten – Bedingungen",
-    "buycardCondition_all": "Jeder",
-    "buycardCondition_follow": "Nur Follower",
-    "buycardCondition_sub": "Nur Abonnenten",
+    "buycardConditionHint": "Hake an, wer mitspielen darf. Abonnenten erfüllen automatisch auch die Follower-Bedingung. Nichts angehakt = jeder darf mitspielen.",
+    "buycardCondition_all": "Kein Haken gesetzt → Jeder darf mitspielen",
+    "buycardCondition_follow": "Follower (mit optionaler Mindest-Followzeit)",
+    "buycardCondition_sub": "Abonnenten (mit optionaler Mindest-Abo-Dauer)",
     "buycardMinFollowDays": "Mindest-Followzeit (Tage)",
     "buycardMinSubMonths": "Mindest-Abo-Monate",
     "buycardSubMonthsHint": "Hinweis: Die genaue Abo-Dauer kann nur via Twitch Chat (!buycard) geprüft werden. Im Browser wird nur geprüft, ob der Nutzer überhaupt abonniert ist."

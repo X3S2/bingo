@@ -38,6 +38,11 @@ export default function GamePage({ params }: GamePage) {
   const [animNumber, setAnimNumber] = useState<number | null>(null);
   const [viewerHelpOpen, setViewerHelpOpen] = useState(false);
   const [cookieBannerVisible, setCookieBannerVisible] = useState(false);
+  const [joinError, setJoinError] = useState<{
+    reason?: string;
+    currentValue?: number;
+    requiredValue?: number;
+  } | null>(null);
 
   useEffect(() => {
     setCookieBannerVisible(!localStorage.getItem('cookie_accepted'));
@@ -162,15 +167,20 @@ export default function GamePage({ params }: GamePage) {
       });
       if (!r.ok) {
         const e = await r.json();
+        // Store structured reason for inline display
+        if (e.code === 'BUYCARD_CONDITION_NOT_MET') {
+          setJoinError({ reason: e.reason, currentValue: e.currentValue, requiredValue: e.requiredValue });
+        }
         throw new Error(e.message || 'Error');
       }
       return r.json();
     },
     onSuccess: () => {
+      setJoinError(null);
       toast.success(t('joinedGame'));
       void qc.invalidateQueries({ queryKey: ['card', id] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: () => { /* reason shown inline */ },
   });
 
   const claimMutation = useMutation({
@@ -370,9 +380,10 @@ export default function GamePage({ params }: GamePage) {
           <>
             <BingoCard
               grid={cardData.grid}
-              marked={cardData.marked.map((row: boolean[], r: number) =>
-                row.map((cell: boolean, c: number) => cell || (cardData.playerMarked?.[r]?.[c] ?? false))
-              )}
+              marked={cardData.playerMarked
+                ? (cardData.playerMarked as boolean[][]).map((row: boolean[]) => row.map((cell: boolean) => cell))
+                : cardData.grid.map((row: unknown[]) => row.map(() => false))
+              }
               onClaim={() => claimMutation.mutate()}
               gameRunning={game.status === 'RUNNING'}
               hasWon={hasWon}
@@ -390,29 +401,25 @@ export default function GamePage({ params }: GamePage) {
           </div>
         ) : game.status === 'RUNNING' ? (
           <div className="flex flex-col gap-4 py-8 max-w-md mx-auto w-full">
-            {/* Eligibility warning for conditions-gated games */}
-            {eligibility && !eligibility.eligible && (
+            {/* Eligibility warning from pre-check */}
+            {(eligibility && !eligibility.eligible) || joinError ? (
               <div className="rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-4 flex items-start gap-2 text-sm">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-0.5">
-                  {eligibility.reason === 'not_following' && (
-                    <p>{t('eligibilityNotFollowing')}</p>
-                  )}
-                  {eligibility.reason === 'follow_days' && (
-                    <p>{t('eligibilityFollowDays', { current: eligibility.currentValue ?? 0, required: eligibility.requiredValue ?? 0 })}</p>
-                  )}
-                  {eligibility.reason === 'not_subscribed' && (
-                    <p>{t('eligibilityNotSubscribed')}</p>
-                  )}
-                  {eligibility.reason === 'sub_months' && (
-                    <p>{t('eligibilitySubMonths', { current: eligibility.currentValue ?? 0, required: eligibility.requiredValue ?? 0 })}</p>
-                  )}
-                  {eligibility.reason === 'scope_missing' && (
-                    <p>{t('eligibilityScopeMissing')}</p>
-                  )}
+                  {(() => {
+                    const r = joinError?.reason ?? eligibility?.reason;
+                    const cur = joinError?.currentValue ?? eligibility?.currentValue;
+                    const req = joinError?.requiredValue ?? eligibility?.requiredValue;
+                    if (r === 'not_following') return <p>{t('eligibilityNotFollowing')}</p>;
+                    if (r === 'follow_days') return <p>{t('eligibilityFollowDays', { current: cur ?? 0, required: req ?? 0 })}</p>;
+                    if (r === 'not_subscribed') return <p>{t('eligibilityNotSubscribed')}</p>;
+                    if (r === 'sub_months') return <p>{t('eligibilitySubMonths', { current: cur ?? 0, required: req ?? 0 })}</p>;
+                    if (r === 'scope_missing') return <p>{t('eligibilityScopeMissing')}</p>;
+                    return null;
+                  })()}
                 </div>
               </div>
-            )}
+            ) : null}
             {eligibility?.reason === 'sub_months_irc_only' && (
               <div className="rounded-lg border border-blue-400 bg-blue-50 dark:bg-blue-950/30 p-4 text-sm text-muted-foreground">
                 {t('eligibilitySubMonthsIrcOnly', { cmd: botCmds?.buycard?.name ?? '!buycard' })}
