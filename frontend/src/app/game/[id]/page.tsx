@@ -12,11 +12,12 @@ import { Navbar } from '@/components/navigation/navbar';
 import { BingoCard } from '@/components/bingo/bingo-card';
 import { NumberBoard } from '@/components/bingo/number-board';
 import { WinnerBoard } from '@/components/bingo/winner-board';
+import { BallAnimation } from '@/components/BallAnimation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Wifi, WifiOff, HelpCircle, X } from 'lucide-react';
+import { Wifi, WifiOff, HelpCircle, X, AlertTriangle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const API = process.env.NEXT_PUBLIC_API_URL!;
@@ -34,6 +35,7 @@ export default function GamePage({ params }: GamePage) {
   const t = useTranslations('bingo');
   const [socketConnected, setSocketConnected] = useState(() => socket?.connected ?? false);
   const [lastDrawnNumber, setLastDrawnNumber] = useState<number | null>(null);
+  const [animNumber, setAnimNumber] = useState<number | null>(null);
   const [viewerHelpOpen, setViewerHelpOpen] = useState(false);
   const [cookieBannerVisible, setCookieBannerVisible] = useState(false);
 
@@ -136,6 +138,22 @@ export default function GamePage({ params }: GamePage) {
     staleTime: 60_000,
   });
 
+  // Buycard eligibility — only fetch if user has no card yet
+  const { data: eligibility } = useQuery<{
+    eligible: boolean;
+    reason?: 'not_following' | 'follow_days' | 'not_subscribed' | 'sub_months' | 'scope_missing' | 'sub_months_irc_only';
+    currentValue?: number;
+    requiredValue?: number;
+  }>({
+    queryKey: ['buycard-eligibility', id],
+    queryFn: async () => {
+      const r = await fetch(`${API}/games/${id}/buycard-eligibility`, { credentials: 'include' });
+      if (!r.ok) return null;
+      return r.json();
+    },
+    enabled: !!user && !cardData && game?.status === 'RUNNING',
+  });
+
   const joinMutation = useMutation({
     mutationFn: async () => {
       const r = await fetch(`${API}/games/${id}/join`, {
@@ -207,9 +225,13 @@ export default function GamePage({ params }: GamePage) {
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
 
-    socket.on('number:drawn', (data: { number: number }) => {
+    socket.on('number:drawn', (data: { number: number; isRandom?: boolean }) => {
       setLastDrawnNumber(data.number);
-      toast.info(t('numberDrawnToast', { number: data.number }), { duration: 4000 });
+      if (data.isRandom) {
+        setAnimNumber(data.number);
+      } else {
+        toast.info(t('numberDrawnToast', { number: data.number }), { duration: 4000 });
+      }
       void qc.invalidateQueries({ queryKey: ['game', id] });
       void qc.invalidateQueries({ queryKey: ['card', id] });
     });
@@ -348,7 +370,9 @@ export default function GamePage({ params }: GamePage) {
           <>
             <BingoCard
               grid={cardData.grid}
-              marked={cardData.marked}
+              marked={cardData.marked.map((row: boolean[], r: number) =>
+                row.map((cell: boolean, c: number) => cell || (cardData.playerMarked?.[r]?.[c] ?? false))
+              )}
               onClaim={() => claimMutation.mutate()}
               gameRunning={game.status === 'RUNNING'}
               hasWon={hasWon}
@@ -366,6 +390,34 @@ export default function GamePage({ params }: GamePage) {
           </div>
         ) : game.status === 'RUNNING' ? (
           <div className="flex flex-col gap-4 py-8 max-w-md mx-auto w-full">
+            {/* Eligibility warning for conditions-gated games */}
+            {eligibility && !eligibility.eligible && (
+              <div className="rounded-lg border border-amber-500 bg-amber-50 dark:bg-amber-950/30 p-4 flex items-start gap-2 text-sm">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-0.5">
+                  {eligibility.reason === 'not_following' && (
+                    <p>{t('eligibilityNotFollowing')}</p>
+                  )}
+                  {eligibility.reason === 'follow_days' && (
+                    <p>{t('eligibilityFollowDays', { current: eligibility.currentValue ?? 0, required: eligibility.requiredValue ?? 0 })}</p>
+                  )}
+                  {eligibility.reason === 'not_subscribed' && (
+                    <p>{t('eligibilityNotSubscribed')}</p>
+                  )}
+                  {eligibility.reason === 'sub_months' && (
+                    <p>{t('eligibilitySubMonths', { current: eligibility.currentValue ?? 0, required: eligibility.requiredValue ?? 0 })}</p>
+                  )}
+                  {eligibility.reason === 'scope_missing' && (
+                    <p>{t('eligibilityScopeMissing')}</p>
+                  )}
+                </div>
+              </div>
+            )}
+            {eligibility?.reason === 'sub_months_irc_only' && (
+              <div className="rounded-lg border border-blue-400 bg-blue-50 dark:bg-blue-950/30 p-4 text-sm text-muted-foreground">
+                {t('eligibilitySubMonthsIrcOnly', { cmd: botCmds?.buycard?.name ?? '!buycard' })}
+              </div>
+            )}
             <div className="rounded-lg border bg-muted/40 p-5 flex flex-col gap-3 text-sm">
               <p className="font-semibold text-base">{t('noCardTitle')}</p>
               <p className="text-muted-foreground">
@@ -398,6 +450,14 @@ export default function GamePage({ params }: GamePage) {
         <NumberBoard numbers={drawnNumbers} />
         <WinnerBoard winners={winners ?? []} />
       </main>
+
+      {/* Random draw animation */}
+      {animNumber !== null && (
+        <BallAnimation number={animNumber} onDone={() => {
+          setAnimNumber(null);
+          toast.info(t('numberDrawnToast', { number: animNumber }), { duration: 3000 });
+        }} />
+      )}
 
       {/* Floating viewer help button — small and subtle */}
       <button

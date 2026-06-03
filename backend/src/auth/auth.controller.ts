@@ -129,7 +129,11 @@ export class AuthController {
       const twitchUser = await this.authService.getTwitchUser(tokenData.access_token);
       const { accessToken } = await this.authService.loginWithTwitch(
         twitchUser,
-        { accessToken: tokenData.access_token, refreshToken: tokenData.refresh_token },
+        {
+          accessToken: tokenData.access_token,
+          refreshToken: tokenData.refresh_token,
+          scope: tokenData.scope ?? '',
+        },
         inviteToken,
       );
 

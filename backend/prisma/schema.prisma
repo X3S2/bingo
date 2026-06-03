@@ -74,6 +74,7 @@ model User {
   // Stored Twitch OAuth tokens for API calls (e.g. Channel Points)
   twitchAccessToken  String?
   twitchRefreshToken String?
+  twitchScopes       String    @default("") // space-separated granted OAuth scopes
   modLastCheckedAt   DateTime?
 
   channelModAccess   ChannelModAccess[]
@@ -123,6 +124,10 @@ model BingoGame {
   autoStopEnabled Boolean    @default(false)
   autoStopAt      DateTime?  // specific datetime to stop
   autoStopEod     Boolean    @default(false) // stop at end of day
+  // Buycard conditions – who may receive a card via !buycard or website
+  buycardCondition     String @default("all") // "all" | "follow" | "sub"
+  buycardMinFollowDays Int    @default(0)      // minimum days following the channel
+  buycardMinSubMonths  Int    @default(0)      // minimum months subscribed
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
   startedAt       DateTime?
@@ -150,8 +155,10 @@ model BingoCard {
   userId    String
   // JSON: number[][] (5x5), null = free center square
   grid      Json
-  // JSON: boolean[][] (5x5) – which cells are marked
+  // JSON: boolean[][] (5x5) – server-tracked marks (drawn numbers only, used for win check)
   marked    Json     @default("[[false,false,false,false,false],[false,false,false,false,false],[false,false,true,false,false],[false,false,false,false,false],[false,false,false,false,false]]")
+  // JSON: boolean[][] (5x5) – player visual marks (optional, not used for win check)
+  playerMarked Json  @default("[[false,false,false,false,false],[false,false,false,false,false],[false,false,false,false,false],[false,false,false,false,false],[false,false,false,false,false]]")
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

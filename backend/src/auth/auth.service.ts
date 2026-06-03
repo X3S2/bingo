@@ -38,9 +38,12 @@ export class AuthService {
    * Called after successful Twitch OAuth callback.
    * Creates or updates the user, returns a JWT.
    */
+  // Scopes that every user must have (added in v1.5.1); missing → force re-auth
+  static readonly REQUIRED_SCOPES = ['moderator:read:followers', 'channel:read:subscriptions'];
+
   async loginWithTwitch(
     userData: TwitchUserData,
-    tokens?: { accessToken: string; refreshToken: string },
+    tokens?: { accessToken: string; refreshToken: string; scope?: string },
     inviteToken?: string,
   ): Promise<{ accessToken: string; user: any }> {
     let user = await this.prisma.user.findUnique({
@@ -69,6 +72,7 @@ export class AuthService {
           role,
           twitchAccessToken: tokens?.accessToken,
           twitchRefreshToken: tokens?.refreshToken,
+          twitchScopes: tokens?.scope ?? '',
         },
       });
 
@@ -89,6 +93,7 @@ export class AuthService {
           ...(tokens && {
             twitchAccessToken: tokens.accessToken,
             twitchRefreshToken: tokens.refreshToken,
+            twitchScopes: tokens.scope ?? '',
           }),
         },
       });
@@ -155,6 +160,12 @@ export class AuthService {
     });
 
     if (!user || user.isBanned) return null;
+
+    // Enforce re-authentication when required OAuth scopes are missing
+    const grantedScopes = (user.twitchScopes || '').split(' ').filter(Boolean);
+    const hasAllScopes = AuthService.REQUIRED_SCOPES.every(s => grantedScopes.includes(s));
+    if (!hasAllScopes) return null;
+
     return user;
   }
 
@@ -241,6 +252,8 @@ export class AuthService {
       'channel:read:redemptions',
       'channel:manage:redemptions',
       'moderator:read:chatters',
+      'moderator:read:followers',
+      'channel:read:subscriptions',
       'chat:read',
       'chat:edit',
     ].join(' ');
